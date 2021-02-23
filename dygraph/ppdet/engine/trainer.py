@@ -98,6 +98,9 @@ class Trainer(object):
         self._init_metrics()
         self._reset_metrics()
 
+        self.adversarial = True
+        self.adversarial_lr = 0.005
+
     def _init_callbacks(self):
         if self.mode == 'train':
             self._callbacks = [LogPrinter(self), Checkpointer(self)]
@@ -202,6 +205,19 @@ class Trainer(object):
                 self.status['data_time'].update(time.time() - iter_tic)
                 self.status['step_id'] = step_id
                 self._compose_callback.on_step_begin(self.status)
+
+                if self.adversarial:
+                    # print(list(data.keys()))
+                    # print(type(data['image']))
+                    data['image'].stop_gradient = False
+                    outputs = model(data)
+                    loss = outputs['loss']
+                    loss.backward()
+                    
+                    data['image'] = data['image'] - self.adversarial_lr * paddle.to_tensor(data['image'].grad, place=data['image'].place)
+                    data['image'].stop_gradient = True
+                    for p in model.parameters():
+                        p.clear_grad()
 
                 # model forward
                 outputs = model(data)
