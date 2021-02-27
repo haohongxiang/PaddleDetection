@@ -206,7 +206,8 @@ class Trainer(object):
                 self.status['step_id'] = step_id
                 self._compose_callback.on_step_begin(self.status)
 
-                if self.adversarial and random.random() < 0.5:
+                # if self.adversarial and random.random() < 0.5:
+                if self.adversarial:
                     # print(list(data.keys()))
                     # print(type(data['image']))
                     data['image'].stop_gradient = False
