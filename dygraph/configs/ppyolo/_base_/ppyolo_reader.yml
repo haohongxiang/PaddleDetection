@@ -1,4 +1,4 @@
-worker_num: 4
+worker_num: 3
 TrainReader:
   inputs_def:
     num_max_boxes: 100
