@@ -1,4 +1,4 @@
-epoch: 405
+epoch: 360
 
 LearningRate:
   base_lr: 0.01
@@ -6,7 +6,7 @@ LearningRate:
   - !PiecewiseDecay
     gamma: 0.1
     milestones:
-    - 270
+    - 240
   - !LinearWarmup
     start_factor: 0.
     steps: 4000
