@@ -98,6 +98,61 @@ class Trainer(object):
         self._init_metrics()
         self._reset_metrics()
 
+
+
+        # scheduler
+
+        hyp = {
+            'lr0': 0.01,
+            'lrf': 0.2,
+            'warmup_bias_lr': 0.1,
+            'warmup_momentum': 0.8,
+            'warmup_epochs': 3,
+            'momentum': 0.937,
+            'weight_decay': 0.0005,
+            'epochs': 300,
+            'total_batch_size': 12 * 8,
+        }
+
+        pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
+        for _, v in self.model.named_sublayers():
+            if hasattr(v, 'bias') and isinstance(v.bias, paddle.fluid.framework.Parameter):
+                pg2.append(v.bias)  # biases
+            if isinstance(v, paddle.nn.BatchNorm2D):
+                pg0.append(v.weight)  # no decay
+            elif hasattr(v, 'weight') and isinstance(v.weight, paddle.fluid.framework.Parameter):
+                pg1.append(v.weight)  # apply decay
+
+        n = sum([1 for p in self.model.parameters() if p.stop_gradient == False])
+        assert len(pg0) + len(pg1) + len(pg2) == n, ''
+
+        opt0 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg0, use_nesterov=True)
+        opt1 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg1, use_nesterov=True, weight_decay=0.0005)
+        opt2 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg2, use_nesterov=True)
+        optimizers = [opt0, opt1, opt2]
+
+
+        import math
+        def one_cycle(y1=0.0, y2=1.0, steps=100):
+            return lambda x: ((1 - math.cos(x * math.pi / steps)) / 2) * (y2 - y1) + y1
+        lf = one_cycle(1, hyp['lrf'], hyp['epochs']) 
+        scheduler = paddle.optimizer.lr.LambdaDecay(learning_rate=hyp['lr0'], lr_lambda=lf)
+
+        # scheduler
+        num_batches = len(self.loader)
+        max_batches = 1000  # 1%
+
+        self.lf = lf
+        self.nw = max(round(hyp['warmup_epochs'] * num_batches), max_batches)
+        self.initial_lr = [hyp['lr0'], hyp['lr0'], hyp['lr0']]
+        self.num_batches = num_batches
+
+        self.hyp = hyp
+        self.optimizers = optimizers
+        self.scheduler = scheduler
+
+
+
     def _init_callbacks(self):
         if self.mode == 'train':
             self._callbacks = [LogPrinter(self), Checkpointer(self)]
@@ -199,6 +254,19 @@ class Trainer(object):
             model.train()
             iter_tic = time.time()
             for step_id, data in enumerate(self.loader):
+
+
+                # # # Warmup --------
+                ni = step_id + self.num_batches * epoch_id
+                if ni <= self.nw:
+                    xi = [0, self.nw]  # x interp
+                    for j, opt in enumerate(self.optimizers):
+                        _lr = np.interp(ni, xi, [self.hyp['warmup_bias_lr'] if j == 2 else 0.0, self.initial_lr[j] * self.lf(epoch_id)])
+                        opt.set_lr(_lr)
+                        if hasattr(opt, '_momentum'):
+                            opt._momentum = np.interp(ni, xi, [self.hyp['warmup_momentum'], self.hyp['momentum']])                           
+
+
                 self.status['data_time'].update(time.time() - iter_tic)
                 self.status['step_id'] = step_id
                 self._compose_callback.on_step_begin(self.status)
@@ -209,10 +277,23 @@ class Trainer(object):
 
                 # model backward
                 loss.backward()
-                self.optimizer.step()
-                curr_lr = self.optimizer.get_lr()
-                self.lr.step()
-                self.optimizer.clear_grad()
+
+                # scheduler
+                for opt in self.optimizers:
+                    opt.step()
+                    opt.clear_grad()
+                    opt.set_lr( self.scheduler.get_lr() )
+
+                self.scheduler.step()
+
+                curr_lr = self.scheduler.get_lr()
+
+                # self.optimizer.step()
+                # curr_lr = self.optimizer.get_lr()
+                # self.lr.step()
+                # self.optimizer.clear_grad()
+
+
                 self.status['learning_rate'] = curr_lr
 
                 if self._nranks < 2 or self._local_rank == 0:
