@@ -55,6 +55,10 @@ class YOLOv3Loss(nn.Layer):
         self.iou_loss = iou_loss
         self.iou_aware_loss = iou_aware_loss
 
+        self.balance = [0.4, 1.0, 4.0,]
+        self.autobalance = False 
+
+
     def obj_loss(self, pbox, gbox, pobj, tobj, anchor, downsample):
         # pbox
         pbox = decode_yolo(pbox, anchor, downsample)
@@ -135,21 +139,21 @@ class YOLOv3Loss(nn.Layer):
         x = scale * F.sigmoid(x) - 0.5 * (scale - 1.)
         y = scale * F.sigmoid(y) - 0.5 * (scale - 1.)
 
-        if abs(scale - 1.) < eps:
-            loss_x = F.binary_cross_entropy(x, tx, reduction='none')
-            loss_y = F.binary_cross_entropy(y, ty, reduction='none')
-            loss_xy = tscale_obj * (loss_x + loss_y)
-        else:
-            loss_x = paddle.abs(x - tx)
-            loss_y = paddle.abs(y - ty)
-            loss_xy = tscale_obj * (loss_x + loss_y)
+        # if abs(scale - 1.) < eps:
+        #     loss_x = F.binary_cross_entropy(x, tx, reduction='none')
+        #     loss_y = F.binary_cross_entropy(y, ty, reduction='none')
+        #     loss_xy = tscale_obj * (loss_x + loss_y)
+        # else:
+        #     loss_x = paddle.abs(x - tx)
+        #     loss_y = paddle.abs(y - ty)
+        #     loss_xy = tscale_obj * (loss_x + loss_y)
 
-        loss_xy = loss_xy.sum([1, 2, 3, 4]).mean()
+        # loss_xy = loss_xy.sum([1, 2, 3, 4]).mean()
 
-        loss_w = paddle.abs(w - tw)
-        loss_h = paddle.abs(h - th)
-        loss_wh = tscale_obj * (loss_w + loss_h)
-        loss_wh = loss_wh.sum([1, 2, 3, 4]).mean()
+        # loss_w = paddle.abs(w - tw)
+        # loss_h = paddle.abs(h - th)
+        # loss_wh = tscale_obj * (loss_w + loss_h)
+        # loss_wh = loss_wh.sum([1, 2, 3, 4]).mean()
 
         # loss['loss_xy'] = loss_xy / 2.
         # loss['loss_wh'] = loss_wh / 2.
@@ -195,10 +199,9 @@ class YOLOv3Loss(nn.Layer):
         gt_targets = [targets['target{}'.format(i)] for i in range(np)]
         gt_box = targets['gt_bbox']
         yolo_losses = dict()
-        for x, t, anchor, downsample in zip(inputs, gt_targets, anchors,
-                                            self.downsample):
-            yolo_loss = self.yolov3_loss(x, t, gt_box, anchor, downsample,
-                                         self.scale_x_y)
+        for i, (x, t, anchor, downsample) in enumerate(zip(inputs, gt_targets, anchors, self.downsample)):
+            yolo_loss = self.yolov3_loss(x, t, gt_box, anchor, downsample, self.scale_x_y)
+            yolo_loss['loss_obj'] *= self.balance[i]
             for k, v in yolo_loss.items():
                 if k in yolo_losses:
                     yolo_losses[k] += v
