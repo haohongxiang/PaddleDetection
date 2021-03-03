@@ -85,7 +85,7 @@ class YOLOv3Loss(nn.Layer):
         # return loss_obj_pos + loss_obj_neg 
         loss_obj_pos = (loss_obj * tobj) / obj_mask.sum()
         loss_obj_neg = (loss_obj * (1 - obj_mask) * iou_mask) / (1 - obj_mask).sum()
-        return loss_obj_pos + loss_obj_neg * 2
+        return (loss_obj_pos + loss_obj_neg * 2) * 20
 
     def cls_loss(self, pcls, tcls):
         if self.label_smooth:
@@ -98,9 +98,9 @@ class YOLOv3Loss(nn.Layer):
 
         # loss_cls = F.binary_cross_entropy_with_logits(
         #     pcls, tcls, reduction='none')
-
+        
         loss_cls = F.binary_cross_entropy_with_logits(
-            pcls, tcls, reduction='mean')
+            pcls, tcls, reduction='mean') * 10
 
         return loss_cls
 
