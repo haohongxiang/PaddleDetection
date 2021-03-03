@@ -40,7 +40,7 @@ YOLOv3Loss:
   ignore_thresh: 0.7
   downsample: [32, 16, 8]
   label_smooth: false
-  scale_x_y: 1.
+  scale_x_y: 1.00
   iou_loss: IouLoss
   iou_aware_loss: IouAwareLoss
 
@@ -57,7 +57,7 @@ BBoxPostProcess:
     conf_thresh: 0.01
     downsample_ratio: 32
     clip_bbox: true
-    scale_x_y: 1.05
+    scale_x_y: 1.00
   nms:
     name: MatrixNMS
     keep_top_k: 100
