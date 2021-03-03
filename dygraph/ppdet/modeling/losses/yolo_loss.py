@@ -84,7 +84,8 @@ class YOLOv3Loss(nn.Layer):
         # return loss_obj_pos + loss_obj_neg 
         loss_obj_pos = (loss_obj * tobj) / obj_mask.sum()
         loss_obj_neg = (loss_obj * (1 - obj_mask) * iou_mask) / ((1 - obj_mask) * iou_mask).sum()
-        return (loss_obj_pos.sum() + loss_obj_neg.sum() * 10) * 20
+
+        return (loss_obj_pos.sum() + loss_obj_neg.sum() * 3) * 20
 
         # loss_obj = F.binary_cross_entropy_with_logits(pobj, obj_mask, reduction='mean')
         # return loss_obj.sum() * 20
