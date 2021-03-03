@@ -262,7 +262,6 @@ class Trainer(object):
 
                 # # # Warmup --------
 
-                lrs = []
 
                 ni = step_id + self.num_batches * epoch_id
                 if ni <= self.nw:
@@ -287,11 +286,13 @@ class Trainer(object):
                 loss.backward()
 
                 # scheduler
+                lrs = [[], [], []]
+
                 for i, opt in enumerate(self.optimizers):
 
                     lrs[i].append(opt.get_lr())
                     if hasattr(opt, '_momentum'):
-                        lrs.append(opt._momentum)
+                        lrs[i].append(opt._momentum)
 
                     opt.step()
                     opt.clear_grad()
