@@ -111,7 +111,7 @@ class Trainer(object):
             'momentum': 0.937,
             'weight_decay': 0.0005,
             'epochs': 300,
-            'total_batch_size': 12 * 8,
+            'total_batch_size': 8 * 8,
         }
 
         pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
@@ -246,13 +246,18 @@ class Trainer(object):
             self.cfg.log_iter, fmt='{avg:.4f}')
         self.status['training_staus'] = stats.TrainingStats(self.cfg.log_iter)
 
-        for epoch_id in range(self.start_epoch, self.cfg.epoch):
+
+        # for epoch_id in range(self.start_epoch, self.cfg.epoch):
+        for epoch_id in range(self.start_epoch, self.hyp['epochs']):
+
             self.status['mode'] = 'train'
             self.status['epoch_id'] = epoch_id
             self._compose_callback.on_epoch_begin(self.status)
             self.loader.dataset.set_epoch(epoch_id)
             model.train()
             iter_tic = time.time()
+
+
             for step_id, data in enumerate(self.loader):
 
 
@@ -292,7 +297,6 @@ class Trainer(object):
                 # curr_lr = self.optimizer.get_lr()
                 # self.lr.step()
                 # self.optimizer.clear_grad()
-
 
                 self.status['learning_rate'] = curr_lr
 
