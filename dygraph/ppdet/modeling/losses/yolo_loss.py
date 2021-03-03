@@ -78,14 +78,18 @@ class YOLOv3Loss(nn.Layer):
         obj_mask = paddle.cast(tobj > 0, dtype=pbox.dtype)
         obj_mask.stop_gradient = True
 
-        loss_obj = F.binary_cross_entropy_with_logits(
-            pobj, obj_mask, reduction='none')
+        # loss_obj = F.binary_cross_entropy_with_logits(
+        #     pobj, obj_mask, reduction='none')
         # loss_obj_pos = (loss_obj * tobj)
         # loss_obj_neg = (loss_obj * (1 - obj_mask) * iou_mask)
         # return loss_obj_pos + loss_obj_neg 
-        loss_obj_pos = (loss_obj * tobj) / obj_mask.sum()
-        loss_obj_neg = (loss_obj * (1 - obj_mask) * iou_mask) / obj_mask.sum().sum()
-        return (loss_obj_pos + loss_obj_neg) * 20
+        # loss_obj_pos = (loss_obj * tobj) / obj_mask.sum()
+        # loss_obj_neg = (loss_obj * (1 - obj_mask) * iou_mask) / ((1 - obj_mask) * iou_mask).sum()
+        # return (loss_obj_pos + loss_obj_neg * 10) * 20
+
+        loss_obj = F.binary_cross_entropy_with_logits(pobj, obj_mask, reduction='mean')
+        return loss_obj.sum() * 20
+
 
     def cls_loss(self, pcls, tcls):
         if self.label_smooth:
@@ -99,10 +103,12 @@ class YOLOv3Loss(nn.Layer):
         # loss_cls = F.binary_cross_entropy_with_logits(
         #     pcls, tcls, reduction='none')
         
-        loss_cls = F.binary_cross_entropy_with_logits(
-            pcls, tcls, reduction='mean') * 10
+        # loss_cls = F.binary_cross_entropy_with_logits(
+        #     pcls, tcls, reduction='mean') * 10
 
-        return loss_cls
+        loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
+
+        return loss_cls.sum()
 
     def yolov3_loss(self, p, t, gt_box, anchor, downsample, scale=1.,
                     eps=1e-10):
@@ -144,8 +150,8 @@ class YOLOv3Loss(nn.Layer):
         loss_wh = tscale_obj * (loss_w + loss_h)
         loss_wh = loss_wh.sum([1, 2, 3, 4]).mean()
 
-        loss['loss_xy'] = loss_xy
-        loss['loss_wh'] = loss_wh
+        loss['loss_xy'] = loss_xy / 2.
+        loss['loss_wh'] = loss_wh / 2.
 
         if self.iou_loss is not None:
             # warn: do not modify x, y, w, h in place
@@ -155,7 +161,7 @@ class YOLOv3Loss(nn.Layer):
             loss_iou = self.iou_loss(pbox, gbox)
             loss_iou = loss_iou * tscale_obj
             loss_iou = loss_iou.sum([1, 2, 3, 4]).mean()
-            loss['loss_iou'] = loss_iou
+            loss['loss_iou'] = loss_iou / 2.
 
         if self.iou_aware_loss is not None:
             box, tbox = [x, y, w, h], [tx, ty, tw, th]
@@ -166,13 +172,20 @@ class YOLOv3Loss(nn.Layer):
             loss_iou_aware = loss_iou_aware.sum([1, 2, 3, 4]).mean()
             loss['loss_iou_aware'] = loss_iou_aware
 
+        # box = [x, y, w, h]
+        # loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
+        # loss_obj = loss_obj.sum(-1).mean()
+        # loss['loss_obj'] = loss_obj
+        # loss_cls = self.cls_loss(pcls, tcls) * tobj
+        # loss_cls = loss_cls.sum([1, 2, 3, 4]).mean()
+        # loss['loss_cls'] = loss_cls
+
         box = [x, y, w, h]
         loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
-        loss_obj = loss_obj.sum(-1).mean()
         loss['loss_obj'] = loss_obj
-        loss_cls = self.cls_loss(pcls, tcls) * tobj
-        loss_cls = loss_cls.sum([1, 2, 3, 4]).mean()
+        loss_cls = self.cls_loss(pcls, tcls)
         loss['loss_cls'] = loss_cls
+             
         return loss
 
     def forward(self, inputs, targets, anchors):
