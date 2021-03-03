@@ -297,16 +297,14 @@ class Trainer(object):
 
                     opt.step()
                     opt.clear_grad()
-
                     opt.set_lr( self.scheduler.get_lr() )
-
 
                 self.scheduler.step()
 
                 curr_lr = self.scheduler.get_lr()
 
 
-                print( lrs )
+                print( lrs, self.nw )
 
                 # self.optimizer.step()
                 # curr_lr = self.optimizer.get_lr()
