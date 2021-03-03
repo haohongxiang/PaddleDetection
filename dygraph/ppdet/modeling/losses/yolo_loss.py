@@ -172,7 +172,7 @@ class YOLOv3Loss(nn.Layer):
             loss_iou_aware = self.iou_aware_loss(ioup, pbox, gbox)
             loss_iou_aware = loss_iou_aware * tobj
             loss_iou_aware = loss_iou_aware.sum([1, 2, 3, 4]).mean()
-            # loss['loss_iou_aware'] = loss_iou_aware
+            loss['loss_iou_aware'] = loss_iou_aware
 
         # box = [x, y, w, h]
         # loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
