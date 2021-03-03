@@ -46,7 +46,7 @@ YOLOv3Loss:
 
 IouLoss:
   loss_weight: 1.
-  loss_square: true
+  loss_square: false
 
 IouAwareLoss:
   loss_weight: 1.0
