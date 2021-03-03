@@ -40,7 +40,7 @@ YOLOv3Loss:
   ignore_thresh: 0.7
   downsample: [32, 16, 8]
   label_smooth: false
-  scale_x_y: 1.05
+  scale_x_y: 1.
   iou_loss: IouLoss
   iou_aware_loss: IouAwareLoss
 
