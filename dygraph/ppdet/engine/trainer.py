@@ -260,8 +260,10 @@ class Trainer(object):
 
             for step_id, data in enumerate(self.loader):
 
-
                 # # # Warmup --------
+
+                lrs = []
+
                 ni = step_id + self.num_batches * epoch_id
                 if ni <= self.nw:
                     xi = [0, self.nw]  # x interp
@@ -272,6 +274,7 @@ class Trainer(object):
                             opt._momentum = np.interp(ni, xi, [self.hyp['warmup_momentum'], self.hyp['momentum']])                           
 
 
+                
                 self.status['data_time'].update(time.time() - iter_tic)
                 self.status['step_id'] = step_id
                 self._compose_callback.on_step_begin(self.status)
@@ -284,14 +287,23 @@ class Trainer(object):
                 loss.backward()
 
                 # scheduler
-                for opt in self.optimizers:
+                for i, opt in enumerate(self.optimizers):
+
+                    lrs[i].append(opt.get_lr())
+                    if hasattr(opt, '_momentum'):
+                        lrs.append(opt._momentum)
+
                     opt.step()
                     opt.clear_grad()
+
                     opt.set_lr( self.scheduler.get_lr() )
 
                 self.scheduler.step()
 
                 curr_lr = self.scheduler.get_lr()
+
+
+                print( lrs )
 
                 # self.optimizer.step()
                 # curr_lr = self.optimizer.get_lr()
