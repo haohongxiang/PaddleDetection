@@ -304,7 +304,7 @@ class Trainer(object):
                 curr_lr = self.scheduler.get_lr()
 
 
-                print( lrs, self.nw )
+                # print( lrs, self.nw )
 
                 # self.optimizer.step()
                 # curr_lr = self.optimizer.get_lr()
