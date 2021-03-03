@@ -84,8 +84,8 @@ class YOLOv3Loss(nn.Layer):
         # loss_obj_neg = (loss_obj * (1 - obj_mask) * iou_mask)
         # return loss_obj_pos + loss_obj_neg 
         loss_obj_pos = (loss_obj * tobj) / obj_mask.sum()
-        loss_obj_neg = (loss_obj * (1 - obj_mask) * iou_mask) / (1 - obj_mask).sum()
-        return (loss_obj_pos + loss_obj_neg * 5) * 20
+        loss_obj_neg = (loss_obj * (1 - obj_mask) * iou_mask) / obj_mask.sum().sum()
+        return (loss_obj_pos + loss_obj_neg) * 20
 
     def cls_loss(self, pcls, tcls):
         if self.label_smooth:
