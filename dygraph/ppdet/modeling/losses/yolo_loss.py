@@ -147,8 +147,7 @@ class YOLOv3Loss(nn.Layer):
 
         loss_w = paddle.abs(w - tw)
         loss_h = paddle.abs(h - th)
-        # loss_wh = tscale_obj * (loss_w + loss_h)
-        loss_wh = loss_w + loss_h
+        loss_wh = tscale_obj * (loss_w + loss_h)
 
         loss_wh = loss_wh.sum([1, 2, 3, 4]).mean()
 
@@ -161,7 +160,7 @@ class YOLOv3Loss(nn.Layer):
             pbox = bbox_transform(box, anchor, downsample)
             gbox = bbox_transform(tbox, anchor, downsample)
             loss_iou = self.iou_loss(pbox, gbox)
-            # loss_iou = loss_iou * tscale_obj
+            loss_iou = loss_iou * tscale_obj
             loss_iou = loss_iou.sum([1, 2, 3, 4]).mean()
             loss['loss_iou'] = loss_iou
 
