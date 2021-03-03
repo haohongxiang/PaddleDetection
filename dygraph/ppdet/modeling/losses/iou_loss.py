@@ -73,7 +73,7 @@ class GIoULoss(object):
         reduction (string): Options are "none", "mean" and "sum". default as none
     """
 
-    def __init__(self, loss_weight=1., eps=1e-10, reduction='none'):
+    def __init__(self, loss_weight=1., eps=1e-10, reduction='mean'):
         self.loss_weight = loss_weight
         self.eps = eps
         assert reduction in ('none', 'mean', 'sum')
