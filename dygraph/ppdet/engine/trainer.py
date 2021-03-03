@@ -143,6 +143,8 @@ class Trainer(object):
 
         self.lf = lf
         self.nw = max(round(hyp['warmup_epochs'] * num_batches), max_batches)
+        print('self.nw:', round(hyp['warmup_epochs'] * num_batches), max_batches)
+
         self.initial_lr = [hyp['lr0'], hyp['lr0'], hyp['lr0']]
         self.num_batches = num_batches
 
