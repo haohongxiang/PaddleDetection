@@ -39,7 +39,7 @@ class IouLoss(object):
     """
 
     def __init__(self,
-                 loss_weight=2.5,
+                 loss_weight=1.,
                  giou=False,
                  diou=False,
                  ciou=False,
