@@ -90,7 +90,7 @@ class YOLOv3Loss(nn.Layer):
 
         loss_obj = F.binary_cross_entropy_with_logits(pobj, obj_mask, reduction='mean')
 
-        return loss_obj.sum() * 20
+        return loss_obj * 20
 
 
     def cls_loss(self, pcls, tcls):
