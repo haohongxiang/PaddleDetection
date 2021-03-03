@@ -162,7 +162,7 @@ class YOLOv3Loss(nn.Layer):
             loss_iou = self.iou_loss(pbox, gbox)
             # loss_iou = loss_iou * tscale_obj
             # loss_iou = loss_iou.sum([1, 2, 3, 4]).mean()
-            loss['loss_iou'] = loss_iou.mean()
+            loss['loss_iou'] = loss_iou.mean() * b
 
         if self.iou_aware_loss is not None:
             box, tbox = [x, y, w, h], [tx, ty, tw, th]
@@ -183,11 +183,11 @@ class YOLOv3Loss(nn.Layer):
 
         box = [x, y, w, h]
         loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
-        loss['loss_obj'] = loss_obj
+        loss['loss_obj'] = loss_obj * b
         loss_cls = self.cls_loss(pcls, tcls)
-        loss['loss_cls'] = loss_cls
+        loss['loss_cls'] = loss_cls * b
              
-        return loss * b
+        return loss 
 
     def forward(self, inputs, targets, anchors):
         np = len(inputs)
