@@ -152,8 +152,8 @@ class YOLOv3Loss(nn.Layer):
 
         loss_wh = loss_wh.sum([1, 2, 3, 4]).mean()
 
-        loss['loss_xy'] = loss_xy / 2.
-        loss['loss_wh'] = loss_wh / 2.
+        # loss['loss_xy'] = loss_xy / 2.
+        # loss['loss_wh'] = loss_wh / 2.
 
         if self.iou_loss is not None:
             # warn: do not modify x, y, w, h in place
@@ -163,7 +163,7 @@ class YOLOv3Loss(nn.Layer):
             loss_iou = self.iou_loss(pbox, gbox)
             loss_iou = loss_iou * tscale_obj
             loss_iou = loss_iou.sum([1, 2, 3, 4]).mean()
-            loss['loss_iou'] = loss_iou / 2.
+            loss['loss_iou'] = loss_iou
 
         if self.iou_aware_loss is not None:
             box, tbox = [x, y, w, h], [tx, ty, tw, th]
