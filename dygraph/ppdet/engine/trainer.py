@@ -98,8 +98,6 @@ class Trainer(object):
         self._init_metrics()
         self._reset_metrics()
 
-
-
         # scheduler
 
         hyp = {
@@ -126,9 +124,10 @@ class Trainer(object):
         n = sum([1 for p in self.model.parameters() if p.stop_gradient == False])
         assert len(pg0) + len(pg1) + len(pg2) == n, ''
 
-        opt0 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg0, use_nesterov=True)
-        opt1 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg1, use_nesterov=True, weight_decay=0.0005)
-        opt2 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg2, use_nesterov=True)
+        opt0 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg0, use_nesterov=False)
+        opt1 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg1, use_nesterov=False, weight_decay=0.0005)
+        opt2 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg2, use_nesterov=False)
+        
         optimizers = [opt0, opt1, opt2]
 
 
@@ -298,6 +297,7 @@ class Trainer(object):
                     opt.clear_grad()
 
                     opt.set_lr( self.scheduler.get_lr() )
+
 
                 self.scheduler.step()
 
