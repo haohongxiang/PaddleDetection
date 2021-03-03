@@ -78,14 +78,13 @@ class YOLOv3Loss(nn.Layer):
         obj_mask = paddle.cast(tobj > 0, dtype=pbox.dtype)
         obj_mask.stop_gradient = True
 
-        loss_obj = F.binary_cross_entropy_with_logits(
-            pobj, obj_mask, reduction='none')
+        loss_obj = F.binary_cross_entropy_with_logits(pobj, obj_mask, reduction='none')
         # loss_obj_pos = (loss_obj * tobj)
         # loss_obj_neg = (loss_obj * (1 - obj_mask) * iou_mask)
         # return loss_obj_pos + loss_obj_neg 
         loss_obj_pos = (loss_obj * tobj) / obj_mask.sum()
         loss_obj_neg = (loss_obj * (1 - obj_mask) * iou_mask) / ((1 - obj_mask) * iou_mask).sum()
-        return (loss_obj_pos + loss_obj_neg * 10) * 20
+        return (loss_obj_pos.sum() + loss_obj_neg.sum() * 10) * 20
 
         # loss_obj = F.binary_cross_entropy_with_logits(pobj, obj_mask, reduction='mean')
         # return loss_obj.sum() * 20
@@ -108,7 +107,7 @@ class YOLOv3Loss(nn.Layer):
 
         loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
 
-        return loss_cls.sum() * 10
+        return loss_cls * 10
 
 
     def yolov3_loss(self, p, t, gt_box, anchor, downsample, scale=1.,
