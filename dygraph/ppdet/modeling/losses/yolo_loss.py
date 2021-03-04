@@ -173,7 +173,8 @@ class YOLOv3Loss(nn.Layer):
             if tobj.sum() == 0:
                 # loss['loss_iou'] = 0.
                 # loss['loss_cls'] = 0.
-                print('-------------------')
+                # print('---------00000----------')
+                pass
 
             else:
                 # loss_iou = (loss_iou * tobj).sum() / tobj.sum()
@@ -218,7 +219,7 @@ class YOLOv3Loss(nn.Layer):
         gt_box = targets['gt_bbox']
         yolo_losses = dict()
         for i, (x, t, anchor, downsample) in enumerate(zip(inputs, gt_targets, anchors, self.downsample)):
-            yolo_loss = self.yolov3_loss(x, t, gt_box, anchor, downsample, self.scale_x_y)
+            yolo_loss = self.yolov3_loss(x, t, gt_box, anchor, downsample, self.scale_x_y)            
             yolo_loss['loss_obj'] *= self.balance[i]
             for k, v in yolo_loss.items():
                 if k in yolo_losses:
