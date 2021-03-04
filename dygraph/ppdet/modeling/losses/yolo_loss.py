@@ -180,7 +180,6 @@ class YOLOv3Loss(nn.Layer):
 
                 # loss_cls = self.cls_loss(pcls, tcls)
                 loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
-
                 loss['loss_cls'] = loss_cls * b * 0.5
 
 
@@ -230,6 +229,6 @@ class YOLOv3Loss(nn.Layer):
             loss += v
         yolo_losses['loss'] = loss
 
-        # print(list(self.downsample) + [(k, v.numpy()[0]) for k, v in yolo_losses.items()])
+        print(list(self.downsample) + [(k, v.numpy()[0]) for k, v in yolo_losses.items()])
 
         return yolo_losses
