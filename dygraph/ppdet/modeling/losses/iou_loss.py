@@ -51,8 +51,7 @@ class IouLoss(object):
         self.loss_square = loss_square
 
     def __call__(self, pbox, gbox):
-        iou = bbox_iou(
-            pbox, gbox, giou=self.giou, diou=self.diou, ciou=self.ciou)
+        iou = bbox_iou(pbox, gbox, giou=self.giou, diou=self.diou, ciou=self.ciou)
         if self.loss_square:
             loss_iou = 1 - iou * iou
         else:

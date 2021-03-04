@@ -114,8 +114,8 @@ def bbox_iou(box1, box2, giou=False, diou=False, ciou=False, eps=1e-9):
     area2 = (gx2 - gx1) * (gy2 - gy1)
     area2 = area2.clip(0)
 
-    union = area1 + area2 - overlap + eps
-    iou = overlap / union
+    union = area1 + area2 - overlap 
+    iou = overlap / (union + eps)
 
     if giou or ciou or diou:
         # convex w, h
@@ -138,6 +138,6 @@ def bbox_iou(box1, box2, giou=False, diou=False, ciou=False, eps=1e-9):
                 v = (4 / math.pi**2) * paddle.pow(delta, 2)
                 alpha = v / (1 + eps - iou + v)
                 alpha.stop_gradient = True
-                return iou - (rho2 / c2 + v * alpha)
+                return iou - (rho2 / c2 + v * alpha + eps)
     else:
         return iou
