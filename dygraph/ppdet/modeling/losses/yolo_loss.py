@@ -132,7 +132,7 @@ class YOLOv3Loss(nn.Layer):
         tscale = t[:, :, :, :, 4:5]
         tobj, tcls = t[:, :, :, :, 5:6], t[:, :, :, :, 6:]
 
-        tscale_obj = tscale * tobj
+        # tscale_obj = tscale * tobj
         loss = dict()
 
         # x = scale * F.sigmoid(x) - 0.5 * (scale - 1.)
@@ -191,14 +191,14 @@ class YOLOv3Loss(nn.Layer):
         loss['loss_obj'] = loss_obj * b 
 
 
-        if self.iou_aware_loss is not None:
-            box, tbox = [x, y, w, h], [tx, ty, tw, th]
-            pbox = bbox_transform(box, anchor, downsample)
-            gbox = bbox_transform(tbox, anchor, downsample)
-            loss_iou_aware = self.iou_aware_loss(ioup, pbox, gbox)
-            loss_iou_aware = loss_iou_aware * tobj
-            loss_iou_aware = loss_iou_aware.sum([1, 2, 3, 4]).mean()
-            # loss['loss_iou_aware'] = loss_iou_aware
+        # if self.iou_aware_loss is not None:
+        #     box, tbox = [x, y, w, h], [tx, ty, tw, th]
+        #     pbox = bbox_transform(box, anchor, downsample)
+        #     gbox = bbox_transform(tbox, anchor, downsample)
+        #     loss_iou_aware = self.iou_aware_loss(ioup, pbox, gbox)
+        #     loss_iou_aware = loss_iou_aware * tobj
+        #     loss_iou_aware = loss_iou_aware.sum([1, 2, 3, 4]).mean()
+        #     loss['loss_iou_aware'] = loss_iou_aware
 
         # box = [x, y, w, h]
         # loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
