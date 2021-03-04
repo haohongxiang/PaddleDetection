@@ -175,7 +175,7 @@ class YOLOv3Loss(nn.Layer):
                 loss['loss_cls'] = 0.
 
             else:
-                loss_iou = (loss_iou * tobj).sum() / (tobj.sum() + 1)
+                loss_iou = (loss_iou * tobj).sum() / tobj.sum()
                 loss['loss_iou'] = loss_iou * b
 
                 # loss_cls = self.cls_loss(pcls, tcls)
