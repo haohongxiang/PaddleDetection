@@ -110,7 +110,10 @@ class Trainer(object):
             'weight_decay': 0.0005,
             'epochs': 300,
             'total_batch_size': 4 * 8,
+            'nbatches': 64,
         }
+
+        hyp['weight_decay'] *= total_batch_size / nbatches
 
         pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
         for _, v in self.model.named_sublayers():
