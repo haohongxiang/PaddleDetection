@@ -162,27 +162,26 @@ class YOLOv3Loss(nn.Layer):
             box, tbox = [x, y, w, h], [tx, ty, tw, th]
             pbox = bbox_transform(box, anchor, downsample)
             gbox = bbox_transform(tbox, anchor, downsample)
-            loss_iou = self.iou_loss(pbox, gbox).mean()
-            # iou = bbox_iou(pbox, gbox, giou=False, diou=False, ciou=True)
-            # loss_iou = (1 - iou).mean()
+            # loss_iou = self.iou_loss(pbox, gbox).mean()
+            iou = bbox_iou(pbox, gbox, giou=False, diou=False, ciou=True)
+            loss_iou = (1 - iou).mean()
 
             # print('loss_iou:', loss_iou.shape)
             # loss_iou = loss_iou * tscale_obj
             # loss_iou = loss_iou.mean()
 
-            if tobj.sum() == 0:
-                # loss['loss_iou'] = 0.
-                # loss['loss_cls'] = 0.
-                # print('---------00000----------')
-                pass
 
-            else:
-                # loss_iou = (loss_iou * tobj).sum() / tobj.sum()
-                loss['loss_iou'] = loss_iou * b * 0.05
+            # if tobj.sum() == 0:
+            #     # loss['loss_iou'] = 0.
+            #     # loss['loss_cls'] = 0.
+            #     print('---------00000----------')
+            #     pass
+            # else:
+            loss['loss_iou'] = loss_iou * b * 0.05
 
-                # loss_cls = self.cls_loss(pcls, tcls)
-                loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
-                loss['loss_cls'] = loss_cls * b * 0.1
+            # loss_cls = self.cls_loss(pcls, tcls)
+            loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
+            loss['loss_cls'] = loss_cls * b * 0.1
 
 
         box = [x, y, w, h]
