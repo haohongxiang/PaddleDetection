@@ -105,7 +105,7 @@ class Trainer(object):
             'lrf': 0.2,
             'warmup_bias_lr': 0.1,
             'warmup_momentum': 0.8,
-            'warmup_epoches': 10,
+            'warmup_epoches': 6,
             'momentum': 0.937,
             'weight_decay': 0.0005,
             'epoches': 300,
