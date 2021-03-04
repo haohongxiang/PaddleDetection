@@ -138,6 +138,7 @@ def bbox_iou(box1, box2, giou=False, diou=False, ciou=False, eps=1e-9):
                 v = (4 / math.pi**2) * paddle.pow(delta, 2)
                 alpha = v / (1 + eps - iou + v)
                 alpha.stop_gradient = True
-                return iou - (rho2 / c2 + v * alpha + eps)
+                return iou - (rho2 / c2 + v * alpha)
     else:
         return iou
+        
