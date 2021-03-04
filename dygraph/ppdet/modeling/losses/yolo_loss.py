@@ -55,8 +55,8 @@ class YOLOv3Loss(nn.Layer):
         self.iou_loss = iou_loss
         self.iou_aware_loss = iou_aware_loss
 
-        self.balance = [0.4, 1.0, 4.0,]
-        self.autobalance = False 
+        self.balance = [0.4, 1.0, 4.0,] # c6 -> c3
+        self.autobalance = False
 
 
     def obj_loss(self, pbox, gbox, pobj, tobj, anchor, downsample):
@@ -135,8 +135,8 @@ class YOLOv3Loss(nn.Layer):
         tscale_obj = tscale * tobj
         loss = dict()
 
-        x = scale * F.sigmoid(x) - 0.5 * (scale - 1.)
-        y = scale * F.sigmoid(y) - 0.5 * (scale - 1.)
+        # x = scale * F.sigmoid(x) - 0.5 * (scale - 1.)
+        # y = scale * F.sigmoid(y) - 0.5 * (scale - 1.)
 
         # if abs(scale - 1.) < eps:
         #     loss_x = F.binary_cross_entropy(x, tx, reduction='none')
@@ -230,6 +230,6 @@ class YOLOv3Loss(nn.Layer):
             loss += v
         yolo_losses['loss'] = loss
 
-        print(list(self.downsample) + [(k, v.numpy()[0]) for k, v in yolo_losses.items()])
+        # print(list(self.downsample) + [(k, v.numpy()[0]) for k, v in yolo_losses.items()])
 
         return yolo_losses
