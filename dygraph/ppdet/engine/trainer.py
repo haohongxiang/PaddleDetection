@@ -105,11 +105,11 @@ class Trainer(object):
             'lrf': 0.2,
             'warmup_bias_lr': 0.1,
             'warmup_momentum': 0.8,
-            'warmup_epochs': 3,
+            'warmup_epochs': 10,
             'momentum': 0.937,
             'weight_decay': 0.0005,
             'epochs': 300,
-            'total_batch_size': 8 * 8,
+            'total_batch_size': 4 * 8,
         }
 
         pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
