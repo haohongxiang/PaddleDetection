@@ -105,10 +105,10 @@ class Trainer(object):
             'lrf': 0.2,
             'warmup_bias_lr': 0.1,
             'warmup_momentum': 0.8,
-            'warmup_epochs': 10,
+            'warmup_epoches': 10,
             'momentum': 0.937,
             'weight_decay': 0.0005,
-            'epochs': 300,
+            'epoches': 300,
             'total_batch_size': 4 * 8,
             'nbatches': 64,
         }
@@ -137,7 +137,7 @@ class Trainer(object):
         import math
         def one_cycle(y1=0.0, y2=1.0, steps=100):
             return lambda x: ((1 - math.cos(x * math.pi / steps)) / 2) * (y2 - y1) + y1
-        lf = one_cycle(1, hyp['lrf'], hyp['epochs']) 
+        lf = one_cycle(1, hyp['lrf'], hyp['epoches']) 
         scheduler = paddle.optimizer.lr.LambdaDecay(learning_rate=hyp['lr0'], lr_lambda=lf)
 
         # scheduler
@@ -145,8 +145,8 @@ class Trainer(object):
         max_batches = 1000  # 1%
 
         self.lf = lf
-        self.nw = max(round(hyp['warmup_epochs'] * num_batches), max_batches)
-        print('self.nw:', round(hyp['warmup_epochs'] * num_batches), max_batches)
+        self.nw = max(round(hyp['warmup_epoches'] * num_batches), max_batches)
+        print('self.nw:', round(hyp['warmup_epoches'] * num_batches), max_batches)
 
         self.initial_lr = [hyp['lr0'], hyp['lr0'], hyp['lr0']]
         self.num_batches = num_batches
@@ -252,7 +252,7 @@ class Trainer(object):
 
 
         # for epoch_id in range(self.start_epoch, self.cfg.epoch):
-        for epoch_id in range(self.start_epoch, self.hyp['epochs']):
+        for epoch_id in range(self.start_epoch, self.hyp['epoches']):
 
             self.status['mode'] = 'train'
             self.status['epoch_id'] = epoch_id
