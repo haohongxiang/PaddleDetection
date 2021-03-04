@@ -224,12 +224,12 @@ class YOLOv3Loss(nn.Layer):
                     yolo_losses[k] += v
                 else:
                     yolo_losses[k] = v
-
+            
         loss = 0
         for k, v in yolo_losses.items():
             loss += v
         yolo_losses['loss'] = loss
 
-        print([(k, v.numpy()[0]) for k, v in yolo_losses.items()])
+        print(list(self.downsample) + [(k, v.numpy()[0]) for k, v in yolo_losses.items()])
 
         return yolo_losses
