@@ -21,7 +21,7 @@ import paddle.nn as nn
 import paddle.nn.functional as F
 from ppdet.core.workspace import register
 
-from ..utils import decode_yolo, xywh2xyxy, iou_similarity
+from ..utils import decode_yolo, xywh2xyxy, iou_similarity, bbox_iou
 
 __all__ = ['YOLOv3Loss']
 
@@ -115,8 +115,7 @@ class YOLOv3Loss(nn.Layer):
         return loss_cls
 
 
-    def yolov3_loss(self, p, t, gt_box, anchor, downsample, scale=1.,
-                    eps=1e-10):
+    def yolov3_loss(self, p, t, gt_box, anchor, downsample, scale=1., eps=1e-10):
         na = len(anchor)
         b, c, h, w = p.shape
         if self.iou_aware_loss:
@@ -163,13 +162,14 @@ class YOLOv3Loss(nn.Layer):
             box, tbox = [x, y, w, h], [tx, ty, tw, th]
             pbox = bbox_transform(box, anchor, downsample)
             gbox = bbox_transform(tbox, anchor, downsample)
-            loss_iou = self.iou_loss(pbox, gbox)
-
-            iou = 1 - loss_iou
+            # loss_iou = self.iou_loss(pbox, gbox)
+            iou = bbox_iou(pbox, gbox, giou=False, diou=False, ciou=True)
+            loss_iou = (1 - iou).mean()
 
             # print('loss_iou:', loss_iou.shape)
             # loss_iou = loss_iou * tscale_obj
             # loss_iou = loss_iou.mean()
+
             if tobj.sum() == 0:
                 loss['loss_iou'] = 0.
                 loss['loss_cls'] = 0.
@@ -228,6 +228,8 @@ class YOLOv3Loss(nn.Layer):
         loss = 0
         for k, v in yolo_losses.items():
             loss += v
-
         yolo_losses['loss'] = loss
+
+        print([(k, v) for k, v in yolo_losses.items()])
+
         return yolo_losses
