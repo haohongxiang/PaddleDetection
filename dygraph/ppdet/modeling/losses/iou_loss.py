@@ -43,7 +43,7 @@ class IouLoss(object):
                  giou=False,
                  diou=False,
                  ciou=False,
-                 loss_square=True):
+                 loss_square=False):
         self.loss_weight = loss_weight
         self.giou = giou
         self.diou = diou

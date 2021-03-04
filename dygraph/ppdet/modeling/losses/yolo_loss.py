@@ -164,11 +164,14 @@ class YOLOv3Loss(nn.Layer):
             pbox = bbox_transform(box, anchor, downsample)
             gbox = bbox_transform(tbox, anchor, downsample)
             loss_iou = self.iou_loss(pbox, gbox)
+
+            iou = 1 - loss_iou
+
             # print('loss_iou:', loss_iou.shape)
             # loss_iou = loss_iou * tscale_obj
             # loss_iou = loss_iou.mean()
             loss_iou = (loss_iou * tobj).sum() / (tobj.sum() + 1)
-            
+
             loss['loss_iou'] = loss_iou * b
 
         if self.iou_aware_loss is not None:
@@ -189,7 +192,9 @@ class YOLOv3Loss(nn.Layer):
         # loss['loss_cls'] = loss_cls
 
         box = [x, y, w, h]
-        loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
+        # loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
+        loss_obj = F.binary_cross_entropy_with_logits(obj, iou, reduction='mean')
+
         loss['loss_obj'] = loss_obj * b
         loss_cls = self.cls_loss(pcls, tcls)
         loss['loss_cls'] = loss_cls * b
