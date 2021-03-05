@@ -175,17 +175,25 @@ class YOLOv3Loss(nn.Layer):
                 # loss['loss_cls'] = 0.
                 print('---------00000----------')
                 
+                box = [x, y, w, h]
+                loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
+                loss['loss_obj'] = loss_obj * b 
+
             else:
                 loss['loss_iou'] = loss_iou * b * 0.05
                 # loss_cls = self.cls_loss(pcls, tcls)
                 loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
                 loss['loss_cls'] = loss_cls * b * 0.5
 
+                box = [x, y, w, h]
+                loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
+                loss['loss_obj'] = loss_obj * b 
 
-        box = [x, y, w, h]
-        loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
         # loss_obj = F.binary_cross_entropy_with_logits(obj, tobj, reduction='mean')
-        loss['loss_obj'] = loss_obj * b 
+        # box = [x, y, w, h]
+        # loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
+        # loss['loss_obj'] = loss_obj * b 
+        # loss['loss_obj'] = loss_obj * b 
 
 
         # if self.iou_aware_loss is not None:
@@ -212,10 +220,13 @@ class YOLOv3Loss(nn.Layer):
         np = len(inputs)
         gt_targets = [targets['target{}'.format(i)] for i in range(np)]
         gt_box = targets['gt_bbox']
+
         yolo_losses = dict()
         for i, (x, t, anchor, downsample) in enumerate(zip(inputs, gt_targets, anchors, self.downsample)):
+            
             yolo_loss = self.yolov3_loss(x, t, gt_box, anchor, downsample, self.scale_x_y)            
             yolo_loss['loss_obj'] *= self.balance[i]
+
             for k, v in yolo_loss.items():
                 if k in yolo_losses:
                     yolo_losses[k] += v
