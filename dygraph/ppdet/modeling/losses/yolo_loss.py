@@ -228,6 +228,6 @@ class YOLOv3Loss(nn.Layer):
             loss += v
         yolo_losses['loss'] = loss
 
-        print(len(gt_box), list(self.downsample) + [(k, v.numpy()[0]) for k, v in yolo_losses.items()])
+        # print(len(gt_box), list(self.downsample) + [(k, v.numpy()[0]) for k, v in yolo_losses.items()])
 
         return yolo_losses
