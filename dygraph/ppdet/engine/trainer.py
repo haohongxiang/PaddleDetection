@@ -297,7 +297,7 @@ class Trainer(object):
                 loss.backward()
 
 
-                max_norm = max([np.linalg.norm(p.grad) for p in self.model.parameters()])
+                max_norm = max([np.linalg.norm(p.grad) for p in self.model.parameters() if hasattr(p, 'grad')])
 
                 # paddle.
                 # scheduler
