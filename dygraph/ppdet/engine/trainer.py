@@ -63,7 +63,7 @@ class Trainer(object):
         # build data loader
         self.dataset = cfg['{}Dataset'.format(self.mode.capitalize())]
         if self.mode == 'train':
-            self.loader = create('{}Reader'.format(self.mode.capitalize()))(self.dataset, 1)
+            self.loader = create('{}Reader'.format(self.mode.capitalize()))(self.dataset, 3)
 
         # EvalDataset build with BatchSampler to evaluate in single device
         # TODO: multi-device evaluate
@@ -101,7 +101,7 @@ class Trainer(object):
         # scheduler
 
         hyp = {
-            'lr0': 0.01, # adam
+            'lr0': 0.005, # adam
             'lrf': 0.2,
             'warmup_bias_lr': 0.1,
             'warmup_momentum': 0.8,
@@ -127,7 +127,7 @@ class Trainer(object):
         n = sum([1 for p in self.model.parameters() if p.stop_gradient == False])
         assert len(pg0) + len(pg1) + len(pg2) == n, ''
 
-        clip = paddle.nn.ClipGradByNorm(clip_norm=5.)
+        clip = None # paddle.nn.ClipGradByNorm(clip_norm=5.)
 
         if True:
             opt0 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg0, use_nesterov=True, grad_clip=clip)
@@ -150,7 +150,7 @@ class Trainer(object):
 
         # scheduler
         num_batches = len(self.loader)
-        max_batches = 1000  # 1%
+        max_batches = 2000  # 1%
 
         self.lf = lf
         self.nw = max(round(hyp['warmup_epoches'] * num_batches), max_batches)
