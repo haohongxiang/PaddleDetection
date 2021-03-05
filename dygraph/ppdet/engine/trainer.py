@@ -127,10 +127,12 @@ class Trainer(object):
         n = sum([1 for p in self.model.parameters() if p.stop_gradient == False])
         assert len(pg0) + len(pg1) + len(pg2) == n, ''
 
+        clip = paddle.nn.ClipGradByNorm(clip_norm=1.0)
+
         if True:
-            opt0 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg0, use_nesterov=True)
-            opt1 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg1, use_nesterov=True, weight_decay=hyp['weight_decay'])
-            opt2 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg2, use_nesterov=True)
+            opt0 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg0, use_nesterov=True, grad_clip=None)
+            opt1 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg1, use_nesterov=True, weight_decay=hyp['weight_decay'], grad_clip=None)
+            opt2 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg2, use_nesterov=True, grad_clip=None)
         else:
             hyp['lr0'] *= 0.1
             opt0 = paddle.optimizer.Adam(parameters=pg0, learning_rate=hyp['lr0'], beta1=hyp['momentum'], beta2=0.999)
@@ -294,6 +296,10 @@ class Trainer(object):
                 # model backward
                 loss.backward()
 
+
+                max_norm = max([np.linalg.norm(p.grad) for p in self.model.parameters()])
+
+                # paddle.
                 # scheduler
                 lrs = [[], [], []]
 
@@ -309,7 +315,8 @@ class Trainer(object):
 
                 self.scheduler.step()
 
-                print(lrs)
+
+                print(max_norm, lrs)
 
                 curr_lr = self.scheduler.get_lr()
 
