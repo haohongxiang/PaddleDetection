@@ -101,7 +101,7 @@ class Trainer(object):
         # scheduler
 
         hyp = {
-            'lr0': 0.008, # adam
+            'lr0': 0.01, # adam
             'lrf': 0.2,
             'warmup_bias_lr': 0.1,
             'warmup_momentum': 0.8,
@@ -297,7 +297,9 @@ class Trainer(object):
                 loss.backward()
 
 
-                max_norm = max([np.linalg.norm(p.grad) for p in self.model.parameters() if hasattr(p, 'grad')])
+                max_norm = max([np.linalg.norm(p.grad) for p in self.model.parameters() if isinstance(p.grad, np.ndarray)])
+                
+                
 
                 # paddle.
                 # scheduler
