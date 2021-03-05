@@ -316,7 +316,7 @@ class Trainer(object):
                 self.scheduler.step()
 
 
-                print(max_norm, lrs)
+                # print(max_norm, lrs)
 
                 curr_lr = self.scheduler.get_lr()
 
