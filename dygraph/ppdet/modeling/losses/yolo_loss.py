@@ -157,7 +157,7 @@ class YOLOv3Loss(nn.Layer):
         # loss['loss_xy'] = loss_xy / 2.
         # loss['loss_wh'] = loss_wh / 2.
 
-        if self.iou_loss is not None:
+        if self.iou_loss is not None and tobj.sum().numpy()[0] > 0:
             # warn: do not modify x, y, w, h in place
             box, tbox = [x, y, w, h], [tx, ty, tw, th]
             pbox = bbox_transform(box, anchor, downsample)
@@ -165,28 +165,21 @@ class YOLOv3Loss(nn.Layer):
             # loss_iou = self.iou_loss(pbox, gbox).mean()
             iou = bbox_iou(pbox, gbox, giou=False, diou=False, ciou=True)
             loss_iou = (1 - iou).mean()
-
             # print('loss_iou:', loss_iou.shape)
             # loss_iou = loss_iou * tscale_obj
             # loss_iou = loss_iou.mean()
 
-            if tobj.sum().numpy()[0] > 0:
+            # if tobj.sum().numpy()[0] > 0:
                 # loss['loss_iou'] = 0.
                 # loss['loss_cls'] = 0.
                 # print('---------00000----------')
                 # print(f'tobj: {tobj.sum()}, gt_box: {len(gt_box)}')
-                # box = [x, y, w, h]
-                # loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
-                # loss['loss_obj'] = loss_obj * b 
             # else:
-                loss['loss_iou'] = loss_iou * b * 0.05
-                # loss_cls = self.cls_loss(pcls, tcls)
-                loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
-                loss['loss_cls'] = loss_cls * b * 0.5
+            loss['loss_iou'] = loss_iou * b * 0.05
+            # loss_cls = self.cls_loss(pcls, tcls)
+            loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
+            loss['loss_cls'] = loss_cls * b * 0.5
 
-                # box = [x, y, w, h]
-                # loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
-                # loss['loss_obj'] = loss_obj * b 
 
         # loss_obj = F.binary_cross_entropy_with_logits(obj, tobj, reduction='mean')
         box = [x, y, w, h]
