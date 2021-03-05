@@ -152,7 +152,8 @@ class Trainer(object):
 
         self.lf = lf
         self.nw = max(round(hyp['warmup_epoches'] * num_batches), max_batches)
-        print('self.nw:', round(hyp['warmup_epoches'] * num_batches), max_batches)
+
+        # print('self.nw:', round(hyp['warmup_epoches'] * num_batches), max_batches)
 
         self.initial_lr = [hyp['lr0'], hyp['lr0'], hyp['lr0']]
         self.num_batches = num_batches
@@ -272,7 +273,6 @@ class Trainer(object):
 
                 # # # Warmup --------
 
-
                 ni = step_id + self.num_batches * epoch_id
                 if ni <= self.nw:
                     xi = [0, self.nw]  # x interp
@@ -281,7 +281,6 @@ class Trainer(object):
                         opt.set_lr(_lr)
                         if hasattr(opt, '_momentum'):
                             opt._momentum = np.interp(ni, xi, [self.hyp['warmup_momentum'], self.hyp['momentum']])                           
-
 
                 
                 self.status['data_time'].update(time.time() - iter_tic)
@@ -310,6 +309,8 @@ class Trainer(object):
 
                 self.scheduler.step()
 
+                print(lrs)
+                
                 curr_lr = self.scheduler.get_lr()
 
 
