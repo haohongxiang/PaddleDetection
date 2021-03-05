@@ -101,7 +101,7 @@ class Trainer(object):
         # scheduler
 
         hyp = {
-            'lr0': 0.01, # adam
+            'lr0': 0.008, # adam
             'lrf': 0.2,
             'warmup_bias_lr': 0.1,
             'warmup_momentum': 0.8,
@@ -310,7 +310,7 @@ class Trainer(object):
                 self.scheduler.step()
 
                 print(lrs)
-                
+
                 curr_lr = self.scheduler.get_lr()
 
 
