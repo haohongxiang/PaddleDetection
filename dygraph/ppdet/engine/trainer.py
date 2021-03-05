@@ -101,11 +101,11 @@ class Trainer(object):
         # scheduler
 
         hyp = {
-            'lr0': 0.01,
+            'lr0': 0.001, # adam
             'lrf': 0.2,
             'warmup_bias_lr': 0.1,
             'warmup_momentum': 0.8,
-            'warmup_epoches': 6,
+            'warmup_epoches': 8,
             'momentum': 0.937,
             'weight_decay': 0.0005,
             'epoches': 300,
@@ -127,10 +127,14 @@ class Trainer(object):
         n = sum([1 for p in self.model.parameters() if p.stop_gradient == False])
         assert len(pg0) + len(pg1) + len(pg2) == n, ''
 
-        opt0 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg0, use_nesterov=True)
-        opt1 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg1, use_nesterov=True, weight_decay=hyp['weight_decay'])
-        opt2 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg2, use_nesterov=True)
+        # opt0 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg0, use_nesterov=True)
+        # opt1 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg1, use_nesterov=True, weight_decay=hyp['weight_decay'])
+        # opt2 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg2, use_nesterov=True)
         
+        opt0 = paddle.optimizer.Adam(parameters=pg0, learning_rate=hyp['lr0'], beta1=hyp['momentum'], beta2=0.999)
+        opt1 = paddle.optimizer.Adam(parameters=pg1, learning_rate=hyp['lr0'], beta1=hyp['momentum'], beta2=0.999, weight_decay=hyp['weight_decay'])
+        opt2 = paddle.optimizer.Adam(parameters=pg2, learning_rate=hyp['lr0'], beta1=hyp['momentum'], beta2=0.999)
+
         optimizers = [opt0, opt1, opt2]
 
 
