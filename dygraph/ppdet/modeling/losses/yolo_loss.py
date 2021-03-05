@@ -174,10 +174,10 @@ class YOLOv3Loss(nn.Layer):
                 # loss['loss_iou'] = 0.
                 # loss['loss_cls'] = 0.
                 print('---------00000----------')
-                
-                box = [x, y, w, h]
-                loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
-                loss['loss_obj'] = loss_obj * b 
+                print(f'tobj: {tobj.sum()}, gt_box: {len(gt_box)}')
+                # box = [x, y, w, h]
+                # loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
+                # loss['loss_obj'] = loss_obj * b 
 
             else:
                 loss['loss_iou'] = loss_iou * b * 0.05
@@ -185,15 +185,14 @@ class YOLOv3Loss(nn.Layer):
                 loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
                 loss['loss_cls'] = loss_cls * b * 0.5
 
-                box = [x, y, w, h]
-                loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
-                loss['loss_obj'] = loss_obj * b 
+                # box = [x, y, w, h]
+                # loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
+                # loss['loss_obj'] = loss_obj * b 
 
         # loss_obj = F.binary_cross_entropy_with_logits(obj, tobj, reduction='mean')
-        # box = [x, y, w, h]
-        # loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
-        # loss['loss_obj'] = loss_obj * b 
-        # loss['loss_obj'] = loss_obj * b 
+        box = [x, y, w, h]
+        loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
+        loss['loss_obj'] = loss_obj * b 
 
 
         # if self.iou_aware_loss is not None:
