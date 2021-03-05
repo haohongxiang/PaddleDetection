@@ -171,17 +171,16 @@ class YOLOv3Loss(nn.Layer):
             # loss_iou = loss_iou.mean()
 
 
-            # if tobj.sum() == 0:
-            #     # loss['loss_iou'] = 0.
-            #     # loss['loss_cls'] = 0.
-            #     print('---------00000----------')
-            #     pass
-            # else:
-            loss['loss_iou'] = loss_iou * b * 0.05
-
-            # loss_cls = self.cls_loss(pcls, tcls)
-            loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
-            loss['loss_cls'] = loss_cls * b * 0.5
+            if tobj.sum() == 0:
+                # loss['loss_iou'] = 0.
+                # loss['loss_cls'] = 0.
+                print('---------00000----------')
+                pass
+            else:
+                loss['loss_iou'] = loss_iou * b * 0.05
+                # loss_cls = self.cls_loss(pcls, tcls)
+                loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
+                loss['loss_cls'] = loss_cls * b * 0.5
 
 
         box = [x, y, w, h]
