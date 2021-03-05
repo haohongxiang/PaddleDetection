@@ -101,7 +101,7 @@ class Trainer(object):
         # scheduler
 
         hyp = {
-            'lr0': 0.005, # adam
+            'lr0': 0.01, # adam
             'lrf': 0.2,
             'warmup_bias_lr': 0.1,
             'warmup_momentum': 0.8,
@@ -109,7 +109,7 @@ class Trainer(object):
             'momentum': 0.937,
             'weight_decay': 0.0005,
             'epoches': 300,
-            'total_batch_size': 4 * 8,
+            'total_batch_size': 8 * 8,
             'nbatches': 64,
         }
 
