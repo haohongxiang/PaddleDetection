@@ -63,7 +63,7 @@ class Trainer(object):
         # build data loader
         self.dataset = cfg['{}Dataset'.format(self.mode.capitalize())]
         if self.mode == 'train':
-            self.loader = create('{}Reader'.format(self.mode.capitalize()))(self.dataset, 2)
+            self.loader = create('{}Reader'.format(self.mode.capitalize()))(self.dataset, 1)
 
         # EvalDataset build with BatchSampler to evaluate in single device
         # TODO: multi-device evaluate
