@@ -107,9 +107,6 @@ class YOLOv3Loss(nn.Layer):
         # loss_cls = F.binary_cross_entropy_with_logits(
         #     pcls, tcls, reduction='none')
         
-        # loss_cls = F.binary_cross_entropy_with_logits(
-        #     pcls, tcls, reduction='mean') * 10
-
         loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
 
         return loss_cls
