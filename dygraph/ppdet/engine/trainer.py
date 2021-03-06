@@ -283,6 +283,9 @@ class Trainer(object):
                         opt.set_lr(_lr)
                         if hasattr(opt, '_momentum'):
                             opt._momentum = np.interp(ni, xi, [self.hyp['warmup_momentum'], self.hyp['momentum']])                           
+                else:
+                    for opt in self.optimizers:
+                        opt.set_lr(self.scheduler.get_lr())
 
                 
                 self.status['data_time'].update(time.time() - iter_tic)
@@ -296,8 +299,7 @@ class Trainer(object):
                 # model backward
                 loss.backward()
 
-
-                max_norm = max([np.linalg.norm(p.grad) for p in self.model.parameters() if isinstance(p.grad, np.ndarray)])
+                # max_norm = max([np.linalg.norm(p.grad) for p in self.model.parameters() if isinstance(p.grad, np.ndarray)])
 
                 # paddle.
                 # scheduler
@@ -305,13 +307,15 @@ class Trainer(object):
 
                 for i, opt in enumerate(self.optimizers):
 
+                    opt.step()
+                    opt.clear_grad()
+
                     lrs[i].append(opt.get_lr())
                     if hasattr(opt, '_momentum'):
                         lrs[i].append(opt._momentum)
-
-                    opt.step()
-                    opt.clear_grad()
-                    opt.set_lr( self.scheduler.get_lr() )
+                
+                # for opt in self.optimizers:
+                    # opt.set_lr( self.scheduler.get_lr() )
 
                 self.scheduler.step()
 
