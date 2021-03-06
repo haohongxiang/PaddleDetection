@@ -317,9 +317,6 @@ class Trainer(object):
                 # for opt in self.optimizers:
                     # opt.set_lr( self.scheduler.get_lr() )
 
-                self.scheduler.step()
-
-
                 # print(max_norm, lrs)
 
                 curr_lr = self.scheduler.get_lr()
@@ -340,6 +337,12 @@ class Trainer(object):
                 self.status['batch_time'].update(time.time() - iter_tic)
                 self._compose_callback.on_step_end(self.status)
                 iter_tic = time.time()
+
+
+            # end epoche
+
+            self.scheduler.step()
+
 
             self._compose_callback.on_epoch_end(self.status)
 
