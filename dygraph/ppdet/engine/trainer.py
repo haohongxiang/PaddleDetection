@@ -77,9 +77,8 @@ class Trainer(object):
         # build optimizer in train mode
         if self.mode == 'train':
             steps_per_epoch = len(self.loader)
-            self.lr = create('LearningRate')(steps_per_epoch)
-            self.optimizer = create('OptimizerBuilder')(self.lr,
-                                                        self.model.parameters())
+            # self.lr = create('LearningRate')(steps_per_epoch)
+            # self.optimizer = create('OptimizerBuilder')(self.lr, self.model.parameters())
 
         self._nranks = ParallelEnv().nranks
         self._local_rank = ParallelEnv().local_rank
