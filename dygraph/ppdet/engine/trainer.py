@@ -104,7 +104,7 @@ class Trainer(object):
             'lrf': 0.2,
             'warmup_bias_lr': 0.1,
             'warmup_momentum': 0.8,
-            'warmup_epoches': 8,
+            'warmup_epoches': 5,
             'momentum': 0.937,
             'weight_decay': 0.0005,
             'epoches': 300,
@@ -307,14 +307,15 @@ class Trainer(object):
                 for i, opt in enumerate(self.optimizers):
 
                     opt.step()
-                    opt.clear_grad()
+                    # opt.clear_grad()
 
                     lrs[i].append(opt.get_lr())
                     if hasattr(opt, '_momentum'):
                         lrs[i].append(opt._momentum)
                 
-                # for opt in self.optimizers:
+                for opt in self.optimizers:
                     # opt.set_lr( self.scheduler.get_lr() )
+                    opt.clear_grad()
 
                 # print(max_norm, lrs)
 

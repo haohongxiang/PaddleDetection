@@ -126,7 +126,7 @@ class YOLOv3Loss(nn.Layer):
         t = t.transpose((0, 1, 3, 4, 2))
         tx, ty = t[:, :, :, :, 0:1], t[:, :, :, :, 1:2]
         tw, th = t[:, :, :, :, 2:3], t[:, :, :, :, 3:4]
-        tscale = t[:, :, :, :, 4:5]
+        # tscale = t[:, :, :, :, 4:5]
         tobj, tcls = t[:, :, :, :, 5:6], t[:, :, :, :, 6:]
 
         # tscale_obj = tscale * tobj
