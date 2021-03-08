@@ -56,7 +56,7 @@ class YOLOv3Loss(nn.Layer):
         self.iou_aware_loss = iou_aware_loss
 
         self.balance = [0.4, 1.0, 4.0,] # c6 -> c3
-        self.autobalance = False
+        self.autobalance = True
 
 
     def obj_loss(self, pbox, gbox, pobj, tobj, anchor, downsample):
@@ -82,19 +82,14 @@ class YOLOv3Loss(nn.Layer):
         obj_mask = paddle.cast(tobj > 0, dtype=pbox.dtype)
         obj_mask.stop_gradient = True
 
-        # loss_obj = F.binary_cross_entropy_with_logits(pobj, obj_mask, reduction='none')
+        loss_obj = F.binary_cross_entropy_with_logits(pobj, obj_mask, reduction='none')
 
-        # loss_obj_pos = (loss_obj * tobj)
-        # loss_obj_neg = (loss_obj * (1 - obj_mask) * iou_mask)
-        # return loss_obj_pos + loss_obj_neg 
+        loss_obj_pos = loss_obj * tobj
+        loss_obj_neg = loss_obj * (1 - obj_mask) * iou_mask
+        return (loss_obj_pos+ loss_obj_neg).sum() / ((obj_mask + (1 - obj_mask) * iou_mask)).sum() + 1e-5)
 
-        # loss_obj_pos = (loss_obj * tobj) / (obj_mask.sum() + 1)
-        # loss_obj_neg = (loss_obj * (1 - obj_mask) * iou_mask) / (((1 - obj_mask) * iou_mask).sum() + 1)
-        # return (loss_obj_pos.sum() + loss_obj_neg.sum() * 3) * 20
-
-        loss_obj = F.binary_cross_entropy_with_logits(pobj, obj_mask, reduction='mean')
-
-        return loss_obj
+        # loss_obj = F.binary_cross_entropy_with_logits(pobj, obj_mask, reduction='mean')
+        # return loss_obj
 
 
     def cls_loss(self, pcls, tcls):
@@ -114,7 +109,7 @@ class YOLOv3Loss(nn.Layer):
 
     def yolov3_loss(self, p, t, gt_box, anchor, downsample, scale=1., eps=1e-10):
         na = len(anchor)
-        b, c, h, w = p.shape
+        b, _, h, w = p.shape
         if self.iou_aware_loss:
             ioup, p = p[:, 0:na, :, :], p[:, na:, :, :]
             ioup = ioup.unsqueeze(-1)
@@ -154,37 +149,27 @@ class YOLOv3Loss(nn.Layer):
         # loss['loss_xy'] = loss_xy / 2.
         # loss['loss_wh'] = loss_wh / 2.
 
-        if self.iou_loss is not None and tobj.sum().numpy()[0] > 0:
+        if self.iou_loss is not None:
             # warn: do not modify x, y, w, h in place
             box, tbox = [x, y, w, h], [tx, ty, tw, th]
             pbox = bbox_transform(box, anchor, downsample)
             gbox = bbox_transform(tbox, anchor, downsample)
-            # loss_iou = self.iou_loss(pbox, gbox).mean()
-            iou = bbox_iou(pbox, gbox, giou=False, diou=False, ciou=True)
-            loss_iou = (1 - iou).mean()
-            # print('loss_iou:', loss_iou.shape)
+            loss_iou = self.iou_loss(pbox, gbox).mean()
+
+            # iou = bbox_iou(pbox, gbox, giou=False, diou=False, ciou=True)
+            # loss_iou = (1 - iou).mean()
+
             # loss_iou = loss_iou * tscale_obj
             # loss_iou = loss_iou.mean()
 
             loss['loss_iou'] = loss_iou * b * 0.05
-            loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
-            loss['loss_cls'] = loss_cls * b * 0.5
 
-
+        loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
+        loss['loss_cls'] = loss_cls * b * 0.5
         # loss_obj = F.binary_cross_entropy_with_logits(obj, tobj, reduction='mean')
         box = [x, y, w, h]
         loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
         loss['loss_obj'] = loss_obj * b 
-
-
-        # if self.iou_aware_loss is not None:
-        #     box, tbox = [x, y, w, h], [tx, ty, tw, th]
-        #     pbox = bbox_transform(box, anchor, downsample)
-        #     gbox = bbox_transform(tbox, anchor, downsample)
-        #     loss_iou_aware = self.iou_aware_loss(ioup, pbox, gbox)
-        #     loss_iou_aware = loss_iou_aware * tobj
-        #     loss_iou_aware = loss_iou_aware.sum([1, 2, 3, 4]).mean()
-        #     loss['loss_iou_aware'] = loss_iou_aware
 
         return loss 
 

@@ -4,7 +4,7 @@ TrainReader:
     num_max_boxes: 100
   sample_transforms:
     - Decode: {}
-    - Mixup: {alpha: 1.5, beta: 1.5}
+    # - Mixup: {alpha: 1.5, beta: 1.5}
     - RandomDistort: {}
     - RandomExpand: {fill_value: [123.675, 116.28, 103.53]}
     - RandomCrop: {}
@@ -20,7 +20,7 @@ TrainReader:
   batch_size: 8
   shuffle: true
   drop_last: true
-  mixup_epoch: 25000
+  # mixup_epoch: 25000
 
 
 EvalReader:

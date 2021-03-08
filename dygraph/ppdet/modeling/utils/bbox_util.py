@@ -134,7 +134,7 @@ def bbox_iou(box1, box2, giou=False, diou=False, ciou=False, eps=1e-9):
             else:
                 w1, h1 = px2 - px1, py2 - py1 + eps
                 w2, h2 = gx2 - gx1, gy2 - gy1 + eps
-                delta = paddle.atan(w1 / h1) - paddle.atan(w2 / h2)
+                delta = paddle.atan(w2 / h2) - paddle.atan(w1 / h1) 
                 v = (4 / math.pi**2) * paddle.pow(delta, 2)
                 alpha = v / (1 + eps - iou + v)
                 alpha.stop_gradient = True
