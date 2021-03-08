@@ -307,15 +307,15 @@ class Trainer(object):
                 for i, opt in enumerate(self.optimizers):
 
                     opt.step()
-                    # opt.clear_grad()
+                    opt.clear_grad()
 
                     lrs[i].append(opt.get_lr())
                     if hasattr(opt, '_momentum'):
                         lrs[i].append(opt._momentum)
                 
-                for opt in self.optimizers:
-                    # opt.set_lr( self.scheduler.get_lr() )
-                    opt.clear_grad()
+                # for opt in self.optimizers:
+                #     # opt.set_lr( self.scheduler.get_lr() )
+                #     opt.clear_grad()
 
                 # print(max_norm, lrs)
 
