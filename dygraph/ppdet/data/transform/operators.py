@@ -1936,6 +1936,7 @@ class Mosaic(BaseOperator):
         assert len(sample) == 4, 'mosaic need four samples'
 
         im, lab = self.load_mosaic(sample, img_size=self.img_size)
+        print(lab.shape, im.shape)
 
         if self.debug:
             self.show(im, lab)
@@ -2018,8 +2019,8 @@ class Mosaic(BaseOperator):
         img = Image.fromarray(img)
         draw = ImageDraw.Draw(img)
         
-        for i, b in enumerate(bbox):
-            draw.rectangle(b[1:], outline='red')
+        for _, b in enumerate(bbox):
+            draw.rectangle(tuple(b[1:]), outline='red')
         
         if not name:
             import time
