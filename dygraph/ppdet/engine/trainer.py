@@ -77,8 +77,9 @@ class Trainer(object):
         # build optimizer in train mode
         if self.mode == 'train':
             steps_per_epoch = len(self.loader)
-            # self.lr = create('LearningRate')(steps_per_epoch)
-            # self.optimizer = create('OptimizerBuilder')(self.lr, self.model.parameters())
+            self.lr = create('LearningRate')(steps_per_epoch)
+            self.optimizer = create('OptimizerBuilder')(self.lr,
+                                                        self.model.parameters())
 
         self._nranks = ParallelEnv().nranks
         self._local_rank = ParallelEnv().local_rank
@@ -112,7 +113,7 @@ class Trainer(object):
             'nbatches': 64,
         }
 
-        hyp['weight_decay'] *= hyp['total_batch_size'] / hyp['nbatches']
+        # hyp['weight_decay'] *= hyp['total_batch_size'] / hyp['nbatches']
 
         pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
         for _, v in self.model.named_sublayers():
@@ -149,7 +150,7 @@ class Trainer(object):
 
         # scheduler
         num_batches = len(self.loader)
-        max_batches = 2000  # 1%
+        max_batches = 1000  # 1%
 
         self.lf = lf
         self.nw = max(round(hyp['warmup_epoches'] * num_batches), max_batches)
@@ -295,8 +296,14 @@ class Trainer(object):
                 outputs = model(data)
                 loss = outputs['loss']
 
-                # model backward
                 loss.backward()
+                # model backward
+                # if not paddle.isnan(loss).numpy()[0]:
+                #    loss.backward()
+                    #print(paddle.isnan(loss), paddle.isnan(loss).numpy()[0])
+                # else:           
+                #    print('----loss is nan---')
+                #    continue
 
                 # max_norm = max([np.linalg.norm(p.grad) for p in self.model.parameters() if isinstance(p.grad, np.ndarray)])
 
@@ -314,10 +321,11 @@ class Trainer(object):
                         lrs[i].append(opt._momentum)
                 
                 # for opt in self.optimizers:
-                #     # opt.set_lr( self.scheduler.get_lr() )
-                #     opt.clear_grad()
+                #    opt.clear_grad()
+                    # opt.set_lr( self.scheduler.get_lr() )
 
-                # print(max_norm, lrs)
+                # print(lrs)
+
 
                 curr_lr = self.scheduler.get_lr()
 
@@ -340,28 +348,14 @@ class Trainer(object):
 
 
             # end epoche
-
+            print('self.scheduler.step  start')
             self.scheduler.step()
+            print('self.scheduler.step  end')
 
 
             self._compose_callback.on_epoch_end(self.status)
+            print('-------epoches------end---------')
 
-            if validate and (self._nranks < 2 or self._local_rank == 0) \
-                    and (epoch_id % self.cfg.snapshot_epoch == 0 \
-                             or epoch_id == self.end_epoch - 1):
-                if not hasattr(self, '_eval_loader'):
-                    # build evaluation dataset and loader
-                    self._eval_dataset = self.cfg.EvalDataset
-                    self._eval_batch_sampler = \
-                        paddle.io.BatchSampler(
-                            self._eval_dataset,
-                            batch_size=self.cfg.EvalReader['batch_size'])
-                    self._eval_loader = create('EvalReader')(
-                        self._eval_dataset,
-                        self.cfg.worker_num,
-                        batch_sampler=self._eval_batch_sampler)
-                with paddle.no_grad():
-                    self._eval_with_loader(self._eval_loader)
 
     def _eval_with_loader(self, loader):
         sample_num = 0
