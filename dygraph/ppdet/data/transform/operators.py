@@ -1922,13 +1922,20 @@ class Poly2Mask(BaseOperator):
 
 @register_op
 class Mosaic(BaseOperator):
-    def __init__(self, img_size=640):
+    def __init__(self, img_size=640, scale=0.5, translate=0.1, degree=0.0, shear=0., perspective=0., debug=False):
         """ Mosaic
         """
         super(Mosaic, self).__init__()
         self.img_size = img_size
-        self.debug = True   
+        self.debug = debug
 
+        self.scale = scale 
+        self.degree = degree
+        self.translate = translate
+        self.shear = shear
+        self.perspective = perspective
+        
+        
     def __call__(self, sample, context=None):
         if not isinstance(sample, Sequence):
             return sample
@@ -1936,9 +1943,9 @@ class Mosaic(BaseOperator):
         assert len(sample) == 4, 'mosaic need four samples'
 
         im, lab = self.load_mosaic(sample, img_size=self.img_size)
-        print(lab.shape, im.shape)
 
         if self.debug:
+            print(im.shape, lab.shape)
             self.show(im, lab)
 
         result = {}
@@ -1965,9 +1972,9 @@ class Mosaic(BaseOperator):
         yc, xc = [int(random.uniform(-x, 2 * s + x)) for x in mosaic_border] 
 
         for i, blob in enumerate(sample):
-            # img, _, (h, w) = self.load_image(idx)
+
             img, (h0, w0), (h, w) = self.resize_image(blob['image'], s)
-            bbox = self.normbbox(self.xyxy2xywh(blob['gt_bbox']), w0, h0)
+            bbox = self.normbbox(self.xyxyn2xywh(blob['gt_bbox']), w0, h0)
             labels = np.concatenate([blob['gt_class'], bbox], 1)
 
             # place img in img4
@@ -1999,29 +2006,34 @@ class Mosaic(BaseOperator):
         for x in labels4[:, 1:]:
             np.clip(x, 0, 2 * s, out=x)
         
-        
         img4, labels4 = self.random_perspective(img=img4, targets=labels4,
-                                                degrees=0.,
-                                                translate=0.,
-                                                scale=0.5,
-                                                shear=0.,
-                                                perspective=0.,
+                                                degrees=self.degree,
+                                                translate=self.translate,
+                                                scale=self.scale,
+                                                shear=self.shear,
+                                                perspective=self.perspective,
                                                 border=mosaic_border)  # border to remove
-
-
 
         return img4, labels4
 
 
     @staticmethod
     def show(img, bbox, name='', root='./output/'):
-        from PIL import Image, ImageDraw
+        '''for debug
+        '''        
         img = Image.fromarray(img)
         draw = ImageDraw.Draw(img)
         
+        if not len(bbox):
+            return 
+
         for _, b in enumerate(bbox):
             draw.rectangle(tuple(b[1:]), outline='red')
         
+        if not root:
+            root = './debug/'
+            os.mkdir(root)
+
         if not name:
             import time
             name = str(time.time()) + '.jpg'
@@ -2031,7 +2043,8 @@ class Mosaic(BaseOperator):
 
     @staticmethod
     def xywhn2xyxy(x, w=640, h=640, padw=0, padh=0):
-        # Convert nx4 boxes from [x, y, w, h] normalized to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right
+        '''n x [x y w h] -> [x y x y]
+        '''
         y = np.copy(x)
         y[:, 0] = w * (x[:, 0] - x[:, 2] / 2) + padw  # top left x
         y[:, 1] = h * (x[:, 1] - x[:, 3] / 2) + padh  # top left y
@@ -2042,7 +2055,9 @@ class Mosaic(BaseOperator):
     
 
     @staticmethod
-    def xyxy2xywh(bbox, ):
+    def xyxyn2xywh(bbox, ):
+        '''n x [x y x y] -> [x y w h]
+        '''
         bbox = np.copy(bbox)
         bbox[:, 2:4] = bbox[:, 2:4] - bbox[:, :2]
         bbox[:, :2] = bbox[:, :2] + bbox[:, 2:4] / 2.
@@ -2123,12 +2138,6 @@ class Mosaic(BaseOperator):
                 img = cv2.warpPerspective(img, M, dsize=(width, height), borderValue=(114, 114, 114))
             else:  # affine
                 img = cv2.warpAffine(img, M[:2], dsize=(width, height), borderValue=(114, 114, 114))
-
-        # Visualize
-        # import matplotlib.pyplot as plt
-        # ax = plt.subplots(1, 2, figsize=(12, 6))[1].ravel()
-        # ax[0].imshow(img[:, :, ::-1])  # base
-        # ax[1].imshow(img2[:, :, ::-1])  # warped
 
         # Transform label coordinates
         n = len(targets)
