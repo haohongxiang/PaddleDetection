@@ -1938,7 +1938,7 @@ class Mosaic(BaseOperator):
         im, lab = self.load_mosaic(sample, img_size=self.img_size)
 
         if self.debug:
-            self.show(im, lab[:, 1:])
+            self.show(im, lab)
 
         result = {}
         result['image'] = im
