@@ -2029,11 +2029,9 @@ class Mosaic(BaseOperator):
 
     @staticmethod
     def normbbox(bbox, width, height):
-        bbox[0] = bbox[0] / width
-        bbox[1] = bbox[1] / height
-        bbox[2] = bbox[2] / width
-        bbox[3] = bbox[3] / height
-
+        bbox[:, [0, 2]] /= width
+        bbox[:, [1, 3]] /= height
+        
         return bbox
 
 
