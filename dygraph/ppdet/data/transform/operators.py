@@ -1927,6 +1927,7 @@ class Mosaic(BaseOperator):
         """
         super(Mosaic, self).__init__()
         self.img_size = img_size
+        self.debug = True   
 
     def __call__(self, sample, context=None):
         if not isinstance(sample, Sequence):
@@ -1935,6 +1936,9 @@ class Mosaic(BaseOperator):
         assert len(sample) == 4, 'mosaic need four samples'
 
         im, lab = self.load_mosaic(sample, img_size=self.img_size)
+
+        if self.debug:
+            self.show(im, lab[:, 1:])
 
         result = {}
         result['image'] = im
@@ -2003,9 +2007,27 @@ class Mosaic(BaseOperator):
                                                 perspective=0.,
                                                 border=mosaic_border)  # border to remove
 
+
+
         return img4, labels4
 
+
+    @staticmethod
+    def show(img, bbox, name='', root='./output/'):
+        from PIL import Image, ImageDraw
+        img = Image.fromarray(img)
+        draw = ImageDraw.Draw(img)
+        
+        for i, b in enumerate(bbox):
+            draw.rectangle(b[1:], outline='red')
+        
+        if not name:
+            import time
+            name = str(time.time()) + '.jpg'
     
+        img.save(os.path.join(root, name))
+
+
     @staticmethod
     def xywhn2xyxy(x, w=640, h=640, padw=0, padh=0):
         # Convert nx4 boxes from [x, y, w, h] normalized to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right
@@ -2031,7 +2053,7 @@ class Mosaic(BaseOperator):
     def normbbox(bbox, width, height):
         bbox[:, [0, 2]] /= width
         bbox[:, [1, 3]] /= height
-        
+
         return bbox
 
 
