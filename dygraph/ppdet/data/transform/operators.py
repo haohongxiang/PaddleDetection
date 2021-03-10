@@ -2067,6 +2067,9 @@ class Mosaic(BaseOperator):
 
     @staticmethod
     def normbbox(bbox, width, height):
+        '''0-1
+        '''
+        bbox = np.copy(bbox)
         bbox[:, [0, 2]] /= width
         bbox[:, [1, 3]] /= height
 
@@ -2097,9 +2100,8 @@ class Mosaic(BaseOperator):
 
     @staticmethod
     def random_perspective(img, targets=(), degrees=10, translate=.1, scale=.1, shear=10, perspective=0.0, border=(0, 0)):
-        # torchvision.transforms.RandomAffine(degrees=(-10, 10), translate=(.1, .1), scale=(.9, 1.1), shear=(-10, 10))
-        # targets = [cls, xyxy]
-
+        '''augmentation
+        '''
         height = img.shape[0] + border[0] * 2  # shape(h,w,c)
         width = img.shape[1] + border[1] * 2
 
