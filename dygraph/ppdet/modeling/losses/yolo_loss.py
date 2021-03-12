@@ -118,7 +118,7 @@ class YOLOv3Loss(nn.Layer):
         tscale_obj = tscale * tobj
         loss = dict()
         
-        pos_num = (tobj > 0).astype(p.dtype).sum()
+        pos_num = (tobj > 0).astype(p.dtype).sum() + 1e-5
 
         x = scale * F.sigmoid(x) - 0.5 * (scale - 1.)
         y = scale * F.sigmoid(y) - 0.5 * (scale - 1.)
@@ -165,6 +165,7 @@ class YOLOv3Loss(nn.Layer):
         loss_obj = self.obj_loss(box, gt_box, obj, tobj, anchor, downsample)
         loss_obj = loss_obj.sum(-1).mean()
         loss['loss_obj'] = loss_obj / pos_num
+
         loss_cls = self.cls_loss(pcls, tcls) * tobj
         loss_cls = loss_cls.sum([1, 2, 3, 4]).mean()
         loss['loss_cls'] = loss_cls / pos_num
