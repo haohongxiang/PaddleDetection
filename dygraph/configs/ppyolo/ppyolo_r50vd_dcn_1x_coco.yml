@@ -6,5 +6,5 @@ _BASE_: [
   './_base_/ppyolo_reader.yml',
 ]
 
-snapshot_epoch: 16
+snapshot_epoch: 10
 weights: output/ppyolo_r50vd_dcn_1x_coco/model_final
