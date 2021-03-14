@@ -102,13 +102,13 @@ class Trainer(object):
 
         hyp = {
             'lr0': 0.01, # adam
-            'lrf': 0.2,
+            'lrf': 0.1, # 0.2
             'warmup_bias_lr': 0.1,
             'warmup_momentum': 0.8,
             'warmup_epoches': 5,
             'momentum': 0.937,
             'weight_decay': 0.0005,
-            'epoches': 160,
+            'epoches': 300,
             'total_batch_size': 8 * 8,
             'nbatches': 64,
         }
