@@ -115,6 +115,13 @@ class Trainer(object):
 
         # hyp['weight_decay'] *= hyp['total_batch_size'] / hyp['nbatches']
 
+        backbone = []
+        for n, p in self.model.named_parameters():
+            if n.startswith('backbone'):
+                backbone.append(p)
+            # p.stop_gradient = True
+
+
         pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
         for _, v in self.model.named_sublayers():
             if hasattr(v, 'bias') and isinstance(v.bias, paddle.fluid.framework.Parameter):
