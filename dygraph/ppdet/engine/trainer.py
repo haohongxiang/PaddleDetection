@@ -63,7 +63,8 @@ class Trainer(object):
         # build data loader
         self.dataset = cfg['{}Dataset'.format(self.mode.capitalize())]
         if self.mode == 'train':
-            self.loader = create('{}Reader'.format(self.mode.capitalize()))(self.dataset, cfg.worker_num)
+            self.loader = create('{}Reader'.format(self.mode.capitalize()))(
+                self.dataset, cfg.worker_num)
 
         # EvalDataset build with BatchSampler to evaluate in single device
         # TODO: multi-device evaluate
@@ -101,8 +102,8 @@ class Trainer(object):
         # scheduler
 
         hyp = {
-            'lr0': 0.01, # adam
-            'lrf': 0.1, # 0.2
+            'lr0': 0.01,  # adam
+            'lrf': 0.1,  # 0.2
             'warmup_bias_lr': 0.1,
             'warmup_momentum': 0.8,
             'warmup_epoches': 5,
@@ -111,6 +112,7 @@ class Trainer(object):
             'epoches': 300,
             'total_batch_size': 8 * 8,
             'nbatches': 64,
+            'start_epoch': 0,
         }
 
         # hyp['weight_decay'] *= hyp['total_batch_size'] / hyp['nbatches']
@@ -121,39 +123,72 @@ class Trainer(object):
                 backbone.append(p)
             # p.stop_gradient = True
 
-
         pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
         for _, v in self.model.named_sublayers():
-            if hasattr(v, 'bias') and isinstance(v.bias, paddle.fluid.framework.Parameter):
+            if hasattr(v, 'bias') and isinstance(
+                    v.bias, paddle.fluid.framework.Parameter):
                 pg2.append(v.bias)  # biases
             if isinstance(v, paddle.nn.BatchNorm2D):
                 pg0.append(v.weight)  # no decay
-            elif hasattr(v, 'weight') and isinstance(v.weight, paddle.fluid.framework.Parameter):
+            elif hasattr(v, 'weight') and isinstance(
+                    v.weight, paddle.fluid.framework.Parameter):
                 pg1.append(v.weight)  # apply decay
 
-        n = sum([1 for p in self.model.parameters() if p.stop_gradient == False])
+        n = sum(
+            [1 for p in self.model.parameters() if p.stop_gradient == False])
         assert len(pg0) + len(pg1) + len(pg2) == n, ''
 
-        clip = None # paddle.nn.ClipGradByNorm(clip_norm=5.)
+        clip = None  # paddle.nn.ClipGradByNorm(clip_norm=5.)
 
         if True:
-            opt0 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg0, use_nesterov=True, grad_clip=clip)
-            opt1 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg1, use_nesterov=True, weight_decay=hyp['weight_decay'], grad_clip=clip)
-            opt2 = paddle.optimizer.Momentum(learning_rate=hyp['lr0'], momentum=hyp['momentum'], parameters=pg2, use_nesterov=True, grad_clip=clip)
+            opt0 = paddle.optimizer.Momentum(
+                learning_rate=hyp['lr0'],
+                momentum=hyp['momentum'],
+                parameters=pg0,
+                use_nesterov=True,
+                grad_clip=clip)
+            opt1 = paddle.optimizer.Momentum(
+                learning_rate=hyp['lr0'],
+                momentum=hyp['momentum'],
+                parameters=pg1,
+                use_nesterov=True,
+                weight_decay=hyp['weight_decay'],
+                grad_clip=clip)
+            opt2 = paddle.optimizer.Momentum(
+                learning_rate=hyp['lr0'],
+                momentum=hyp['momentum'],
+                parameters=pg2,
+                use_nesterov=True,
+                grad_clip=clip)
         else:
             hyp['lr0'] *= 0.1
-            opt0 = paddle.optimizer.Adam(parameters=pg0, learning_rate=hyp['lr0'], beta1=hyp['momentum'], beta2=0.999)
-            opt1 = paddle.optimizer.Adam(parameters=pg1, learning_rate=hyp['lr0'], beta1=hyp['momentum'], beta2=0.999, weight_decay=hyp['weight_decay'])
-            opt2 = paddle.optimizer.Adam(parameters=pg2, learning_rate=hyp['lr0'], beta1=hyp['momentum'], beta2=0.999)
+            opt0 = paddle.optimizer.Adam(
+                parameters=pg0,
+                learning_rate=hyp['lr0'],
+                beta1=hyp['momentum'],
+                beta2=0.999)
+            opt1 = paddle.optimizer.Adam(
+                parameters=pg1,
+                learning_rate=hyp['lr0'],
+                beta1=hyp['momentum'],
+                beta2=0.999,
+                weight_decay=hyp['weight_decay'])
+            opt2 = paddle.optimizer.Adam(
+                parameters=pg2,
+                learning_rate=hyp['lr0'],
+                beta1=hyp['momentum'],
+                beta2=0.999)
 
         optimizers = [opt0, opt1, opt2]
 
-
         import math
+
         def one_cycle(y1=0.0, y2=1.0, steps=100):
             return lambda x: ((1 - math.cos(x * math.pi / steps)) / 2) * (y2 - y1) + y1
-        lf = one_cycle(1, hyp['lrf'], hyp['epoches']) 
-        scheduler = paddle.optimizer.lr.LambdaDecay(learning_rate=hyp['lr0'], lr_lambda=lf)
+
+        lf = one_cycle(1, hyp['lrf'], hyp['epoches'])
+        scheduler = paddle.optimizer.lr.LambdaDecay(
+            learning_rate=hyp['lr0'], lr_lambda=lf)
 
         # scheduler
         num_batches = len(self.loader)
@@ -170,8 +205,6 @@ class Trainer(object):
         self.hyp = hyp
         self.optimizers = optimizers
         self.scheduler = scheduler
-
-
 
     def _init_callbacks(self):
         if self.mode == 'train':
@@ -266,9 +299,8 @@ class Trainer(object):
             self.cfg.log_iter, fmt='{avg:.4f}')
         self.status['training_staus'] = stats.TrainingStats(self.cfg.log_iter)
 
-
         # for epoch_id in range(self.start_epoch, self.cfg.epoch):
-        for epoch_id in range(self.start_epoch, self.hyp['epoches']):
+        for epoch_id in range(self.hyp['start_epoch'], self.hyp['epoches']):
 
             self.status['mode'] = 'train'
             self.status['epoch_id'] = epoch_id
@@ -277,7 +309,6 @@ class Trainer(object):
             model.train()
             iter_tic = time.time()
 
-
             for step_id, data in enumerate(self.loader):
 
                 # # # Warmup --------
@@ -285,15 +316,20 @@ class Trainer(object):
                 if ni <= self.nw:
                     xi = [0, self.nw]  # x interp
                     for j, opt in enumerate(self.optimizers):
-                        _lr = np.interp(ni, xi, [self.hyp['warmup_bias_lr'] if j == 2 else 0.0, self.initial_lr[j] * self.lf(epoch_id)])
+                        _lr = np.interp(ni, xi, [
+                            self.hyp['warmup_bias_lr'] if j == 2 else 0.0,
+                            self.initial_lr[j] * self.lf(epoch_id)
+                        ])
                         opt.set_lr(_lr)
                         if hasattr(opt, '_momentum'):
-                            opt._momentum = np.interp(ni, xi, [self.hyp['warmup_momentum'], self.hyp['momentum']])                           
+                            opt._momentum = np.interp(ni, xi, [
+                                self.hyp['warmup_momentum'],
+                                self.hyp['momentum']
+                            ])
                 else:
                     for opt in self.optimizers:
                         opt.set_lr(self.scheduler.get_lr())
 
-                
                 self.status['data_time'].update(time.time() - iter_tic)
                 self.status['step_id'] = step_id
                 self._compose_callback.on_step_begin(self.status)
@@ -306,7 +342,7 @@ class Trainer(object):
                 # model backward
                 # if not paddle.isnan(loss).numpy()[0]:
                 #    loss.backward()
-                    #print(paddle.isnan(loss), paddle.isnan(loss).numpy()[0])
+                #print(paddle.isnan(loss), paddle.isnan(loss).numpy()[0])
                 # else:           
                 #    print('----loss is nan---')
                 #    continue
@@ -325,16 +361,14 @@ class Trainer(object):
                     lrs[i].append(opt.get_lr())
                     if hasattr(opt, '_momentum'):
                         lrs[i].append(opt._momentum)
-                
+
                 # for opt in self.optimizers:
                 #    opt.clear_grad()
-                    # opt.set_lr( self.scheduler.get_lr() )
+                # opt.set_lr( self.scheduler.get_lr() )
 
                 # print(lrs)
 
-
                 curr_lr = self.scheduler.get_lr()
-
 
                 # print( lrs, self.nw )
 
@@ -352,16 +386,13 @@ class Trainer(object):
                 self._compose_callback.on_step_end(self.status)
                 iter_tic = time.time()
 
-
             # end epoche
             print('self.scheduler.step  start')
             self.scheduler.step()
             print('self.scheduler.step  end')
 
-
             self._compose_callback.on_epoch_end(self.status)
             print('-------epoches------end---------')
-
 
     def _eval_with_loader(self, loader):
         sample_num = 0
