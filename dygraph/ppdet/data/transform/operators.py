@@ -2248,7 +2248,7 @@ class ResizeEval(BaseOperator):
         if isinstance(target_size, Integral):
             target_size = [target_size, target_size]
 
-        self.target_size = 604
+        self.size = 640
 
     @staticmethod
     def resize_image(img, img_size):
@@ -2278,7 +2278,7 @@ class ResizeEval(BaseOperator):
     def apply(self, sample, context=None):
         """ Resize the image numpy.
         """
-        size = 608
+        size = self.size
         # im = sample['image']
         # print(sample.keys())
         # ['im_id', 'h', 'w', 'image', 'im_shape', 'scale_factor']
