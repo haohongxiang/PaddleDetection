@@ -2260,64 +2260,47 @@ class ResizeEval(BaseOperator):
             img = cv2.resize(
                 img, (int(w0 * r), int(h0 * r)), interpolation=cv2.INTER_LINEAR)
 
+        if img.shape[0] % 32 != 0:
+            _h = (img.shape[0] // 32 + 1) * 32
+            img = cv2.resize(
+                img, (img.shape[1], _h), interpolation=cv2.INTER_LINEAR)
+
+        if img.shape[1] % 32 != 0:
+            _w = (img.shape[1] // 32 + 1) * 32
+            img = cv2.resize(
+                img, (_w, img.shape[0]), interpolation=cv2.INTER_LINEAR)
+
+        assert img.shape[0] % 32 == 0, f'{img.shape[0]}'
+        assert img.shape[1] % 32 == 0, f'{img.shape[1]}'
+
         return img, (h0, w0), img.shape[:2]  # img, hw_original, hw_resized
-
-    @staticmethod
-    def xywhn2xyxy(x, w=640, h=640, padw=0, padh=0):
-        '''n x [x y w h] -> [x y x y]
-        '''
-        y = np.copy(x)
-        y[:, 0] = w * (x[:, 0] - x[:, 2] / 2) + padw  # top left x
-        y[:, 1] = h * (x[:, 1] - x[:, 3] / 2) + padh  # top left y
-        y[:, 2] = w * (x[:, 0] + x[:, 2] / 2) + padw  # bottom right x
-        y[:, 3] = h * (x[:, 1] + x[:, 3] / 2) + padh  # bottom right y
-
-        return y
-
-    @staticmethod
-    def xyxyn2xywh(bbox, ):
-        '''n x [x y x y] -> [x y w h]
-        '''
-        bbox = np.copy(bbox)
-        bbox[:, 2:4] = bbox[:, 2:4] - bbox[:, :2]
-        bbox[:, :2] = bbox[:, :2] + bbox[:, 2:4] / 2.
-
-        return bbox
-
-    @staticmethod
-    def normbbox(bbox, width, height):
-        '''0-1
-        '''
-        bbox = np.copy(bbox)
-        bbox[:, [0, 2]] /= width
-        bbox[:, [1, 3]] /= height
-
-        return bbox
 
     def apply(self, sample, context=None):
         """ Resize the image numpy.
         """
+        size = 608
         # im = sample['image']
-        _im, (h0, w0), (h, w) = self.resize_image(sample['image'], 604)
-        bbox = self.normbbox(self.xyxyn2xywh(sample['gt_bbox']), w0, h0)
+        # print(sample.keys())
+        # ['im_id', 'h', 'w', 'image', 'im_shape', 'scale_factor']
 
-        im = np.full((604, 604, 3), 114, dtype=np.uint8)
+        _im, (h0, w0), (h, w) = self.resize_image(sample['image'], size)
+        # bbox = self.normbbox(self.xyxyn2xywh(sample['gt_bbox']), w0, h0)
 
-        padh = 604 - h
-        padw = 604 - w
+        # im = np.full((size, size, 3), 114, dtype=np.uint8)
 
-        if padh:
-            im[padh // 2:604 - padh // 2, :, :] = _im
-        else:
-            im[:, padw // 2:604 - padw // 2, :] = _im
+        # padh = size - h
+        # padw = size - w
 
-        bbox = self.xywhn2xyxy(bbox, w, h, padw // 2, padh // 2)
+        # if padh:
+        #     im[padh // 2:size - padh // 2, :, :] = _im
+        # else:
+        #     im[:, padw // 2:size - padw // 2, :] = _im
 
-        sample['image'] = im
-        sample['im_shape'] = np.asarray([604, 604], dtype=np.float32)
+        # # bbox = self.xywhn2xyxy(bbox, w, h, padw // 2, padh // 2)
 
-        # apply bbox
-        if 'gt_bbox' in sample and len(sample['gt_bbox']) > 0:
-            sample['gt_bbox'] = bbox
+        sample['image'] = _im
+        sample['im_shape'] = np.asarray([h, w], dtype=np.float32)
+        sample['scale_factor'] = np.asarray([h / h0, w / w0], dtype=np.float32)
+        # sample['padding'] = [padh, padw]
 
         return sample
