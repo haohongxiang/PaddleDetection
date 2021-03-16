@@ -2217,4 +2217,6 @@ class Mosaic(BaseOperator):
 
         img_hsv = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat),
                              cv2.LUT(val, lut_val))).astype(dtype)
-        cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR, dst=img)  # no return needed
+        cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR, dst=img)
+
+        return img
