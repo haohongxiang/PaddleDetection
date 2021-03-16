@@ -1928,6 +1928,9 @@ class Mosaic(BaseOperator):
                  degree=0.0,
                  shear=0.,
                  perspective=0.,
+                 hsv_h=0.015,
+                 hsv_s=0.7,
+                 hsv_v=0.4,
                  debug=False):
         """ Mosaic
         """
@@ -1941,9 +1944,9 @@ class Mosaic(BaseOperator):
         self.shear = shear
         self.perspective = perspective
 
-        self.hsv_h = 0.015
-        self.hsv_s = 0.7
-        self.hsv_v = 0.4
+        self.hsv_h = hsv_h
+        self.hsv_s = hsv_s
+        self.hsv_v = hsv_v
 
     def __call__(self, sample, context=None):
         if not isinstance(sample, Sequence):
