@@ -2224,3 +2224,100 @@ class Mosaic(BaseOperator):
         cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR, dst=img)
 
         return img
+
+
+@register_op
+class ResizeEval(BaseOperator):
+    def __init__(self, target_size, keep_ratio, interp=cv2.INTER_LINEAR):
+        """
+        Resize image to target size. if keep_ratio is True, 
+        resize the image's long side to the maximum of target_size
+        if keep_ratio is False, resize the image to target size(h, w)
+        Args:
+            target_size (int|list): image target size
+            keep_ratio (bool): whether keep_ratio or not, default true
+            interp (int): the interpolation method
+        """
+        super(ResizeEval, self).__init__()
+        self.keep_ratio = keep_ratio
+        self.interp = interp
+        if not isinstance(target_size, (Integral, Sequence)):
+            raise TypeError(
+                "Type of target_size is invalid. Must be Integer or List or Tuple, now is {}".
+                format(type(target_size)))
+        if isinstance(target_size, Integral):
+            target_size = [target_size, target_size]
+
+        self.target_size = 604
+
+    @staticmethod
+    def resize_image(img, img_size):
+        '''resize image
+        '''
+        h0, w0 = img.shape[:2]  # orig hw
+        r = img_size / max(h0, w0)  # resize image to img_size
+        if r != 1:  # always resize down, only resize up if training with augmentation
+            img = cv2.resize(
+                img, (int(w0 * r), int(h0 * r)), interpolation=cv2.INTER_LINEAR)
+
+        return img, (h0, w0), img.shape[:2]  # img, hw_original, hw_resized
+
+    @staticmethod
+    def xywhn2xyxy(x, w=640, h=640, padw=0, padh=0):
+        '''n x [x y w h] -> [x y x y]
+        '''
+        y = np.copy(x)
+        y[:, 0] = w * (x[:, 0] - x[:, 2] / 2) + padw  # top left x
+        y[:, 1] = h * (x[:, 1] - x[:, 3] / 2) + padh  # top left y
+        y[:, 2] = w * (x[:, 0] + x[:, 2] / 2) + padw  # bottom right x
+        y[:, 3] = h * (x[:, 1] + x[:, 3] / 2) + padh  # bottom right y
+
+        return y
+
+    @staticmethod
+    def xyxyn2xywh(bbox, ):
+        '''n x [x y x y] -> [x y w h]
+        '''
+        bbox = np.copy(bbox)
+        bbox[:, 2:4] = bbox[:, 2:4] - bbox[:, :2]
+        bbox[:, :2] = bbox[:, :2] + bbox[:, 2:4] / 2.
+
+        return bbox
+
+    @staticmethod
+    def normbbox(bbox, width, height):
+        '''0-1
+        '''
+        bbox = np.copy(bbox)
+        bbox[:, [0, 2]] /= width
+        bbox[:, [1, 3]] /= height
+
+        return bbox
+
+    def apply(self, sample, context=None):
+        """ Resize the image numpy.
+        """
+        # im = sample['image']
+        _im, (h0, w0), (h, w) = self.resize_image(sample['image'], 604)
+        bbox = self.normbbox(self.xyxyn2xywh(sample['gt_bbox']), w0, h0)
+
+        im = np.full((604, 604, 3), 114, dtype=np.uint8)
+
+        padh = 604 - h
+        padw = 604 - w
+
+        if padh:
+            im[padh // 2:604 - padh // 2, :, :] = _im
+        else:
+            im[:, padw // 2:604 - padw // 2, :] = _im
+
+        bbox = self.xywhn2xyxy(bbox, w, h, padw // 2, padh // 2)
+
+        sample['image'] = im
+        sample['im_shape'] = np.asarray([604, 604], dtype=np.float32)
+
+        # apply bbox
+        if 'gt_bbox' in sample and len(sample['gt_bbox']) > 0:
+            sample['gt_bbox'] = bbox
+
+        return sample

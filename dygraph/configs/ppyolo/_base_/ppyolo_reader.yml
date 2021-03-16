@@ -22,7 +22,7 @@ TrainReader:
   shuffle: true
   drop_last: true
   # mixup_epoch: 25000
-  mosaic_epoch: 100000
+  mosaic_epoch: 1000000
 
 
 EvalReader:
