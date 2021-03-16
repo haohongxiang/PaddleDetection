@@ -1965,6 +1965,7 @@ class Mosaic(BaseOperator):
         result['gt_bbox'] = lab[:, 1:]
         result['gt_class'] = lab[:, :1]
         result['im_shape'] = np.array(im.shape[:2], dtype=np.float32)
+        assert im.shape[:2] == (640, 640), ''
 
         return result
 
