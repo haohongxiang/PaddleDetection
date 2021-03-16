@@ -2104,6 +2104,19 @@ class Mosaic(BaseOperator):
             img = cv2.resize(
                 img, (int(w0 * r), int(h0 * r)), interpolation=cv2.INTER_LINEAR)
 
+        if img.shape[0] % 32 != 0:
+            _h = (img.shape[0] // 32 + 1) * 32
+            img = cv2.resize(
+                img, (img.shape[1], _h), interpolation=cv2.INTER_LINEAR)
+
+        if img.shape[1] % 32 != 0:
+            _w = (img.shape[1] // 32 + 1) * 32
+            img = cv2.resize(
+                img, (_w, img.shape[0]), interpolation=cv2.INTER_LINEAR)
+
+        assert img.shape[0] % 32 == 0, f'{img.shape[0]}'
+        assert img.shape[1] % 32 == 0, f'{img.shape[1]}'
+
         return img, (h0, w0), img.shape[:2]  # img, hw_original, hw_resized
 
     @staticmethod
