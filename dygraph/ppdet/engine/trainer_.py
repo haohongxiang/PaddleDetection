@@ -30,10 +30,10 @@ from paddle.static import InputSpec
 from ppdet.core.workspace import create
 from ppdet.utils.checkpoint import load_weight, load_pretrain_weight
 from ppdet.utils.visualizer import visualize_results
-from ppdet.metrics import Metric, COCOMetric, VOCMetric, WiderFaceMetric, get_categories, get_infer_results
+from ppdet.metrics import Metric, COCOMetric, VOCMetric, get_categories, get_infer_results
 import ppdet.utils.stats as stats
 
-from .callbacks import Callback, ComposeCallback, LogPrinter, Checkpointer, WiferFaceEval
+from .callbacks import Callback, ComposeCallback, LogPrinter, Checkpointer
 from .export_utils import _dump_infer_config
 
 from ppdet.utils.logger import setup_logger
@@ -65,6 +65,7 @@ class Trainer(object):
         if self.mode == 'train':
             self.loader = create('{}Reader'.format(self.mode.capitalize()))(
                 self.dataset, cfg.worker_num)
+
         # EvalDataset build with BatchSampler to evaluate in single device
         # TODO: multi-device evaluate
         if self.mode == 'eval':
@@ -89,6 +90,8 @@ class Trainer(object):
         self.start_epoch = 0
         self.end_epoch = cfg.epoch
 
+        self._weights_loaded = False
+
         # initial default callbacks
         self._init_callbacks()
 
@@ -96,14 +99,119 @@ class Trainer(object):
         self._init_metrics()
         self._reset_metrics()
 
+        # scheduler
+
+        hyp = {
+            'lr0': 0.01,  # adam
+            'lrf': 0.1,  # 0.2
+            'warmup_bias_lr': 0.1,
+            'warmup_momentum': 0.8,
+            'warmup_epoches': 5,
+            'momentum': 0.937,
+            'weight_decay': 0.0005,
+            'epoches': 300,
+            'total_batch_size': 8 * 8,
+            'nbatches': 64,
+            'start_epoch': 0,
+        }
+
+        # hyp['weight_decay'] *= hyp['total_batch_size'] / hyp['nbatches']
+
+        backbone = []
+        for n, p in self.model.named_parameters():
+            if n.startswith('backbone'):
+                backbone.append(p)
+            # p.stop_gradient = True
+
+        pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
+        for _, v in self.model.named_sublayers():
+            if hasattr(v, 'bias') and isinstance(
+                    v.bias, paddle.fluid.framework.Parameter):
+                pg2.append(v.bias)  # biases
+            if isinstance(v, paddle.nn.BatchNorm2D):
+                pg0.append(v.weight)  # no decay
+            elif hasattr(v, 'weight') and isinstance(
+                    v.weight, paddle.fluid.framework.Parameter):
+                pg1.append(v.weight)  # apply decay
+
+        n = sum(
+            [1 for p in self.model.parameters() if p.stop_gradient == False])
+        assert len(pg0) + len(pg1) + len(pg2) == n, ''
+
+        clip = None  # paddle.nn.ClipGradByNorm(clip_norm=5.)
+
+        if True:
+            opt0 = paddle.optimizer.Momentum(
+                learning_rate=hyp['lr0'],
+                momentum=hyp['momentum'],
+                parameters=pg0,
+                use_nesterov=True,
+                grad_clip=clip)
+            opt1 = paddle.optimizer.Momentum(
+                learning_rate=hyp['lr0'],
+                momentum=hyp['momentum'],
+                parameters=pg1,
+                use_nesterov=True,
+                weight_decay=hyp['weight_decay'],
+                grad_clip=clip)
+            opt2 = paddle.optimizer.Momentum(
+                learning_rate=hyp['lr0'],
+                momentum=hyp['momentum'],
+                parameters=pg2,
+                use_nesterov=True,
+                grad_clip=clip)
+        else:
+            hyp['lr0'] *= 0.1
+            opt0 = paddle.optimizer.Adam(
+                parameters=pg0,
+                learning_rate=hyp['lr0'],
+                beta1=hyp['momentum'],
+                beta2=0.999)
+            opt1 = paddle.optimizer.Adam(
+                parameters=pg1,
+                learning_rate=hyp['lr0'],
+                beta1=hyp['momentum'],
+                beta2=0.999,
+                weight_decay=hyp['weight_decay'])
+            opt2 = paddle.optimizer.Adam(
+                parameters=pg2,
+                learning_rate=hyp['lr0'],
+                beta1=hyp['momentum'],
+                beta2=0.999)
+
+        optimizers = [opt0, opt1, opt2]
+
+        import math
+
+        def one_cycle(y1=0.0, y2=1.0, steps=100):
+            return lambda x: ((1 - math.cos(x * math.pi / steps)) / 2) * (y2 - y1) + y1
+
+        lf = one_cycle(1, hyp['lrf'], hyp['epoches'])
+        scheduler = paddle.optimizer.lr.LambdaDecay(
+            learning_rate=hyp['lr0'], lr_lambda=lf)
+
+        # scheduler
+        num_batches = len(self.loader)
+        max_batches = 1000  # 1%
+
+        self.lf = lf
+        self.nw = max(round(hyp['warmup_epoches'] * num_batches), max_batches)
+
+        # print('self.nw:', round(hyp['warmup_epoches'] * num_batches), max_batches)
+
+        self.initial_lr = [hyp['lr0'], hyp['lr0'], hyp['lr0']]
+        self.num_batches = num_batches
+
+        self.hyp = hyp
+        self.optimizers = optimizers
+        self.scheduler = scheduler
+
     def _init_callbacks(self):
         if self.mode == 'train':
             self._callbacks = [LogPrinter(self), Checkpointer(self)]
             self._compose_callback = ComposeCallback(self._callbacks)
         elif self.mode == 'eval':
             self._callbacks = [LogPrinter(self)]
-            if self.cfg.metric == 'WiderFace':
-                self._callbacks.append(WiferFaceEval(self))
             self._compose_callback = ComposeCallback(self._callbacks)
         else:
             self._callbacks = []
@@ -126,15 +234,6 @@ class Trainer(object):
                     anno_file=self.dataset.get_anno(),
                     class_num=self.cfg.num_classes,
                     map_type=self.cfg.map_type)
-            ]
-        elif self.cfg.metric == 'WiderFace':
-            multi_scale = self.cfg.multi_scale_eval if 'multi_scale_eval' in self.cfg else True
-            self._metrics = [
-                WiderFaceMetric(
-                    image_dir=os.path.join(self.dataset.dataset_dir,
-                                           self.dataset.image_dir),
-                    anno_file=self.dataset.get_anno(),
-                    multi_scale=multi_scale)
             ]
         else:
             logger.warn("Metric not support for metric type {}".format(
@@ -173,9 +272,14 @@ class Trainer(object):
                                  weight_type)
             logger.debug("Load {} weights {} to start training".format(
                 weight_type, weights))
+        self._weights_loaded = True
 
     def train(self, validate=False):
         assert self.mode == 'train', "Model not in 'train' mode"
+
+        # if no given weights loaded, load backbone pretrain weights as default
+        if not self._weights_loaded:
+            self.load_weights(self.cfg.pretrain_weights)
 
         model = self.model
         if self._nranks > 1:
@@ -195,14 +299,37 @@ class Trainer(object):
             self.cfg.log_iter, fmt='{avg:.4f}')
         self.status['training_staus'] = stats.TrainingStats(self.cfg.log_iter)
 
-        for epoch_id in range(self.start_epoch, self.cfg.epoch):
+        # for epoch_id in range(self.start_epoch, self.cfg.epoch):
+        for epoch_id in range(self.hyp['start_epoch'], self.hyp['epoches']):
+
             self.status['mode'] = 'train'
             self.status['epoch_id'] = epoch_id
             self._compose_callback.on_epoch_begin(self.status)
             self.loader.dataset.set_epoch(epoch_id)
             model.train()
             iter_tic = time.time()
+
             for step_id, data in enumerate(self.loader):
+
+                # # # Warmup --------
+                ni = step_id + self.num_batches * epoch_id
+                if ni <= self.nw:
+                    xi = [0, self.nw]  # x interp
+                    for j, opt in enumerate(self.optimizers):
+                        _lr = np.interp(ni, xi, [
+                            self.hyp['warmup_bias_lr'] if j == 2 else 0.0,
+                            self.initial_lr[j] * self.lf(epoch_id)
+                        ])
+                        opt.set_lr(_lr)
+                        if hasattr(opt, '_momentum'):
+                            opt._momentum = np.interp(ni, xi, [
+                                self.hyp['warmup_momentum'],
+                                self.hyp['momentum']
+                            ])
+                else:
+                    for opt in self.optimizers:
+                        opt.set_lr(self.scheduler.get_lr())
+
                 self.status['data_time'].update(time.time() - iter_tic)
                 self.status['step_id'] = step_id
                 self._compose_callback.on_step_begin(self.status)
@@ -211,12 +338,45 @@ class Trainer(object):
                 outputs = model(data)
                 loss = outputs['loss']
 
-                # model backward
                 loss.backward()
-                self.optimizer.step()
-                curr_lr = self.optimizer.get_lr()
-                self.lr.step()
-                self.optimizer.clear_grad()
+                # model backward
+                # if not paddle.isnan(loss).numpy()[0]:
+                #    loss.backward()
+                #print(paddle.isnan(loss), paddle.isnan(loss).numpy()[0])
+                # else:           
+                #    print('----loss is nan---')
+                #    continue
+
+                # max_norm = max([np.linalg.norm(p.grad) for p in self.model.parameters() if isinstance(p.grad, np.ndarray)])
+
+                # paddle.
+                # scheduler
+                lrs = [[], [], []]
+
+                for i, opt in enumerate(self.optimizers):
+
+                    opt.step()
+                    opt.clear_grad()
+
+                    lrs[i].append(opt.get_lr())
+                    if hasattr(opt, '_momentum'):
+                        lrs[i].append(opt._momentum)
+
+                # for opt in self.optimizers:
+                #    opt.clear_grad()
+                # opt.set_lr( self.scheduler.get_lr() )
+
+                # print(lrs)
+
+                curr_lr = self.scheduler.get_lr()
+
+                # print( lrs, self.nw )
+
+                # self.optimizer.step()
+                # curr_lr = self.optimizer.get_lr()
+                # self.lr.step()
+                # self.optimizer.clear_grad()
+
                 self.status['learning_rate'] = curr_lr
 
                 if self._nranks < 2 or self._local_rank == 0:
@@ -226,24 +386,13 @@ class Trainer(object):
                 self._compose_callback.on_step_end(self.status)
                 iter_tic = time.time()
 
-            self._compose_callback.on_epoch_end(self.status)
+            # end epoche
+            print('self.scheduler.step  start')
+            self.scheduler.step()
+            print('self.scheduler.step  end')
 
-            if validate and (self._nranks < 2 or self._local_rank == 0) \
-                    and (epoch_id % self.cfg.snapshot_epoch == 0 \
-                             or epoch_id == self.end_epoch - 1):
-                if not hasattr(self, '_eval_loader'):
-                    # build evaluation dataset and loader
-                    self._eval_dataset = self.cfg.EvalDataset
-                    self._eval_batch_sampler = \
-                        paddle.io.BatchSampler(
-                            self._eval_dataset,
-                            batch_size=self.cfg.EvalReader['batch_size'])
-                    self._eval_loader = create('EvalReader')(
-                        self._eval_dataset,
-                        self.cfg.worker_num,
-                        batch_sampler=self._eval_batch_sampler)
-                with paddle.no_grad():
-                    self._eval_with_loader(self._eval_loader)
+            self._compose_callback.on_epoch_end(self.status)
+            print('-------epoches------end---------')
 
     def _eval_with_loader(self, loader):
         sample_num = 0
