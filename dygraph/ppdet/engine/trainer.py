@@ -101,12 +101,12 @@ class Trainer(object):
         self.adversarial = False
         self.adversarial_lr = 0.005
 
-        # backbone = []
-        for n, p in self.model.named_parameters():
-            if n.startswith('backbone.conv1') or n.startswith('backbone.res2'):
-                # backbone.append(p)
-                p.stop_gradient = True
-                print(n)
+        # # backbone = []
+        # for n, p in self.model.named_parameters():
+        #     if n.startswith('backbone.conv1'): # or n.startswith('backbone.res2'):
+        #         # backbone.append(p)
+        #         p.stop_gradient = True
+        #         print(n)
 
     def _init_callbacks(self):
         if self.mode == 'train':
