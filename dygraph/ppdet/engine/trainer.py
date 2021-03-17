@@ -30,10 +30,10 @@ from paddle.static import InputSpec
 from ppdet.core.workspace import create
 from ppdet.utils.checkpoint import load_weight, load_pretrain_weight
 from ppdet.utils.visualizer import visualize_results
-from ppdet.metrics import Metric, COCOMetric, VOCMetric, WiderFaceMetric, get_categories, get_infer_results
+from ppdet.metrics import Metric, COCOMetric, VOCMetric, get_categories, get_infer_results
 import ppdet.utils.stats as stats
 
-from .callbacks import Callback, ComposeCallback, LogPrinter, Checkpointer, WiferFaceEval
+from .callbacks import Callback, ComposeCallback, LogPrinter, Checkpointer
 from .export_utils import _dump_infer_config
 
 from ppdet.utils.logger import setup_logger
@@ -89,6 +89,8 @@ class Trainer(object):
         self.start_epoch = 0
         self.end_epoch = cfg.epoch
 
+        self._weights_loaded = False
+
         # initial default callbacks
         self._init_callbacks()
 
@@ -96,14 +98,22 @@ class Trainer(object):
         self._init_metrics()
         self._reset_metrics()
 
+        self.adversarial = False
+        self.adversarial_lr = 0.005
+
+        # backbone = []
+        for n, p in self.model.named_parameters():
+            if n.startswith('backbone.conv1') or n.startswith('backbone.res2'):
+                # backbone.append(p)
+                p.stop_gradient = True
+                print(n)
+
     def _init_callbacks(self):
         if self.mode == 'train':
             self._callbacks = [LogPrinter(self), Checkpointer(self)]
             self._compose_callback = ComposeCallback(self._callbacks)
         elif self.mode == 'eval':
             self._callbacks = [LogPrinter(self)]
-            if self.cfg.metric == 'WiderFace':
-                self._callbacks.append(WiferFaceEval(self))
             self._compose_callback = ComposeCallback(self._callbacks)
         else:
             self._callbacks = []
@@ -126,15 +136,6 @@ class Trainer(object):
                     anno_file=self.dataset.get_anno(),
                     class_num=self.cfg.num_classes,
                     map_type=self.cfg.map_type)
-            ]
-        elif self.cfg.metric == 'WiderFace':
-            multi_scale = self.cfg.multi_scale_eval if 'multi_scale_eval' in self.cfg else True
-            self._metrics = [
-                WiderFaceMetric(
-                    image_dir=os.path.join(self.dataset.dataset_dir,
-                                           self.dataset.image_dir),
-                    anno_file=self.dataset.get_anno(),
-                    multi_scale=multi_scale)
             ]
         else:
             logger.warn("Metric not support for metric type {}".format(
@@ -173,9 +174,14 @@ class Trainer(object):
                                  weight_type)
             logger.debug("Load {} weights {} to start training".format(
                 weight_type, weights))
+        self._weights_loaded = True
 
     def train(self, validate=False):
         assert self.mode == 'train', "Model not in 'train' mode"
+
+        # if no given weights loaded, load backbone pretrain weights as default
+        if not self._weights_loaded:
+            self.load_weights(self.cfg.pretrain_weights)
 
         model = self.model
         if self._nranks > 1:
@@ -206,6 +212,22 @@ class Trainer(object):
                 self.status['data_time'].update(time.time() - iter_tic)
                 self.status['step_id'] = step_id
                 self._compose_callback.on_step_begin(self.status)
+
+                if self.adversarial and random.random() < 0.5:
+                    # if self.adversarial:
+                    # print(list(data.keys()))
+                    # print(type(data['image']))
+                    data['image'].stop_gradient = False
+                    outputs = model(data)
+                    loss = outputs['loss']
+                    loss.backward()
+
+                    data['image'] = data[
+                        'image'] - self.adversarial_lr * paddle.to_tensor(
+                            data['image'].grad, place=data['image'].place)
+                    data['image'].stop_gradient = True
+                    for p in model.parameters():
+                        p.clear_grad()
 
                 # model forward
                 outputs = model(data)
