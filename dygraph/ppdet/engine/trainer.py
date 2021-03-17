@@ -100,6 +100,11 @@ class Trainer(object):
 
         self.adversarial = False
         self.adversarial_lr = 0.005
+        self.multiscale = True
+        self.sizes = [
+            320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704,
+            736, 768, 800
+        ]
 
         # backbone = []
         for n, p in self.model.named_parameters():
@@ -228,6 +233,14 @@ class Trainer(object):
                     data['image'].stop_gradient = True
                     for p in model.parameters():
                         p.clear_grad()
+
+                if self.multiscale:
+                    sz = np.random.choice(self.sizes)
+                    data['image'] = paddle.nn.functional.interpolate(
+                        data['image'],
+                        size=(sz, sz),
+                        mode='bilinear',
+                        align_corners=False)
 
                 # model forward
                 outputs = model(data)

@@ -189,7 +189,8 @@ class BatchRandomResize(BaseOperator):
             target_size = self.target_size
 
         if self.random_interp:
-            interp = np.random.choice(self.interps)
+            interp = np.random.choice(
+                self.interps, p=[0.15, 0.4, 0.15, 0.15, 0.15])
         else:
             interp = self.interp
 
