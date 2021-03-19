@@ -107,9 +107,9 @@ class YOLOv3Head(nn.Layer):
         yolo_outputs = []
         for i, feat in enumerate(feats):
 
-            for layer in self.yolo_outputs[i][:-1]:
+            for layer in self.yolo_outputs[i][:3]:
                 feat += layer(feat)
-            feat = self.yolo_outputs[i][-1](feat)
+            feat = self.yolo_outputs[i][3](feat)
 
             # yolo_output = self.yolo_outputs[i](feat)
             # yolo_outputs.append(yolo_output)
