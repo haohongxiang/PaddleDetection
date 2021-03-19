@@ -14,6 +14,19 @@ def _de_sigmoid(x, eps=1e-7):
     return x
 
 
+def conv_bn_relu(in_channels,
+                 out_channels,
+                 kernel,
+                 stride,
+                 padding=0,
+                 dilation=1):
+    '''
+    '''
+    return nn.Sequential(('conv', nn.Conv2D(in_channels, out_channels, kernel,
+                                            stride, padding, dilation)),
+                         ('bn', nn.Conv2D(out_channels)), ('relu', nn.ReLU()))
+
+
 @register
 class YOLOv3Head(nn.Layer):
     __shared__ = ['num_classes']
@@ -44,8 +57,12 @@ class YOLOv3Head(nn.Layer):
                 num_filters = len(self.anchors[i]) * (self.num_classes + 6)
             else:
                 num_filters = len(self.anchors[i]) * (self.num_classes + 5)
+
             name = 'yolo_output.{}'.format(i)
-            yolo_output = self.add_sublayer(
+
+            in_channels = 128 * (2**self.num_outputs) // (2**i)
+
+            conv = self.add_sublayer(
                 name,
                 nn.Conv2D(
                     in_channels=128 * (2**self.num_outputs) // (2**i),
@@ -56,6 +73,13 @@ class YOLOv3Head(nn.Layer):
                     weight_attr=ParamAttr(name=name + '.conv.weights'),
                     bias_attr=ParamAttr(
                         name=name + '.conv.bias', regularizer=L2Decay(0.))))
+
+            yolo_output = nn.Sequential(
+                (name + '.a', conv_bn_relu(in_channels, in_channels, 3, 1, 1)),
+                (name + '.b', conv_bn_relu(in_channels, in_channels, 3, 1, 1)),
+                (name + '.c', conv_bn_relu(in_channels, in_channels, 3, 1, 1)),
+                (name, conv), )
+
             self.yolo_outputs.append(yolo_output)
 
     def parse_anchor(self, anchors, anchor_masks):
