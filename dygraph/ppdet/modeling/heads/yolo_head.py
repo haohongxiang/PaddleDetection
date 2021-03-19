@@ -30,7 +30,7 @@ def conv_bn_relu(in_channels,
             stride,
             padding,
             dilation,
-            bias_attr=None)), ('bn', nn.BatchNorm2D(out_channels)),
+            bias_attr=False)), ('bn', nn.BatchNorm2D(out_channels)),
         ('relu', nn.ReLU()))
 
 
