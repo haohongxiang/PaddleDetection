@@ -22,9 +22,16 @@ def conv_bn_relu(in_channels,
                  dilation=1):
     '''
     '''
-    return nn.Sequential(('conv', nn.Conv2D(
-        in_channels, out_channels, kernel, stride, padding,
-        dilation)), ('bn', nn.BatchNorm2D(out_channels)), ('relu', nn.ReLU()))
+    return nn.Sequential(
+        ('conv', nn.Conv2D(
+            in_channels,
+            out_channels,
+            kernel,
+            stride,
+            padding,
+            dilation,
+            bias_attr=None)), ('bn', nn.BatchNorm2D(out_channels)),
+        ('relu', nn.ReLU()))
 
 
 @register
