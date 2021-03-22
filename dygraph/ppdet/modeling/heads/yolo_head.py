@@ -106,7 +106,8 @@ class YOLOv3Head(nn.Layer):
         self.parse_anchor(anchors, anchor_masks)
         self.num_outputs = len(self.anchors)
 
-        self.yolo_outputs = []
+        self.yolo_outputs = nn.LayerList()
+
         for i in range(len(self.anchors)):
 
             if self.iou_aware:
@@ -118,27 +119,27 @@ class YOLOv3Head(nn.Layer):
 
             in_channels = 128 * (2**self.num_outputs) // (2**i)
 
-            decode_conv = self.add_sublayer(
-                name,
-                nn.Conv2D(
-                    in_channels=128 * (2**self.num_outputs) // (2**i),
-                    out_channels=num_filters,
-                    kernel_size=1,
-                    stride=1,
-                    padding=0,
-                    weight_attr=ParamAttr(name=name + '.conv.weights'),
-                    bias_attr=ParamAttr(
-                        name=name + '.conv.bias', regularizer=L2Decay(0.))))
+            # decode_conv = self.add_sublayer(
+            #     name,
+            #     nn.Conv2D(
+            #         in_channels=128 * (2**self.num_outputs) // (2**i),
+            #         out_channels=num_filters,
+            #         kernel_size=1,
+            #         stride=1,
+            #         padding=0,
+            #         weight_attr=ParamAttr(name=name + '.conv.weights'),
+            #         bias_attr=ParamAttr(
+            #             name=name + '.conv.bias', regularizer=L2Decay(0.))))
 
-            self.yolo_output = nn.LayerList([
-                conv_bn_relu_v2(
-                    in_channels, in_channels, 3, 1, padding=2, dilation=2),
-                conv_bn_relu_v2(
-                    in_channels, in_channels, 3, 1, padding=4, dilation=4),
-                conv_bn_relu_v2(
-                    in_channels, in_channels, 3, 1, padding=6, dilation=6),
-                decode_conv,
-            ])
+            # self.yolo_output = nn.LayerList([
+            #     conv_bn_relu_v2(
+            #         in_channels, in_channels, 3, 1, padding=2, dilation=2),
+            #     conv_bn_relu_v2(
+            #         in_channels, in_channels, 3, 1, padding=4, dilation=4),
+            #     conv_bn_relu_v2(
+            #         in_channels, in_channels, 3, 1, padding=6, dilation=6),
+            #     decode_conv,
+            # ])
 
             # yolo_output = nn.Sequential(
             #     (name + '.a', conv_bn_relu(in_channels, in_channels, 3, 1, 1)),
@@ -146,7 +147,23 @@ class YOLOv3Head(nn.Layer):
             #     (name + '.c', conv_bn_relu(in_channels, in_channels, 3, 1, 1)),
             #     (name, decode_conv), )
 
-            self.yolo_outputs.append(self.yolo_output)
+            yolo_output = nn.LayerList([
+                conv_bn_relu_v2(
+                    in_channels, in_channels, 3, 1, padding=2,
+                    dilation=2), conv_bn_relu_v2(
+                        in_channels, in_channels, 3, 1, padding=4,
+                        dilation=4), conv_bn_relu_v2(
+                            in_channels,
+                            in_channels,
+                            3,
+                            1,
+                            padding=6,
+                            dilation=6),
+                nn.Conv2D(128 * (2**self.num_outputs) // (2**i), num_filters, 1,
+                          1, 0)
+            ])
+
+            self.yolo_outputs.append(yolo_output)
 
     def parse_anchor(self, anchors, anchor_masks):
         self.anchors = [[anchors[i] for i in mask] for mask in anchor_masks]
