@@ -130,7 +130,7 @@ class YOLOv3Head(nn.Layer):
                     bias_attr=ParamAttr(
                         name=name + '.conv.bias', regularizer=L2Decay(0.))))
 
-            yolo_output = nn.LayerList([
+            self.yolo_output = nn.LayerList([
                 conv_bn_relu_v2(
                     in_channels, in_channels, 3, 1, padding=2, dilation=2),
                 conv_bn_relu_v2(
@@ -146,7 +146,7 @@ class YOLOv3Head(nn.Layer):
             #     (name + '.c', conv_bn_relu(in_channels, in_channels, 3, 1, 1)),
             #     (name, decode_conv), )
 
-            self.yolo_outputs.append(yolo_output)
+            self.yolo_outputs.append(self.yolo_output)
 
     def parse_anchor(self, anchors, anchor_masks):
         self.anchors = [[anchors[i] for i in mask] for mask in anchor_masks]
