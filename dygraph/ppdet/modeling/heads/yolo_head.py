@@ -14,6 +14,26 @@ def _de_sigmoid(x, eps=1e-7):
     return x
 
 
+def _conv_bn_relu(in_channels,
+                  out_channels,
+                  kernel,
+                  stride,
+                  padding=0,
+                  dilation=1):
+    '''
+    '''
+    return nn.Sequential(
+        ('conv', nn.Conv2D(
+            in_channels,
+            out_channels,
+            kernel,
+            stride,
+            padding,
+            dilation,
+            bias_attr=False)), ('bn', nn.BatchNorm2D(out_channels)),
+        ('relu', nn.ReLU()))
+
+
 def conv_bn_relu(in_channels,
                  out_channels,
                  kernel,
@@ -30,7 +50,7 @@ def conv_bn_relu(in_channels,
             stride,
             padding,
             dilation,
-            bias_attr=False)), ('bn', nn.BatchNorm2D(out_channels)),
+            bias_attr=False)), ('bn', nn.SyncBatchNorm(out_channels)),
         ('relu', nn.ReLU()))
 
 
