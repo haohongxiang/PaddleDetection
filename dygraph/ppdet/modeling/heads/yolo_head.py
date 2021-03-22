@@ -165,10 +165,10 @@ class YOLOv3Head(nn.Layer):
 
             self.yolo_outputs.append(yolo_output)
 
-            for n, p in self.named_parameters():
-                print(n, p.shape)
+        for n, p in self.named_parameters():
+            print(n, p.shape)
 
-            print(len(self.parameters()))
+        print(len(self.parameters()))
 
     def parse_anchor(self, anchors, anchor_masks):
         self.anchors = [[anchors[i] for i in mask] for mask in anchor_masks]
