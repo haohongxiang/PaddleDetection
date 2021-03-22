@@ -54,6 +54,35 @@ def conv_bn_relu(in_channels,
         ('relu', nn.ReLU()))
 
 
+def conv_bn_relu_v2(in_channels,
+                    out_channels,
+                    kernel,
+                    stride,
+                    padding=0,
+                    dilation=1):
+    '''
+    '''
+    return nn.Sequential(
+        ('conv.1', nn.Conv2D(
+            in_channels, in_channels // 4, 1, 1, 0, 1, bias_attr=False)),
+        ('bn.1', nn.SyncBatchNorm(in_channels // 4)),
+        ('relu.1', nn.ReLU()),
+        ('conv.2', nn.Conv2D(
+            in_channels // 4,
+            in_channels // 4,
+            kernel,
+            stride,
+            padding,
+            dilation,
+            bias_attr=False)),
+        ('bn.2', nn.SyncBatchNorm(in_channels // 4)),
+        ('relu.2', nn.ReLU()),
+        ('conv.3', nn.Conv2D(
+            in_channels // 4, in_channels, 1, 1, 0, 1, bias_attr=False)),
+        ('bn.3', nn.SyncBatchNorm(in_channels)),
+        ('relu.3', nn.ReLU()), )
+
+
 @register
 class YOLOv3Head(nn.Layer):
     __shared__ = ['num_classes']
@@ -102,11 +131,11 @@ class YOLOv3Head(nn.Layer):
                         name=name + '.conv.bias', regularizer=L2Decay(0.))))
 
             yolo_output = nn.LayerList([
-                conv_bn_relu(
+                conv_bn_relu_v2(
                     in_channels, in_channels, 3, 1, padding=2, dilation=2),
-                conv_bn_relu(
+                conv_bn_relu_v2(
                     in_channels, in_channels, 3, 1, padding=4, dilation=4),
-                conv_bn_relu(
+                conv_bn_relu_v2(
                     in_channels, in_channels, 3, 1, padding=6, dilation=6),
                 decode_conv,
             ])
