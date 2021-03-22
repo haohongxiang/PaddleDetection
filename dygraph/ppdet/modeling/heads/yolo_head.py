@@ -81,21 +81,21 @@ class YOLOv3Head(nn.Layer):
                     bias_attr=ParamAttr(
                         name=name + '.conv.bias', regularizer=L2Decay(0.))))
 
-            # yolo_output = nn.LayerList([
-            #     conv_bn_relu(
-            #         in_channels, in_channels, 3, 1, padding=2, dilation=2),
-            #     conv_bn_relu(
-            #         in_channels, in_channels, 3, 1, padding=4, dilation=4),
-            #     conv_bn_relu(
-            #         in_channels, in_channels, 3, 1, padding=6, dilation=6),
-            #     decode_conv,
-            # ])
+            yolo_output = nn.LayerList([
+                conv_bn_relu(
+                    in_channels, in_channels, 3, 1, padding=2, dilation=2),
+                conv_bn_relu(
+                    in_channels, in_channels, 3, 1, padding=4, dilation=4),
+                conv_bn_relu(
+                    in_channels, in_channels, 3, 1, padding=6, dilation=6),
+                decode_conv,
+            ])
 
-            yolo_output = nn.Sequential(
-                (name + '.a', conv_bn_relu(in_channels, in_channels, 3, 1, 1)),
-                (name + '.b', conv_bn_relu(in_channels, in_channels, 3, 1, 1)),
-                (name + '.c', conv_bn_relu(in_channels, in_channels, 3, 1, 1)),
-                (name, decode_conv), )
+            # yolo_output = nn.Sequential(
+            #     (name + '.a', conv_bn_relu(in_channels, in_channels, 3, 1, 1)),
+            #     (name + '.b', conv_bn_relu(in_channels, in_channels, 3, 1, 1)),
+            #     (name + '.c', conv_bn_relu(in_channels, in_channels, 3, 1, 1)),
+            #     (name, decode_conv), )
 
             self.yolo_outputs.append(yolo_output)
 
@@ -114,13 +114,13 @@ class YOLOv3Head(nn.Layer):
         yolo_outputs = []
         for i, feat in enumerate(feats):
 
-            # for layer in self.yolo_outputs[i][:3]:
-            #     feat += layer(feat)
-            # feat = self.yolo_outputs[i][3](feat)
-            # yolo_outputs.append(feat)
+            for layer in self.yolo_outputs[i][:3]:
+                feat += layer(feat)
+            feat = self.yolo_outputs[i][3](feat)
+            yolo_outputs.append(feat)
 
-            yolo_output = self.yolo_outputs[i](feat)
-            yolo_outputs.append(yolo_output)
+            # yolo_output = self.yolo_outputs[i](feat)
+            # yolo_outputs.append(yolo_output)
 
         if self.training:
             return self.loss(yolo_outputs, targets, self.anchors)
