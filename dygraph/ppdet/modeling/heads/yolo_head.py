@@ -158,7 +158,13 @@ class YOLOv3Head(nn.Layer):
                             3,
                             1,
                             padding=6,
-                            dilation=6),
+                            dilation=6), conv_bn_relu_v2(
+                                in_channels,
+                                in_channels,
+                                3,
+                                1,
+                                padding=8,
+                                dilation=8),
                 nn.Conv2D(128 * (2**self.num_outputs) // (2**i), num_filters, 1,
                           1, 0)
             ])
@@ -185,9 +191,9 @@ class YOLOv3Head(nn.Layer):
         yolo_outputs = []
         for i, feat in enumerate(feats):
 
-            for layer in self.yolo_outputs[i][:3]:
+            for layer in self.yolo_outputs[i][:4]:
                 feat += layer(feat)
-            feat = self.yolo_outputs[i][3](feat)
+            feat = self.yolo_outputs[i][4](feat)
             yolo_outputs.append(feat)
 
             # yolo_output = self.yolo_outputs[i](feat)
