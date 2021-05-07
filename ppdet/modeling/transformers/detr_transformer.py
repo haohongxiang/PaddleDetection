@@ -281,8 +281,7 @@ class DETRTransformer(nn.Layer):
                  normalize_before=False,
                  weight_attr=ParamAttr(
                      initializer=paddle.nn.initializer.XavierUniform()),
-                 bias_attr=ParamAttr(
-                     initializer=paddle.nn.initializer.Constant())):
+                 bias_attr=None):
         super(DETRTransformer, self).__init__()
         assert position_embed_type in ['sine', 'learned'],\
             f'ValueError: position_embed_type not supported {position_embed_type}!'
@@ -345,11 +344,7 @@ class DETRTransformer(nn.Layer):
             return_intermediate=return_intermediate_dec)
 
         self.input_proj = nn.Conv2D(
-            backbone_num_channels,
-            hidden_dim,
-            kernel_size=1,
-            weight_attr=weight_attr,
-            bias_attr=bias_attr)
+            backbone_num_channels, hidden_dim, kernel_size=1)
         self.position_embedding = PositionEmbedding(
             hidden_dim // 2,
             normalize=True if position_embed_type == 'sine' else False,
