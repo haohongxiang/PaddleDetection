@@ -21,6 +21,7 @@ from . import jde
 from . import deepsort
 from . import fairmot
 from . import centernet
+from . import detr
 
 from .meta_arch import *
 from .faster_rcnn import *
@@ -38,3 +39,4 @@ from .jde import *
 from .deepsort import *
 from .fairmot import *
 from .centernet import *
+from .detr import *

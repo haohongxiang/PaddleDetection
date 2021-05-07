@@ -478,7 +478,7 @@ def distribute_fpn_proposals(fpn_rois,
                              pixel_offset=False,
                              rois_num=None,
                              name=None):
-    """
+    r"""
     
     **This op only takes LoDTensor as input.** In Feature Pyramid Networks 
     (FPN) models, it is needed to distribute all proposals into different FPN 
@@ -1279,7 +1279,7 @@ def box_coder(prior_box,
               box_normalized=True,
               axis=0,
               name=None):
-    """
+    r"""
     **Box Coder Layer**
     Encode/Decode the target bounding box with the priorbox information.
     
@@ -1593,3 +1593,7 @@ def smooth_l1(input, label, inside_weight=None, outside_weight=None,
     out = paddle.reshape(out, shape=[out.shape[0], -1])
     out = paddle.sum(out, axis=1)
     return out
+
+
+def inverse_sigmoid(x, eps=1e-6):
+    return paddle.log(x / (1 - x + eps))

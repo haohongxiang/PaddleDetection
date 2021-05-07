@@ -249,6 +249,10 @@ class OptimizerBuilder():
                   parameters=params,
                   weight_decay=regularization,
                   grad_clip=grad_clip,
+                  **optim_args) if optim_type != 'AdamW' else \
+                op(learning_rate=learning_rate,
+                  parameters=params,
+                  grad_clip=grad_clip,
                   **optim_args)
 
 

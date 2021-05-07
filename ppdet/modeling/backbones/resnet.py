@@ -526,6 +526,9 @@ class ResNet(nn.Layer):
                     norm_decay=norm_decay,
                     freeze_norm=freeze_norm,
                     lr=1.0))
+        if freeze_at >= 0:
+            for p in self.conv1.parameters():
+                p.stop_gradient = True
 
         self.ch_in = ch_in
         ch_out_list = [64, 128, 256, 512]
@@ -558,6 +561,9 @@ class ResNet(nn.Layer):
                     dcn_v2=(i in self.dcn_v2_stages),
                     std_senet=std_senet))
             self.res_layers.append(res_layer)
+            if i <= freeze_at:
+                for p in self.res_layers[i].parameters():
+                    p.stop_gradient = True
             self.ch_in = self._out_channels[i]
 
     @property

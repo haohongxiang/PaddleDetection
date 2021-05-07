@@ -195,7 +195,7 @@ class Lighting(BaseOperator):
 
 @register_op
 class RandomErasingImage(BaseOperator):
-    def __init__(self, prob=0.5, lower=0.02, higher=0.4, aspect_ratio=0.3):
+    def __init__(self, prob=0.5, lower=0.02, heigher=0.4, aspect_ratio=0.3):
         """
         Random Erasing Data Augmentation, see https://arxiv.org/abs/1708.04896
         Args:
@@ -210,7 +210,7 @@ class RandomErasingImage(BaseOperator):
         self.heigher = heigher
         self.aspect_ratio = aspect_ratio
 
-    def apply(self, sample):
+    def apply(self, sample, context=None):
         gt_bbox = sample['gt_bbox']
         im = sample['image']
         if not isinstance(im, np.ndarray):
