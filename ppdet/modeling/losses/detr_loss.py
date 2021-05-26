@@ -66,6 +66,7 @@ class DETRLoss(nn.Layer):
         self.loss_coeff['class'][-1] = loss_coeff['no_object']
         self.giou_loss = GIoULoss()
 
+    @paddle.no_grad()
     def _hungarian_matcher(self, boxes, scores, gt_bbox, gt_class):
         r"""
         Args:
