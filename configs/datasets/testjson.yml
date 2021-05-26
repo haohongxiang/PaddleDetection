@@ -1,0 +1,6 @@
+metric: COCO
+num_classes: 80
+
+TrainDataset:
+  !JsonDataSet
+    dataset_dir: dataset/voc

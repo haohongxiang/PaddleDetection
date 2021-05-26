@@ -1,0 +1,5 @@
+_BASE_: ['../datasets/testjson.yml', ]
+
+# TrainDataset:
+#   !JsonDataSet
+#     dataset_dir: dataroot
