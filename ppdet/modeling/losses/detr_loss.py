@@ -129,6 +129,8 @@ class DETRLoss(nn.Layer):
                                                  match_indices)
         target_label = paddle.scatter(
             target_label.reshape([-1, 1]), index, updates.astype('int64'))
+        target_label.stop_gradient = True 
+        
         return {
             'loss_class': F.cross_entropy(
                 scores,
@@ -141,6 +143,8 @@ class DETRLoss(nn.Layer):
         num_gts = sum(len(a) for a in gt_bbox)
         src_bbox, target_bbox = self._get_src_target_assign(boxes, gt_bbox,
                                                             match_indices)
+        target_bbox.stop_gradient = True 
+        
         loss = dict()
         loss['loss_bbox'] = self.loss_coeff['bbox'] * F.l1_loss(
             src_bbox, target_bbox, reduction='sum') / num_gts
@@ -156,6 +160,8 @@ class DETRLoss(nn.Layer):
         num_gts = sum(len(a) for a in gt_mask)
         src_masks, target_masks = self._get_src_target_assign(masks, gt_mask,
                                                               match_indices)
+        target_masks.stop_gradient = True 
+        
         src_masks = F.interpolate(
             src_masks.unsqueeze(0),
             size=target_masks.shape[-2:],
