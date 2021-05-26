@@ -1,0 +1,3 @@
+TrainDataset:
+  !VOCDataSetX
+    dataset_dir: dataroot

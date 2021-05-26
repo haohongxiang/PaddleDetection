@@ -21,3 +21,5 @@ from .coco import *
 from .voc import *
 from .widerface import *
 from .category import *
+
+from .testjson import *

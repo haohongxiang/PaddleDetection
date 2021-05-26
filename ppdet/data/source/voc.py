@@ -27,7 +27,7 @@ logger = setup_logger(__name__)
 
 @register
 @serializable
-class VOCDataSet(DetDataset):
+class VOCDataSetX(DetDataset):
     """
     Load dataset with PascalVOC format.
 
@@ -51,7 +51,7 @@ class VOCDataSet(DetDataset):
                  data_fields=['image'],
                  sample_num=-1,
                  label_list=None):
-        super(VOCDataSet, self).__init__(
+        super(VOCDataSetX, self).__init__(
             dataset_dir=dataset_dir,
             image_dir=image_dir,
             anno_path=anno_path,
