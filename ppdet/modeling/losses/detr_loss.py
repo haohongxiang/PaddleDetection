@@ -106,7 +106,7 @@ class DETRLoss(nn.Layer):
         # Compute the giou cost betwen boxes
         cost_giou = self.giou_loss(
             bbox_cxcywh_to_xyxy(out_bbox.unsqueeze(1)),
-            bbox_cxcywh_to_xyxy(tgt_bbox.unsqueeze(0))).squeeze(-1)
+            bbox_cxcywh_to_xyxy(tgt_bbox.unsqueeze(0))).squeeze(-1) - 1
 
         # Final cost matrix
         C = self.matcher_coeff['bbox'] * cost_bbox + self.matcher_coeff['class'] * cost_class + \
