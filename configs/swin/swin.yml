@@ -2,7 +2,7 @@ architecture: WindowAttention
 
 WindowAttention:
     dim: 10
-    window_size: 10
+    window_size: [10, 10]
     num_heads: 10
     qk_scale: 1.0
     
