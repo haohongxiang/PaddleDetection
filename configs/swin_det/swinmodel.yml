@@ -1,0 +1,45 @@
+_BASE_: [
+  '../datasets/coco_instance.yml',
+  '../runtime.yml',
+  'optimizer_1x.yml',
+  'cascade_mask_rcnn_swin_fpn.yml',
+  'cascade_mask_fpn_reader.yml',
+]
+weights: output/cascade_mask_rcnn_swin_base_fpn_3x_coco/model_final
+
+SwinTransformer:
+  embed_dim: 128
+  depths: [2, 2, 18, 2]
+  num_heads: [4, 8, 16, 32]
+  window_size: 7
+  ape: False
+  drop_path_rate: 0.3
+  patch_norm: True
+
+FPN:
+  out_channel: 1024
+
+MaskFeat:
+  num_convs: 4
+  out_channel: 1024
+
+LearningRate:
+  base_lr: 0.01
+  schedulers:
+  - !PiecewiseDecay
+    gamma: 0.1
+    milestones: [24, 33]
+  - !LinearWarmup
+    start_factor: 0.1
+    steps: 1000
+
+OptimizerBuilder:
+  optimizer:
+    momentum: 0.9
+    type: Momentum
+  regularizer:
+    factor: 0.05
+    type: L2
+
+log_iter: 2
+worker_num: 1

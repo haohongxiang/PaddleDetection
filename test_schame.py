@@ -1,20 +1,3 @@
-# Copyright (c) 2019 PaddlePaddle Authors. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 
 import inspect
 import importlib
@@ -47,6 +30,7 @@ class SchemaValue(object):
         self.type = type
 
     def set_default(self, value):
+        print(type(value), value)
         self.default = value
 
     def has_default(self):
@@ -179,6 +163,9 @@ def extract_schema(cls):
         schema (SchemaDict): Extracted schema.
     """
     ctor = cls.__init__
+    
+    print( ctor )
+    
     # python 2 compatibility
     if hasattr(inspect, 'getfullargspec'):
         argspec = inspect.getfullargspec(ctor)
@@ -195,6 +182,7 @@ def extract_schema(cls):
     names = [arg for arg in argspec.args if arg != 'self']
     defaults = argspec.defaults
     num_defaults = argspec.defaults is not None and len(argspec.defaults) or 0
+    print(num_defaults)
     
     num_required = len(names) - num_defaults
 
@@ -217,6 +205,7 @@ def extract_schema(cls):
 
     schema = SchemaDict()
     schema.name = cls.__name__
+    print()
     schema.doc = ""
     if docs is not None:
         start_pos = docs[0] == '\n' and 1 or 0
@@ -243,7 +232,12 @@ def extract_schema(cls):
             value_schema.set_default(SharedConfig(name, default))
         elif idx >= num_required:
             default = defaults[idx - num_required]
+            
+            print(default, type(default))
+            
             value_schema.set_default(default)
+            
+            
         schema.set_schema(name, value_schema)
 
     return schema
@@ -251,3 +245,12 @@ def extract_schema(cls):
 
 
 
+class WindowAttention(object):
+
+    def __init__(self, dim, window_size, num_heads, qkv_bias=True, qk_scale=None, attn_drop=0., proj_drop=0.):
+        pass
+    
+    
+if __name__ == '__main__':
+    
+    print( type(extract_schema(WindowAttention).schema['qk_scale'].default) ) 
