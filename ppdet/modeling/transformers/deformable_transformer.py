@@ -22,15 +22,12 @@ import paddle.nn as nn
 from paddle import ParamAttr
 import paddle.nn.functional as F
 from paddle.nn.layer.transformer import MultiHeadAttention
+from .utils import _get_clones
 
 from ppdet.core.workspace import register
 from ..layers import PositionEmbedding
 
 __all__ = ['DeformableTransformer']
-
-
-def _get_clones(module, N):
-    return nn.LayerList([copy.deepcopy(module) for _ in range(N)])
 
 
 class MSDeformableAttention(nn.Layer):
