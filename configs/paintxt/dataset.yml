@@ -1,0 +1,16 @@
+metric: COCO
+num_classes: 2
+
+TrainDataset:
+  !PlainDetDataSet
+    dataset_dir: dataset/paintxt
+    # image_dir: train2017
+    anno_path: ['train_1.txt', 'train_2.txt']
+    data_fields: ['image', 'gt_bbox', 'gt_class', 'is_crowd']
+
+EvalDataset:
+  !PlainDetDataSet
+    dataset_dir: dataset/paintxt
+    # image_dir: val2017
+    anno_path: test_1.txt
+    

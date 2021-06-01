@@ -21,12 +21,13 @@ from ppdet.utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 
-__all__ = ['PainDetDataSet']
+__all__ = ['PlainDetDataSet']
+
 
 
 @register
 @serializable
-class PainDetDataSet(DetDataset):
+class PlainDetDataSet(DetDataset):
     """
     Load dataset with COCO format.
 
@@ -62,14 +63,16 @@ class PainDetDataSet(DetDataset):
                  load_crowd=False,
                  allow_empty=False,
                  empty_ratio=1.):
-        super(COCODataSet, self).__init__(dataset_dir, image_dir, anno_path,
+        super(PlainDetDataSet, self).__init__(dataset_dir, image_dir, anno_path,
                                           data_fields, sample_num)
         self.load_image_only = False
         self.load_semantic = False
         self.load_crowd = load_crowd
         self.allow_empty = allow_empty
         self.empty_ratio = empty_ratio
-
+        
+        self.parse_dataset()
+        
     def _sample_empty(self, records, num):
         # if empty_ratio is out of [0. ,1.), do not sample the records
         if self.empty_ratio < 0. or self.empty_ratio >= 1.:
@@ -103,7 +106,7 @@ class PainDetDataSet(DetDataset):
         bboxes = [list(map(float, _bbox[1:])) for _bbox in annos]
         
         blob = {}
-        blob['im_file'] = im_file
+        blob['im_file'] = items[0]
         blob['gt_class'] = np.array(classes).astype(np.int32).reshape(-1, 1)
         blob['gt_bbox'] = np.array(bboxes).astype(np.float32).reshape(-1, 4)
 
@@ -114,14 +117,18 @@ class PainDetDataSet(DetDataset):
         '''parse pain txt
         '''
         if not isinstance(self.anno_path, (list, tuple)):
-             anno_paths = [self.anno_path]
-                
+            anno_paths = [self.anno_path]
+        else:
+            anno_paths = self.anno_path
+            
+        print(anno_paths)
+        
         anno_paths = [os.path.join(self.dataset_dir, anno) for anno in anno_paths]
         
         lines = []
         for anno in anno_paths:
             with open(anno, 'r') as f:
-                lines += [ f.readlines() ]
+                lines.extend(f.readlines())
         lines = [lin for lin in lines if lin]
         
         blobs = [self._parse_line(lin) for lin in lines]
