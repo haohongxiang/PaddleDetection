@@ -46,6 +46,7 @@ class DETRLoss(nn.Layer):
                      'dice': 1
                  },
                  aux_loss=True,
+                 matcher_with_focal=False,
                  log_metric=False):
         r"""
         Args:
@@ -59,6 +60,7 @@ class DETRLoss(nn.Layer):
         self.matcher_coeff = matcher_coeff
         self.loss_coeff = loss_coeff
         self.aux_loss = aux_loss
+        self.matcher_with_focal = matcher_with_focal
         self.log_metric = log_metric
 
         self.loss_coeff['class'] = paddle.full([num_classes + 1],
@@ -93,10 +95,21 @@ class DETRLoss(nn.Layer):
         tgt_ids = paddle.concat(gt_class).flatten()
         tgt_bbox = paddle.concat(gt_bbox)
 
-        # Compute the classification cost. Contrary to the loss, we don't use the NLL,
-        # but approximate it in 1 - proba[target class].
-        # The 1 is a constant that doesn't change the matching, it can be ommitted.
-        cost_class = -paddle.gather(out_prob, tgt_ids, axis=1)
+        if self.matcher_with_focal:
+            alpha = 0.25
+            gamma = 2.0
+            neg_cost_class = (1 - alpha) * (out_prob**gamma) * (-(
+                1 - out_prob + 1e-8).log())
+            pos_cost_class = alpha * ((1 - out_prob)
+                                      **gamma) * (-(out_prob + 1e-8).log())
+            cost_class = paddle.gather(
+                pos_cost_class, tgt_ids, axis=1) - paddle.gather(
+                    neg_cost_class, tgt_ids, axis=1)
+        else:
+            # Compute the classification cost. Contrary to the loss, we don't use the NLL,
+            # but approximate it in 1 - proba[target class].
+            # The 1 is a constant that doesn't change the matching, it can be ommitted.
+            cost_class = -paddle.gather(out_prob, tgt_ids, axis=1)
 
         # Compute the L1 cost between boxes
         cost_bbox = (
@@ -135,6 +148,12 @@ class DETRLoss(nn.Layer):
                 scores,
                 target_label.reshape([bs, num_query_objects, 1]),
                 weight=self.loss_coeff['class'])
+            if not self.matcher_with_focal else F.sigmoid_focal_loss(
+                scores,
+                F.one_hot(
+                    target_label.reshape([bs, num_query_objects]),
+                    self.num_classes + 1),
+                reduction='mean')
         }
 
     def _get_loss_bbox(self, boxes, gt_bbox, match_indices):

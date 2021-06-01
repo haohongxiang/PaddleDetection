@@ -20,7 +20,7 @@ ResNet:
   num_stages: 4
 
 
-DETRTransformer:
+DeformableTransformer:
   num_queries: 300
   position_embed_type: sine
   nhead: 8
@@ -42,3 +42,4 @@ DETRLoss:
   matcher_coeff: {class: 1, bbox: 5, giou: 2}
   loss_coeff: {class: 1, bbox: 5, giou: 2, no_object: 0.1, mask: 1, dice: 1}
   aux_loss: True
+  matcher_with_focal: True

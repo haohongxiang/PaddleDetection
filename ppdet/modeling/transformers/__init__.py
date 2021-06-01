@@ -14,6 +14,8 @@
 
 from . import detr_transformer
 from . import deformable_transformer
+from . import utils
 
 from .detr_transformer import *
 from .deformable_transformer import *
+from .utils import *

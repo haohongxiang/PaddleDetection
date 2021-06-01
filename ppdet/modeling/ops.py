@@ -1596,4 +1596,5 @@ def smooth_l1(input, label, inside_weight=None, outside_weight=None,
 
 
 def inverse_sigmoid(x, eps=1e-6):
-    return paddle.log(x / (1 - x + eps))
+    x = x.clip(min=0., max=1.)
+    return paddle.log(x / (1 - x) + eps)

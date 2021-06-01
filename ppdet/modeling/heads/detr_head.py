@@ -16,12 +16,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import math
 import paddle
 import paddle.nn as nn
 import paddle.nn.functional as F
 from ppdet.core.workspace import register
 from ..ops import inverse_sigmoid
 import pycocotools.mask as mask_util
+from ..transformers.utils import constant_
 
 __all__ = ['DETRHead', 'DeformableDETRHead']
 
@@ -194,6 +196,8 @@ class DETRHead(nn.Layer):
                                                         nhead)
             self.mask_head = MaskHeadFPNConv(hidden_dim + nhead, fpn_dims,
                                              hidden_dim)
+        self._reset_bias_parameters(self.score_head)
+        self._reset_bias_parameters(self.bbox_head)
 
     @classmethod
     def from_config(cls, cfg, hidden_dim, nhead, input_shape):
@@ -203,6 +207,14 @@ class DETRHead(nn.Layer):
             'nhead': nhead,
             'fpn_dims': [i.channels for i in input_shape[::-1]][1:]
         }
+
+    def _reset_bias_parameters(self, module):
+        for k, v in module.named_parameters():
+            if 'bias' in k:
+                k_name = k.replace('bias', 'weight')
+                fan_in = module.state_dict()[k_name].shape[0]
+                bound = 1 / math.sqrt(fan_in)
+                v.set_value(paddle.uniform(v.shape, min=-bound, max=bound))
 
     @staticmethod
     def get_gt_mask_from_polygons(gt_poly, pad_mask):
@@ -289,6 +301,20 @@ class DeformableDETRHead(nn.Layer):
                              output_dim=4,
                              num_layers=num_mlp_layers)
 
+        self._reset_parameters()
+
+    def _reset_parameters(self):
+        constant_(self.score_head.bias, -5.0)
+        for i, l in enumerate(self.bbox_head.layers):
+            if i == self.bbox_head.num_layers - 1:
+                constant_(l.weight)
+                constant_(l.bias)
+            else:
+                bound = 1 / math.sqrt(l.weight.shape[0])
+                l.bias.set_value(
+                    paddle.uniform(
+                        l.bias.shape, min=-bound, max=bound))
+
     @classmethod
     def from_config(cls, cfg, hidden_dim, nhead, input_shape):
         return {'hidden_dim': hidden_dim, 'nhead': nhead}
@@ -308,10 +334,6 @@ class DeformableDETRHead(nn.Layer):
         reference_points = inverse_sigmoid(reference_points.unsqueeze(0))
         outputs_bbox = self.bbox_head(feats)
         outputs_bbox[:, :, :, :2] += reference_points
-        # outputs_bbox = paddle.concat([
-        #     outputs_bbox[:, :, :, :2] + reference_points,
-        #     outputs_bbox[:, :, :, 2:]
-        # ], -1)
         outputs_bbox = F.sigmoid(outputs_bbox)
         outputs_score = self.score_head(feats)
 

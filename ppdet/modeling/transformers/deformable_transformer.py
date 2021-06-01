@@ -16,12 +16,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import copy
+import math
 import paddle
 import paddle.nn as nn
 from paddle import ParamAttr
 import paddle.nn.functional as F
-from paddle.nn.layer.transformer import MultiHeadAttention
+from .detr_transformer import MultiHeadAttention
+from .utils import _get_clones, constant_, normal_, xavier_uniform_
 
 from ppdet.core.workspace import register
 from ..layers import PositionEmbedding
@@ -29,43 +30,61 @@ from ..layers import PositionEmbedding
 __all__ = ['DeformableTransformer']
 
 
-def _get_clones(module, N):
-    return nn.LayerList([copy.deepcopy(module) for _ in range(N)])
-
-
 class MSDeformableAttention(nn.Layer):
     def __init__(self,
-                 d_model=256,
-                 n_head=8,
-                 n_levels=4,
-                 n_points=4,
-                 weight_attr=None,
-                 bias_attr=None):
+                 embed_dim=256,
+                 num_heads=8,
+                 num_levels=4,
+                 num_points=4,
+                 lr_mult=0.1):
         """
         Multi-Scale Deformable Attention Module
         """
         super(MSDeformableAttention, self).__init__()
-        if d_model % n_head != 0:
-            raise ValueError(
-                'd_model must be divisible by n_head, but got {} and {}'.format(
-                    d_model, n_head))
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.num_levels = num_levels
+        self.num_points = num_points
+        self.total_points = num_heads * num_levels * num_points
 
-        self.d_model = d_model
-        self.n_head = n_head
-        self.n_levels = n_levels
-        self.n_points = n_points
+        self.head_dim = embed_dim // num_heads
+        assert self.head_dim * num_heads == self.embed_dim, "embed_dim must be divisible by num_heads"
 
-        sampling_offsets_weight_attr = copy.deepcopy(weight_attr)
-        sampling_offsets_weight_attr.learning_rate = 0.1
-        sampling_offsets_bias_attr = copy.deepcopy(bias_attr)
-        sampling_offsets_bias_attr.learning_rate = 0.1
         self.sampling_offsets = nn.Linear(
-            d_model, n_head * n_levels * n_points * 2,
-            sampling_offsets_weight_attr, sampling_offsets_bias_attr)
-        self.attention_weights = nn.Linear(d_model, n_head * n_levels *
-                                           n_points, weight_attr, bias_attr)
-        self.value_proj = nn.Linear(d_model, d_model, weight_attr, bias_attr)
-        self.output_proj = nn.Linear(d_model, d_model, weight_attr, bias_attr)
+            embed_dim,
+            self.total_points * 2,
+            weight_attr=ParamAttr(learning_rate=lr_mult),
+            bias_attr=ParamAttr(learning_rate=lr_mult))
+
+        self.attention_weights = nn.Linear(embed_dim, self.total_points)
+        self.value_proj = nn.Linear(embed_dim, embed_dim)
+        self.output_proj = nn.Linear(embed_dim, embed_dim)
+
+        self._reset_parameters()
+
+    def _reset_parameters(self):
+        # sampling_offsets
+        constant_(self.sampling_offsets.weight)
+        thetas = paddle.arange(
+            self.num_heads,
+            dtype=paddle.float32) * (2.0 * math.pi / self.num_heads)
+        grid_init = paddle.stack([thetas.cos(), thetas.sin()], -1)
+        grid_init = grid_init / grid_init.abs().max(-1, keepdim=True)
+        grid_init = grid_init.reshape([self.num_heads, 1, 1, 2]).tile(
+            [1, self.num_levels, self.num_points, 1])
+        scaling = paddle.arange(
+            1, self.num_points + 1,
+            dtype=paddle.float32).reshape([1, 1, -1, 1])
+        grid_init *= scaling
+        self.sampling_offsets.bias.set_value(grid_init.flatten())
+        # attention_weights
+        constant_(self.attention_weights.weight)
+        constant_(self.attention_weights.bias, 1. / self.total_points)
+        # proj
+        xavier_uniform_(self.value_proj.weight)
+        constant_(self.value_proj.bias)
+        xavier_uniform_(self.output_proj.weight)
+        constant_(self.output_proj.bias)
 
     def _deformable_attention_function(self, value, value_spatial_shapes,
                                        sampling_locations, attention_weights):
@@ -82,11 +101,10 @@ class MSDeformableAttention(nn.Layer):
         bs, Len_v, n_head, c = value.shape
         _, Len_q, n_head, n_levels, n_points, _ = sampling_locations.shape
 
-        value_list = value.split(
-            value_spatial_shapes.prod(1).numpy().tolist(), axis=1)
+        value_list = value.split(value_spatial_shapes.prod(1).tolist(), axis=1)
         sampling_grids = 2 * sampling_locations - 1
         sampling_value_list = []
-        for level, (h, w) in enumerate(value_spatial_shapes.numpy().tolist()):
+        for level, (h, w) in enumerate(value_spatial_shapes.tolist()):
             # N_, H_*W_, M_, D_ -> N_, H_*W_, M_*D_ -> N_, M_*D_, H_*W_ -> N_*M_, D_, H_, W_
             value_l_ = value_list[level].flatten(2).transpose(
                 [0, 2, 1]).reshape([bs * n_head, c, h, w])
@@ -99,7 +117,7 @@ class MSDeformableAttention(nn.Layer):
                 sampling_grid_l_,
                 mode='bilinear',
                 padding_mode='zeros',
-                align_corners=True)
+                align_corners=False)
             sampling_value_list.append(sampling_value_l_)
         # (N_, Lq_, M_, L_, P_) -> (N_, M_, Lq_, L_, P_) -> (N_*M_, 1, Lq_, L_*P_)
         attention_weights = attention_weights.transpose(
@@ -120,7 +138,8 @@ class MSDeformableAttention(nn.Layer):
         """
         Args:
             query (Tensor): [bs, query_length, C]
-            reference_points (Tensor): [bs, query_length, 2], range in [0, 1], top-left (0,0), bottom-right (1, 1), including padding area
+            reference_points (Tensor): [bs, query_length, n_levels, 2], range in [0, 1], top-left (0,0),
+                bottom-right (1, 1), including padding area
             value (Tensor): [bs, value_length, C]
             value_spatial_shapes (Tensor): [n_levels, 2], [(H_0, W_0), (H_1, W_1), ..., (H_{L-1}, W_{L-1})]
             value_mask (Tensor): [bs, value_length], True for non-padding elements, False for padding elements
@@ -136,20 +155,20 @@ class MSDeformableAttention(nn.Layer):
         if value_mask is not None:
             value_mask = value_mask.astype(value.dtype).unsqueeze(-1)
             value *= value_mask
-        value = value.reshape(
-            [bs, Len_v, self.n_head, self.d_model // self.n_head])
+        value = value.reshape([bs, Len_v, self.num_heads, self.head_dim])
 
         sampling_offsets = self.sampling_offsets(query).reshape(
-            [bs, Len_q, self.n_head, self.n_levels, self.n_points, 2])
+            [bs, Len_q, self.num_heads, self.num_levels, self.num_points, 2])
         attention_weights = self.attention_weights(query).reshape(
-            [bs, Len_q, self.n_head, self.n_levels * self.n_points])
+            [bs, Len_q, self.num_heads, self.num_levels * self.num_points])
         attention_weights = F.softmax(attention_weights, -1).reshape(
-            [bs, Len_q, self.n_head, self.n_levels, self.n_points])
+            [bs, Len_q, self.num_heads, self.num_levels, self.num_points])
 
         offset_normalizer = value_spatial_shapes.flip([1]).reshape(
-            [1, 1, 1, self.n_levels, 1, 2])
-        sampling_locations = reference_points.reshape(
-            [bs, Len_q, 1, 1, 1, 2]) + sampling_offsets / offset_normalizer
+            [1, 1, 1, self.num_levels, 1, 2])
+        sampling_locations = reference_points.reshape([
+            bs, Len_q, 1, self.num_levels, 1, 2
+        ]) + sampling_offsets / offset_normalizer
 
         output = self._deformable_attention_function(
             value, value_spatial_shapes, sampling_locations, attention_weights)
@@ -171,13 +190,8 @@ class DeformableTransformerEncoderLayer(nn.Layer):
                  bias_attr=None):
         super(DeformableTransformerEncoderLayer, self).__init__()
         # self attention
-        self.self_attn = MSDeformableAttention(
-            d_model,
-            n_head,
-            n_levels,
-            n_points,
-            weight_attr=weight_attr,
-            bias_attr=bias_attr)
+        self.self_attn = MSDeformableAttention(d_model, n_head, n_levels,
+                                               n_points)
         self.dropout1 = nn.Dropout(dropout)
         self.norm1 = nn.LayerNorm(d_model)
         # ffn
@@ -189,6 +203,15 @@ class DeformableTransformerEncoderLayer(nn.Layer):
                                  bias_attr)
         self.dropout3 = nn.Dropout(dropout)
         self.norm2 = nn.LayerNorm(d_model)
+        self._reset_linear_parameters()
+
+    def _reset_linear_parameters(self):
+        for k, v in self.named_parameters():
+            if 'linear' in k and 'bias' in k:
+                k_name = k.replace('bias', 'weight')
+                fan_in = self.state_dict()[k_name].shape[0]
+                bound = 1 / math.sqrt(fan_in)
+                v.set_value(paddle.uniform(v.shape, min=-bound, max=bound))
 
     def with_pos_embed(self, tensor, pos):
         return tensor if pos is None else tensor + pos
@@ -224,23 +247,34 @@ class DeformableTransformerEncoder(nn.Layer):
         self.num_layers = num_layers
 
     @staticmethod
-    def get_reference_points(spatial_shapes):
+    def get_reference_points(spatial_shapes, valid_ratios):
+        valid_ratios = valid_ratios.unsqueeze(1)
         reference_points = []
-        for H, W in spatial_shapes.numpy().tolist():
+        for i, (H, W) in enumerate(spatial_shapes.tolist()):
             ref_y, ref_x = paddle.meshgrid(
                 paddle.linspace(0.5, H - 0.5, H),
                 paddle.linspace(0.5, W - 0.5, W))
-            ref_y = ref_y.flatten() / H
-            ref_x = ref_x.flatten() / W
+            ref_y = ref_y.flatten().unsqueeze(0) / (valid_ratios[:, :, i, 1] *
+                                                    H)
+            ref_x = ref_x.flatten().unsqueeze(0) / (valid_ratios[:, :, i, 0] *
+                                                    W)
             reference_points.append(paddle.stack((ref_x, ref_y), axis=-1))
-        reference_points = paddle.concat(reference_points)
+        reference_points = paddle.concat(reference_points, 1).unsqueeze(2)
+        reference_points = reference_points * valid_ratios
         return reference_points
 
-    def forward(self, src, spatial_shapes, src_mask=None, pos_embed=None):
+    def forward(self,
+                src,
+                spatial_shapes,
+                src_mask=None,
+                pos_embed=None,
+                valid_ratios=None):
         output = src
-        reference_points = self.get_reference_points(spatial_shapes)
-        reference_points = reference_points.unsqueeze(0).tile(
-            [src.shape[0], 1, 1])
+        if valid_ratios is None:
+            valid_ratios = paddle.ones(
+                [src.shape[0], spatial_shapes.shape[0], 2])
+        reference_points = self.get_reference_points(spatial_shapes,
+                                                     valid_ratios)
         for layer in self.layers:
             output = layer(output, reference_points, spatial_shapes, src_mask,
                            pos_embed)
@@ -272,13 +306,8 @@ class DeformableTransformerDecoderLayer(nn.Layer):
         self.norm1 = nn.LayerNorm(d_model)
 
         # cross attention
-        self.cross_attn = MSDeformableAttention(
-            d_model,
-            n_head,
-            n_levels,
-            n_points,
-            weight_attr=weight_attr,
-            bias_attr=bias_attr)
+        self.cross_attn = MSDeformableAttention(d_model, n_head, n_levels,
+                                                n_points)
         self.dropout2 = nn.Dropout(dropout)
         self.norm2 = nn.LayerNorm(d_model)
 
@@ -291,6 +320,15 @@ class DeformableTransformerDecoderLayer(nn.Layer):
                                  bias_attr)
         self.dropout4 = nn.Dropout(dropout)
         self.norm3 = nn.LayerNorm(d_model)
+        self._reset_linear_parameters()
+
+    def _reset_linear_parameters(self):
+        for k, v in self.named_parameters():
+            if 'linear' in k and 'bias' in k:
+                k_name = k.replace('bias', 'weight')
+                fan_in = self.state_dict()[k_name].shape[0]
+                bound = 1 / math.sqrt(fan_in)
+                v.set_value(paddle.uniform(v.shape, min=-bound, max=bound))
 
     def with_pos_embed(self, tensor, pos):
         return tensor if pos is None else tensor + pos
@@ -375,10 +413,9 @@ class DeformableTransformer(nn.Layer):
                  dim_feedforward=1024,
                  dropout=0.1,
                  activation="relu",
-                 weight_attr=ParamAttr(
-                     initializer=paddle.nn.initializer.XavierUniform()),
-                 bias_attr=ParamAttr(
-                     initializer=paddle.nn.initializer.Constant())):
+                 lr_mult=0.1,
+                 weight_attr=None,
+                 bias_attr=None):
         super(DeformableTransformer, self).__init__()
         assert position_embed_type in ['sine', 'learned'], \
             f'ValueError: position_embed_type not supported {position_embed_type}!'
@@ -401,92 +438,125 @@ class DeformableTransformer(nn.Layer):
             decoder_layer, num_decoder_layers, return_intermediate_dec)
 
         self.level_embed = nn.Embedding(num_feature_levels, hidden_dim)
+        self.tgt_embed = nn.Embedding(num_queries, hidden_dim)
+        self.query_pos_embed = nn.Embedding(num_queries, hidden_dim)
 
-        reference_points_weight_attr = copy.deepcopy(weight_attr)
-        reference_points_weight_attr.learning_rate = 0.1
-        reference_points_bias_attr = copy.deepcopy(bias_attr)
-        reference_points_bias_attr.learning_rate = 0.1
-        self.reference_points_decoder = nn.Linear(hidden_dim, 2,
-                                                  reference_points_weight_attr,
-                                                  reference_points_bias_attr)
+        self.reference_points = nn.Linear(
+            hidden_dim,
+            2,
+            weight_attr=ParamAttr(learning_rate=lr_mult),
+            bias_attr=ParamAttr(learning_rate=lr_mult))
 
         self.input_proj = nn.LayerList()
         for in_channels in backbone_num_channels:
             self.input_proj.append(
-                nn.Conv2D(
-                    in_channels,
-                    hidden_dim,
-                    kernel_size=1,
-                    weight_attr=weight_attr,
-                    bias_attr=bias_attr))
+                nn.Sequential(
+                    nn.Conv2D(
+                        in_channels,
+                        hidden_dim,
+                        kernel_size=1,
+                        weight_attr=weight_attr,
+                        bias_attr=bias_attr),
+                    nn.GroupNorm(32, hidden_dim)))
+        in_channels = backbone_num_channels[-1]
         for _ in range(num_feature_levels - len(backbone_num_channels)):
             self.input_proj.append(
-                nn.Conv2D(
-                    hidden_dim,
-                    hidden_dim,
-                    kernel_size=3,
-                    stride=2,
-                    padding=1,
-                    weight_attr=weight_attr,
-                    bias_attr=bias_attr))
+                nn.Sequential(
+                    nn.Conv2D(
+                        in_channels,
+                        hidden_dim,
+                        kernel_size=3,
+                        stride=2,
+                        padding=1,
+                        weight_attr=weight_attr,
+                        bias_attr=bias_attr),
+                    nn.GroupNorm(32, hidden_dim)))
+            in_channels = hidden_dim
+
         self.position_embedding = PositionEmbedding(
             hidden_dim // 2,
             normalize=True if position_embed_type == 'sine' else False,
             embed_type=position_embed_type)
-        self.tgt_embed = nn.Embedding(num_queries, hidden_dim)
-        self.query_pos_embed = nn.Embedding(num_queries, hidden_dim)
+
+        self._reset_parameters()
+
+    def _reset_parameters(self):
+        normal_(self.level_embed.weight)
+        normal_(self.tgt_embed.weight)
+        normal_(self.query_pos_embed.weight)
+        for l in self.input_proj:
+            xavier_uniform_(l[0].weight)
+            constant_(l[0].bias)
 
     @classmethod
     def from_config(cls, cfg, input_shape):
         return {'backbone_num_channels': [i.channels for i in input_shape], }
 
-    def forward(self, srcs, src_mask=None):
+    def _get_valid_ratio(self, mask):
+        mask = mask.astype(paddle.float32)
+        _, H, W = mask.shape
+        valid_ratio_h = paddle.sum(mask[:, :, 0], 1) / H
+        valid_ratio_w = paddle.sum(mask[:, 0, :], 1) / W
+        valid_ratio = paddle.stack([valid_ratio_w, valid_ratio_h], -1)
+        return valid_ratio
 
-        for i in range(len(srcs)):
-            srcs[i] = self.input_proj[i](srcs[i])
-        for i in range(self.num_feature_levels - len(srcs), 0, -1):
-            srcs.append(self.input_proj[-i](srcs[-1]))
+    def forward(self, src_feats, src_mask=None):
+        srcs = []
+        for i in range(len(src_feats)):
+            srcs.append(self.input_proj[i](src_feats[i]))
+        if self.num_feature_levels > len(srcs):
+            len_srcs = len(srcs)
+            for i in range(len_srcs, self.num_feature_levels):
+                if i == len_srcs:
+                    srcs.append(self.input_proj[i](src_feats[-1]))
+                else:
+                    srcs.append(self.input_proj[i](srcs[-1]))
         src_flatten = []
         mask_flatten = []
         lvl_pos_embed_flatten = []
         spatial_shapes = []
+        valid_ratios = []
         for level, src in enumerate(srcs):
             bs, c, h, w = src.shape
             spatial_shapes.append([h, w])
             src = src.flatten(2).transpose([0, 2, 1])
-
+            src_flatten.append(src)
             if src_mask is not None:
                 mask = F.interpolate(
                     src_mask.unsqueeze(0).astype(src.dtype),
                     size=(h, w))[0].astype('bool')
             else:
                 mask = paddle.ones([bs, h, w], dtype='bool')
+            valid_ratios.append(self._get_valid_ratio(mask))
             pos_embed = self.position_embedding(mask).flatten(2).transpose(
                 [0, 2, 1])
             lvl_pos_embed = pos_embed + self.level_embed.weight[level].reshape(
                 [1, 1, -1])
             lvl_pos_embed_flatten.append(lvl_pos_embed)
             mask = mask.astype(src.dtype).flatten(1)
-            src_flatten.append(src)
             mask_flatten.append(mask)
         src_flatten = paddle.concat(src_flatten, 1)
         mask_flatten = paddle.concat(mask_flatten, 1)
         lvl_pos_embed_flatten = paddle.concat(lvl_pos_embed_flatten, 1)
         # [l, 2]
         spatial_shapes = paddle.to_tensor(spatial_shapes, dtype='int64')
+        # [b, l, 2]
+        valid_ratios = paddle.stack(valid_ratios, 1)
 
         # encoder
         memory = self.encoder(src_flatten, spatial_shapes, mask_flatten,
-                              lvl_pos_embed_flatten)
+                              lvl_pos_embed_flatten, valid_ratios)
 
         # prepare input for decoder
         bs, _, c = memory.shape
         query_embed = self.query_pos_embed.weight.unsqueeze(0).tile([bs, 1, 1])
         tgt = self.tgt_embed.weight.unsqueeze(0).tile([bs, 1, 1])
-        reference_points = F.sigmoid(self.reference_points_decoder(query_embed))
+        reference_points = F.sigmoid(self.reference_points(query_embed))
+        reference_points_input = reference_points.unsqueeze(
+            2) * valid_ratios.unsqueeze(1)
 
         # decoder
-        hs = self.decoder(tgt, reference_points, memory, spatial_shapes,
+        hs = self.decoder(tgt, reference_points_input, memory, spatial_shapes,
                           mask_flatten, query_embed)
 
         return (hs, memory, reference_points)

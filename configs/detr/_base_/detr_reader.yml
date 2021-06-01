@@ -1,4 +1,4 @@
-worker_num: 4
+worker_num: 2
 TrainReader:
   sample_transforms:
   - Decode: {}
@@ -15,6 +15,7 @@ TrainReader:
   shuffle: true
   drop_last: true
   collate_batch: false
+  use_shared_memory: true
 
 
 EvalReader:

@@ -26,12 +26,8 @@ except Exception:
     from collections import Sequence
 
 __all__ = [
-    'BBoxPostProcess',
-    'MaskPostProcess',
-    'FCOSPostProcess',
-    'S2ANetBBoxPostProcess',
-    'JDEBBoxPostProcess',
-    'CenterNetPostProcess',
+    'BBoxPostProcess', 'MaskPostProcess', 'FCOSPostProcess',
+    'S2ANetBBoxPostProcess', 'JDEBBoxPostProcess', 'CenterNetPostProcess',
     'DETRBBoxPostProcess'
 ]
 
@@ -454,16 +450,17 @@ class DETRBBoxPostProcess(object):
     __shared__ = ['num_classes']
     __inject__ = []
 
-    def __init__(self, num_classes=80):
+    def __init__(self, num_classes=80, num_top_queries=100):
         super(DETRBBoxPostProcess, self).__init__()
         self.num_classes = num_classes
+        self.num_top_queries = num_top_queries
 
     def __call__(self, head_out, im_shape, scale_factor):
         """
         Decode the bbox.
 
         Args:
-            head_out (tuple): bbox_pred and cls_prob of bbox_head output.
+            head_out (tuple): bbox_pred, cls_logit and masks of bbox_head output.
             im_shape (Tensor): The shape of the input image.
             scale_factor (Tensor): The scale factor of the input image.
         Returns:
@@ -476,13 +473,20 @@ class DETRBBoxPostProcess(object):
         bboxes, scores, masks = head_out
         scores = F.softmax(scores, -1)
         scores, labels = scores[:, :, :-1].max(-1), scores[:, :, :-1].argmax(-1)
-
         bbox_pred = bbox_cxcywh_to_xyxy(bboxes)
         origin_shape = paddle.floor(im_shape / scale_factor + 0.5)
         img_h, img_w = origin_shape.unbind(1)
         origin_shape = paddle.stack(
             [img_w, img_h, img_w, img_h], axis=-1).unsqueeze(0)
         bbox_pred *= origin_shape
+
+        if scores.shape[1] > self.num_top_queries:
+            scores, index = paddle.topk(scores, self.num_top_queries, axis=-1)
+            labels = paddle.stack(
+                [paddle.gather(l, i) for l, i in zip(labels, index)])
+            bbox_pred = paddle.stack(
+                [paddle.gather(b, i) for b, i in zip(bbox_pred, index)])
+
         bbox_pred = paddle.concat(
             [
                 labels.unsqueeze(-1).astype('float32'), scores.unsqueeze(-1),

@@ -16,15 +16,18 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import math
 import paddle
 import paddle.nn as nn
 from paddle import ParamAttr
 from paddle.nn.layer.transformer import (_convert_param_attr_to_list,
                                          _convert_attention_mask)
 import paddle.nn.functional as F
+import paddle.nn.initializer as initializer
 
 from ppdet.core.workspace import register
 from ..layers import PositionEmbedding
+from .utils import _get_clones
 
 __all__ = ['DETRTransformer']
 
@@ -78,8 +81,7 @@ class MultiHeadAttention(nn.Layer):
                  kdim=None,
                  vdim=None,
                  need_weights=False,
-                 weight_attr=ParamAttr(
-                     initializer=paddle.nn.initializer.XavierUniform()),
+                 weight_attr=ParamAttr(initializer=initializer.XavierUniform()),
                  bias_attr=None):
         super(MultiHeadAttention, self).__init__()
         self.embed_dim = embed_dim
@@ -222,10 +224,6 @@ class TransformerEncoderLayer(nn.Layer):
                  normalize_before=False,
                  weight_attr=None,
                  bias_attr=None):
-        self._config = locals()
-        self._config.pop("self")
-        self._config.pop("__class__", None)  # py3
-
         super(TransformerEncoderLayer, self).__init__()
         attn_dropout = dropout if attn_dropout is None else attn_dropout
         act_dropout = dropout if act_dropout is None else act_dropout
@@ -252,6 +250,15 @@ class TransformerEncoderLayer(nn.Layer):
         self.dropout1 = nn.Dropout(dropout, mode="upscale_in_train")
         self.dropout2 = nn.Dropout(dropout, mode="upscale_in_train")
         self.activation = getattr(F, activation)
+        self._reset_linear_parameters()
+
+    def _reset_linear_parameters(self):
+        for k, v in self.named_parameters():
+            if 'linear' in k and 'bias' in k:
+                k_name = k.replace('bias', 'weight')
+                fan_in = self.state_dict()[k_name].shape[0]
+                bound = 1 / math.sqrt(fan_in)
+                v.set_value(paddle.uniform(v.shape, min=-bound, max=bound))
 
     def with_pos_embed(self, tensor, pos_embed):
         return tensor if pos_embed is None else tensor + pos_embed
@@ -282,10 +289,7 @@ class TransformerEncoderLayer(nn.Layer):
 class TransformerEncoder(nn.Layer):
     def __init__(self, encoder_layer, num_layers, norm=None):
         super(TransformerEncoder, self).__init__()
-        self.layers = nn.LayerList([(
-            encoder_layer
-            if i == 0 else type(encoder_layer)(**encoder_layer._config))
-                                    for i in range(num_layers)])
+        self.layers = _get_clones(encoder_layer, num_layers)
         self.num_layers = num_layers
         self.norm = norm
 
@@ -314,10 +318,6 @@ class TransformerDecoderLayer(nn.Layer):
                  normalize_before=False,
                  weight_attr=None,
                  bias_attr=None):
-        self._config = locals()
-        self._config.pop("self")
-        self._config.pop("__class__", None)  # py3
-
         super(TransformerDecoderLayer, self).__init__()
         attn_dropout = dropout if attn_dropout is None else attn_dropout
         act_dropout = dropout if act_dropout is None else act_dropout
@@ -351,6 +351,15 @@ class TransformerDecoderLayer(nn.Layer):
         self.dropout2 = nn.Dropout(dropout, mode="upscale_in_train")
         self.dropout3 = nn.Dropout(dropout, mode="upscale_in_train")
         self.activation = getattr(F, activation)
+        self._reset_linear_parameters()
+
+    def _reset_linear_parameters(self):
+        for k, v in self.named_parameters():
+            if 'linear' in k and 'bias' in k:
+                k_name = k.replace('bias', 'weight')
+                fan_in = self.state_dict()[k_name].shape[0]
+                bound = 1 / math.sqrt(fan_in)
+                v.set_value(paddle.uniform(v.shape, min=-bound, max=bound))
 
     def with_pos_embed(self, tensor, pos_embed):
         return tensor if pos_embed is None else tensor + pos_embed
@@ -401,10 +410,7 @@ class TransformerDecoder(nn.Layer):
                  norm=None,
                  return_intermediate=False):
         super(TransformerDecoder, self).__init__()
-        self.layers = nn.LayerList([(
-            decoder_layer
-            if i == 0 else type(decoder_layer)(**decoder_layer._config))
-                                    for i in range(num_layers)])
+        self.layers = _get_clones(decoder_layer, num_layers)
         self.num_layers = num_layers
         self.norm = norm
         self.return_intermediate = return_intermediate
@@ -460,8 +466,7 @@ class DETRTransformer(nn.Layer):
                  attn_dropout=None,
                  act_dropout=None,
                  normalize_before=False,
-                 weight_attr=ParamAttr(
-                     initializer=paddle.nn.initializer.XavierUniform()),
+                 weight_attr=ParamAttr(initializer=initializer.XavierUniform()),
                  bias_attr=None):
         super(DETRTransformer, self).__init__()
         assert position_embed_type in ['sine', 'learned'],\
@@ -524,13 +529,23 @@ class DETRTransformer(nn.Layer):
             decoder_norm,
             return_intermediate=return_intermediate_dec)
 
+        bound = 1 / math.sqrt(backbone_num_channels)
         self.input_proj = nn.Conv2D(
-            backbone_num_channels, hidden_dim, kernel_size=1)
+            backbone_num_channels,
+            hidden_dim,
+            kernel_size=1,
+            weight_attr=ParamAttr(initializer=initializer.Uniform(
+                low=-bound, high=bound)),
+            bias_attr=ParamAttr(initializer=initializer.Uniform(
+                low=-bound, high=bound)))
         self.position_embedding = PositionEmbedding(
             hidden_dim // 2,
             normalize=True if position_embed_type == 'sine' else False,
             embed_type=position_embed_type)
-        self.query_pos_embed = nn.Embedding(num_queries, hidden_dim)
+        self.query_pos_embed = nn.Embedding(
+            num_queries,
+            hidden_dim,
+            weight_attr=ParamAttr(initializer=initializer.Normal()))
         self.hidden_dim = hidden_dim
         self.nhead = nhead
 
