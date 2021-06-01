@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import detr_transformer
-from . import deformable_transformer
-from . import utils
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
-from .detr_transformer import *
-from .deformable_transformer import *
-from .utils import *
+import copy
+import paddle
+import paddle.nn as nn
+
+
+def _get_clones(module, N):
+    return nn.LayerList([copy.deepcopy(module) for _ in range(N)])

@@ -16,6 +16,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import math
 import paddle
 import paddle.nn as nn
 import paddle.nn.functional as F
@@ -194,6 +195,8 @@ class DETRHead(nn.Layer):
                                                         nhead)
             self.mask_head = MaskHeadFPNConv(hidden_dim + nhead, fpn_dims,
                                              hidden_dim)
+        self._reset_bias_parameters(self.score_head)
+        self._reset_bias_parameters(self.bbox_head)
 
     @classmethod
     def from_config(cls, cfg, hidden_dim, nhead, input_shape):
@@ -203,6 +206,14 @@ class DETRHead(nn.Layer):
             'nhead': nhead,
             'fpn_dims': [i.channels for i in input_shape[::-1]][1:]
         }
+
+    def _reset_bias_parameters(self, module):
+        for k, v in module.named_parameters():
+            if 'bias' in k:
+                k_name = k.replace('bias', 'weight')
+                fan_in = module.state_dict()[k_name].shape[0]
+                bound = 1 / math.sqrt(fan_in)
+                v.set_value(paddle.uniform(v.shape, min=-bound, max=bound))
 
     @staticmethod
     def get_gt_mask_from_polygons(gt_poly, pad_mask):
