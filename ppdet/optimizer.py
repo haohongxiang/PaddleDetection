@@ -249,7 +249,11 @@ class OptimizerBuilder():
                   parameters=params,
                   weight_decay=regularization,
                   grad_clip=grad_clip,
-                  **optim_args)
+                  **optim_args) if optim_type not in ['AdamW'] else \
+            op(learning_rate=learning_rate,
+               parameters=params,
+               grad_clip=grad_clip,
+               **optim_args)
 
 
 class ModelEMA(object):
