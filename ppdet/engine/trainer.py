@@ -95,9 +95,7 @@ class Trainer(object):
         if self.mode == 'train':
             steps_per_epoch = len(self.loader)
             self.lr = create('LearningRate')(steps_per_epoch)
-            self.optimizer = create('OptimizerBuilder')(
-                self.lr,
-                [p for p in self.model.parameters() if not p.stop_gradient])
+            self.optimizer = create('OptimizerBuilder')(self.lr, self.model.parameters())
 
         self._nranks = dist.get_world_size()
         self._local_rank = dist.get_rank()
