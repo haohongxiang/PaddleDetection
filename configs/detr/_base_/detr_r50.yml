@@ -1,5 +1,5 @@
 architecture: DETR
-pretrain_weights: https://paddledet.bj.bcebos.com/models/pretrained/ResNet50_cos_pretrained.pdparams
+pretrain_weights: https://paddledet.bj.bcebos.com/models/pretrained/ResNet50_vd_ssld_pretrained.pdparams
 hidden_dim: 256
 
 
@@ -10,13 +10,25 @@ DETR:
   post_process: DETRBBoxPostProcess
 
 
+# ResNet:
+#   # index 0 stands for res2
+#   depth: 50
+#   norm_type: bn
+#   freeze_at: 0
+#   return_idx: [3]
+#   lr_mult_list: [0.1, 0.1, 0.1, 0.1]
+#   num_stages: 4
+
+
 ResNet:
-  # index 0 stands for res2
   depth: 50
   norm_type: bn
-  freeze_at: 0
+  variant: d
   return_idx: [3]
+  dcn_v2_stages: [3]
   lr_mult_list: [0.1, 0.1, 0.1, 0.1]
+  freeze_at: 0
+  freeze_norm: true
   num_stages: 4
 
 
