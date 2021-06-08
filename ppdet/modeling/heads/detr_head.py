@@ -289,8 +289,7 @@ class DeformableDETRHead(nn.Layer):
                  num_mlp_layers=3,
                  loss='DETRLoss'):
         super(DeformableDETRHead, self).__init__()
-        # add background class
-        self.num_classes = num_classes + 1
+        self.num_classes = num_classes
         self.hidden_dim = hidden_dim
         self.nhead = nhead
         self.loss = loss

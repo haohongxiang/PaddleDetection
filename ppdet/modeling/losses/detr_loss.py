@@ -87,7 +87,7 @@ class DETRLoss(nn.Layer):
 
         # We flatten to compute the cost matrices in a batch
         # [batch_size * num_queries, num_classes]
-        out_prob = F.softmax(scores.flatten(0, 1))
+        out_prob = F.sigmoid(scores.flatten(0, 1))
         # [batch_size * num_queries, 4]
         out_bbox = boxes.flatten(0, 1)
 
@@ -142,17 +142,13 @@ class DETRLoss(nn.Layer):
                                                  match_indices)
         target_label = paddle.scatter(
             target_label.reshape([-1, 1]), index, updates.astype('int64'))
-
+        target_label = target_label.reshape([bs, num_query_objects])
         return {
             'loss_class': F.cross_entropy(
-                scores,
-                target_label.reshape([bs, num_query_objects, 1]),
-                weight=self.loss_coeff['class'])
+                scores, target_label, weight=self.loss_coeff['class'])
             if not self.matcher_with_focal else F.sigmoid_focal_loss(
                 scores,
-                F.one_hot(
-                    target_label.reshape([bs, num_query_objects]),
-                    self.num_classes + 1),
+                F.one_hot(target_label, self.num_classes + 1)[:, :, :-1],
                 reduction='mean')
         }
 

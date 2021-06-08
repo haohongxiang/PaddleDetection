@@ -470,9 +470,9 @@ class DETRBBoxPostProcess(object):
             bbox_num (Tensor): The number of prediction boxes of each batch with
                 shape [bs], and is N.
         """
-        bboxes, scores, masks = head_out
-        scores = F.softmax(scores, -1)
-        scores, labels = scores[:, :, :-1].max(-1), scores[:, :, :-1].argmax(-1)
+        bboxes, logits, masks = head_out
+        scores = F.sigmoid(logits)
+        scores, labels = scores.max(-1), scores.argmax(-1)
         bbox_pred = bbox_cxcywh_to_xyxy(bboxes)
         origin_shape = paddle.floor(im_shape / scale_factor + 0.5)
         img_h, img_w = origin_shape.unbind(1)
