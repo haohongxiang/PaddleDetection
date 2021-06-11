@@ -284,3 +284,36 @@ class ModelEMA(object):
             v.stop_gradient = True
             state_dict[k] = v
         return state_dict
+
+
+
+
+
+@paddle.no_grad()
+def clip_grad_norm_(params, max_norm, norm_type=2, error_if_nonfinite=True):
+    '''clip_grad_norm_
+    '''
+    if isinstance(params, paddle.Tensor):
+        params = [params]
+    params = [p for p in params if p.stop_gradient is False]
+    
+    if len(params) == 0:
+        return 0.
+    
+    max_norm = float(max_norm)
+    
+    total_norm = paddle.norm(paddle.stack([paddle.norm(x.grad, norm_type) for x in params]), norm_type)
+    clip_coef = max_norm / (total_norm + 1e-6)
+
+    if clip_coef < 1:
+        for p in params:
+            p.grad.set_value( p.grad * clip_coef )
+    
+    if total_norm.isnan() or total_norm.isinf():
+        if error_if_nonfinite:
+            raise RuntimeError('')
+        else:
+            print('Non-finite norm encountered')
+            
+    return total_norm
+
