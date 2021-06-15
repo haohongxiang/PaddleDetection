@@ -768,6 +768,8 @@ class Resize(BaseOperator):
         return sample
 
 
+    
+    
 @register_op
 class MultiscaleTestResize(BaseOperator):
     def __init__(self,
@@ -2093,3 +2095,279 @@ class BboxCXCYWH2XYXY(BaseOperator):
         bbox[:, 2:4] = bbox0[:, :2] + bbox0[:, 2:4] / 2.
         sample['gt_bbox'] = bbox
         return sample
+
+    
+    
+    
+@register_op
+class ResizeX(BaseOperator):
+    def __init__(self, target_size, keep_ratio, interp=cv2.INTER_LINEAR, reverse=False):
+        """
+        Resize image to target size. if keep_ratio is True, 
+        resize the image's short side to the maximum of target_size
+        if keep_ratio is False, resize the image to target size(h, w)
+        Args:
+            target_size (int|list): image target size
+            keep_ratio (bool): whether keep_ratio or not, default true
+            interp (int): the interpolation method
+        """
+        super(ResizeX, self).__init__()
+        self.keep_ratio = keep_ratio
+        self.interp = interp
+        if not isinstance(target_size, (Integral, Sequence)):
+            raise TypeError(
+                "Type of target_size is invalid. Must be Integer or List or Tuple, now is {}".
+                format(type(target_size)))
+        if isinstance(target_size, Integral):
+            target_size = [target_size, target_size]
+        self.target_size = target_size
+        self.reverse = reverse
+        
+    def apply_image(self, image, scale):
+        im_scale_x, im_scale_y = scale
+
+        return cv2.resize(
+            image,
+            None,
+            None,
+            fx=im_scale_x,
+            fy=im_scale_y,
+            interpolation=self.interp)
+
+    def apply_bbox(self, bbox, scale, size):
+        im_scale_x, im_scale_y = scale
+        resize_w, resize_h = size
+        bbox[:, 0::2] *= im_scale_x
+        bbox[:, 1::2] *= im_scale_y
+        bbox[:, 0::2] = np.clip(bbox[:, 0::2], 0, resize_w)
+        bbox[:, 1::2] = np.clip(bbox[:, 1::2], 0, resize_h)
+        return bbox
+
+    def apply_segm(self, segms, im_size, scale):
+        def _resize_poly(poly, im_scale_x, im_scale_y):
+            resized_poly = np.array(poly).astype('float32')
+            resized_poly[0::2] *= im_scale_x
+            resized_poly[1::2] *= im_scale_y
+            return resized_poly.tolist()
+
+        def _resize_rle(rle, im_h, im_w, im_scale_x, im_scale_y):
+            if 'counts' in rle and type(rle['counts']) == list:
+                rle = mask_util.frPyObjects(rle, im_h, im_w)
+
+            mask = mask_util.decode(rle)
+            mask = cv2.resize(
+                image,
+                None,
+                None,
+                fx=im_scale_x,
+                fy=im_scale_y,
+                interpolation=self.interp)
+            rle = mask_util.encode(np.array(mask, order='F', dtype=np.uint8))
+            return rle
+
+        im_h, im_w = im_size
+        im_scale_x, im_scale_y = scale
+        resized_segms = []
+        for segm in segms:
+            if is_poly(segm):
+                # Polygon format
+                resized_segms.append([
+                    _resize_poly(poly, im_scale_x, im_scale_y) for poly in segm
+                ])
+            else:
+                # RLE format
+                import pycocotools.mask as mask_util
+                resized_segms.append(
+                    _resize_rle(segm, im_h, im_w, im_scale_x, im_scale_y))
+
+        return resized_segms
+
+    def apply(self, sample, context=None):
+        """ Resize the image numpy.
+        """
+        im = sample['image']
+        if not isinstance(im, np.ndarray):
+            raise TypeError("{}: image type is not numpy.".format(self))
+        if len(im.shape) != 3:
+            raise ImageError('{}: image is not 3-dimensional.'.format(self))
+
+        # apply image
+        im_shape = im.shape
+        if self.keep_ratio and not self.reverse:
+
+            im_size_min = np.min(im_shape[0:2])
+            im_size_max = np.max(im_shape[0:2])
+
+            target_size_min = np.min(self.target_size)
+            target_size_max = np.max(self.target_size)
+
+            im_scale = max(target_size_min / im_size_min,
+                           target_size_max / im_size_max)
+
+            resize_h = im_scale * float(im_shape[0])
+            resize_w = im_scale * float(im_shape[1])
+
+            im_scale_x = im_scale
+            im_scale_y = im_scale
+            
+        elif self.keep_ratio and self.reverse:
+            
+            im_size_min = np.min(im_shape[0:2])
+            im_size_max = np.max(im_shape[0:2])
+
+            target_size_min = np.min(self.target_size)
+            target_size_max = np.max(self.target_size)
+
+            im_scale = min(target_size_min / im_size_min,
+                           target_size_max / im_size_max)
+
+            resize_h = im_scale * float(im_shape[0])
+            resize_w = im_scale * float(im_shape[1])
+
+            im_scale_x = im_scale
+            im_scale_y = im_scale
+            
+        else:
+            resize_h, resize_w = self.target_size
+            im_scale_y = resize_h / im_shape[0]
+            im_scale_x = resize_w / im_shape[1]
+
+        im = self.apply_image(sample['image'], [im_scale_x, im_scale_y])
+        sample['image'] = im
+        sample['im_shape'] = np.asarray([resize_h, resize_w], dtype=np.float32)
+        if 'scale_factor' in sample:
+            scale_factor = sample['scale_factor']
+            sample['scale_factor'] = np.asarray(
+                [scale_factor[0] * im_scale_y, scale_factor[1] * im_scale_x],
+                dtype=np.float32)
+        else:
+            sample['scale_factor'] = np.asarray(
+                [im_scale_y, im_scale_x], dtype=np.float32)
+
+        # apply bbox
+        if 'gt_bbox' in sample and len(sample['gt_bbox']) > 0:
+            sample['gt_bbox'] = self.apply_bbox(sample['gt_bbox'],
+                                                [im_scale_x, im_scale_y],
+                                                [resize_w, resize_h])
+
+        # apply rbox
+        if 'gt_rbox2poly' in sample:
+            if np.array(sample['gt_rbox2poly']).shape[1] != 8:
+                logger.warn(
+                    "gt_rbox2poly's length shoule be 8, but actually is {}".
+                    format(len(sample['gt_rbox2poly'])))
+            sample['gt_rbox2poly'] = self.apply_bbox(sample['gt_rbox2poly'],
+                                                     [im_scale_x, im_scale_y],
+                                                     [resize_w, resize_h])
+
+        # apply polygon
+        if 'gt_poly' in sample and len(sample['gt_poly']) > 0:
+            sample['gt_poly'] = self.apply_segm(sample['gt_poly'], im_shape[:2],
+                                                [im_scale_x, im_scale_y])
+
+        # apply semantic
+        if 'semantic' in sample and sample['semantic']:
+            semantic = sample['semantic']
+            semantic = cv2.resize(
+                semantic.astype('float32'),
+                None,
+                None,
+                fx=im_scale_x,
+                fy=im_scale_y,
+                interpolation=self.interp)
+            semantic = np.asarray(semantic).astype('int32')
+            semantic = np.expand_dims(semantic, 0)
+            sample['semantic'] = semantic
+
+        # apply gt_segm
+        if 'gt_segm' in sample and len(sample['gt_segm']) > 0:
+            masks = [
+                cv2.resize(
+                    gt_segm,
+                    None,
+                    None,
+                    fx=im_scale_x,
+                    fy=im_scale_y,
+                    interpolation=cv2.INTER_NEAREST)
+                for gt_segm in sample['gt_segm']
+            ]
+            sample['gt_segm'] = np.asarray(masks).astype(np.uint8)
+
+        return sample
+
+    
+    
+
+@register_op
+class RandomCropX(BaseOperator):
+    """Resize image and bbox based on min side (with optional random scaling),
+       then crop or pad image to target size.
+    Args:
+        target_dim (int): target size.
+        interp (int): interpolation method, default to `cv2.INTER_LINEAR`.
+    """
+
+    def __init__(self,
+                 min_size=None,
+                 max_size=None,):
+        super(RandomCropX, self).__init__()
+        self.min_size = min_size
+        self.max_size = max_size
+        self.interp = interp
+
+    def apply(self, sample, context=None):
+        img = sample['image']
+        h, w = img.shape[:2]
+        
+        _w = random.randint(self.min_size, min(w, self.max_size))
+        _h = random.randint(self.min_size, min(h, self.max_size))
+                
+        offset_x = int(max(0, np.random.uniform(0., _w - w)))
+        offset_y = int(max(0, np.random.uniform(0., _h - h)))
+        
+        canvas = np.zeros((_h, _w, 3), dtype=img.dtype)
+        canvas[:, :, :] = img[offset_y:offset_y+_h, offset_x:offset_x+_w, :]
+        
+        sample['image'] = canvas
+        sample['im_shape'] = np.asarray([_h, _w], dtype=np.float32)
+
+        if 'gt_bbox' in sample and len(sample['gt_bbox']) > 0:
+            shift_array = np.array([offset_x, offset_y] * 2, dtype=np.float32)
+            boxes = sample['gt_bbox'] - shift_array
+            
+            boxes[..., [0, 2]] = np.clip(boxes[..., [0, 2]], 0, _w - 1)
+            boxes[..., [1, 3]] = np.clip(boxes[..., [1, 3]], 0, _h - 1)
+
+            # filter boxes with no area
+            area = np.prod(boxes[..., 2:] - boxes[..., :2], axis=1)
+            valid = (area > 1.).nonzero()[0]
+            sample['gt_bbox'] = boxes[valid]
+            sample['gt_class'] = sample['gt_class'][valid]
+
+        return sample
+
+    
+
+
+@register_op
+class RandomResizeXRandomCrop(BaseOperator):
+    def __init__(self, resize_sizes, crop_min, crop_max, p=0.5, keep_ratio=True):
+        '''reverse == True and keep_ratio == True, minimum side aligned to target_size
+        '''
+        self.resize_sizes = resize_sizes
+        self.crop = RandomCropX(crop_min, crop_max,)
+        self.p = p
+        self.keep_ratio = keep_ratio
+        
+    def apply(self, sample, context=None):
+        """ Resize the image numpy.
+        """
+        if random.random() < self.p:
+            _size = random.choice(self.resize_sizes)
+            self.resizer = ResizeX(_size, keep_ratio=keep_ratio, interp=cv2.INTER_LINEAR, reverse=True)
+
+            sample = resizer(sample, context=context)
+            sample = self.crop(sample, context=context)
+        
+        return sample
+    
