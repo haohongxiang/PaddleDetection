@@ -2379,7 +2379,6 @@ class RandomCropX(BaseOperator):
                     break
                 
             if found:
-                print(found)
                 sample['image'] = self._crop_image(sample['image'], crop_box)
                 sample['gt_bbox'] = np.take(cropped_box, valid_ids, axis=0)
                 sample['gt_class'] = np.take(
