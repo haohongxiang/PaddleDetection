@@ -112,7 +112,7 @@ class MultiHeadAttention(nn.Layer):
         self._type_list = ('q_proj', 'k_proj', 'v_proj')
 
         # self._reset_parameters()
-        # init.reset_initialized_parameter(self)
+        init.reset_initialized_parameter(self)
         self._reset_parameters()
         
     def _reset_parameters(self):

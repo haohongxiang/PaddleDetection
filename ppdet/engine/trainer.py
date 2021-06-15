@@ -47,6 +47,45 @@ logger = setup_logger('ppdet.engine')
 __all__ = ['Trainer']
 
 
+def _parameters_for_clip(model):
+    _params = []
+    for n, p in model.named_parameters():
+        if 'backbone.conv1' in n or 'backbone.res2' in n or '_mean' in n or '_variance' in n:
+            continue
+        _params.append(p)
+        
+    return _params
+
+@paddle.no_grad()
+def clip_grad_norm_(params, max_norm=0.1, norm_type=2, error_if_nonfinite=True):
+    '''clip_grad_norm_
+    '''
+    if isinstance(params, paddle.Tensor):
+        params = [params]
+    params = [p for p in params if p.stop_gradient is False and p.grad is not None]
+    
+    if len(params) == 0:
+        return 0.
+    
+    max_norm = float(max_norm)
+    
+    total_norm = paddle.norm(paddle.stack([paddle.norm(x.grad, norm_type) for x in params]), norm_type)
+    clip_coef = max_norm / (total_norm + 1e-6)
+
+    if clip_coef < 1:
+        for p in params:
+            p.grad.set_value( p.grad * clip_coef )
+    
+    if total_norm.isnan() or total_norm.isinf():
+        if error_if_nonfinite:
+            raise RuntimeError('')
+        else:
+            print('Non-finite norm encountered')
+            
+    return total_norm
+
+
+
 class Trainer(object):
     def __init__(self, cfg, mode='train'):
         self.cfg = cfg
@@ -279,6 +318,9 @@ class Trainer(object):
             self.cfg.log_iter, fmt='{avg:.4f}')
         self.status['training_staus'] = stats.TrainingStats(self.cfg.log_iter)
 
+        
+        clip_params = _parameters_for_clip(model)
+        
         for epoch_id in range(self.start_epoch, self.cfg.epoch):
             self.status['mode'] = 'train'
             self.status['epoch_id'] = epoch_id
@@ -308,6 +350,10 @@ class Trainer(object):
                     loss = outputs['loss']
                     # model backward
                     loss.backward()
+                    
+                    # clip_grad_norm_(_parameters_for_clip(model))                 
+                    clip_grad_norm_(clip_params)
+
                     self.optimizer.step()
 
                 curr_lr = self.optimizer.get_lr()

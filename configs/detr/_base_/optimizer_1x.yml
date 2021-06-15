@@ -9,7 +9,7 @@ LearningRate:
     use_warmup: false
 
 OptimizerBuilder:
-  clip_grad_by_norm: 0.1
+  # clip_grad_by_norm: 0.1
   regularizer: false
   optimizer:
     type: AdamW
