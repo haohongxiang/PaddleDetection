@@ -28,6 +28,7 @@ from . import layers
 from . import reid
 from . import mot
 from . import transformers
+from . import initializer
 
 from .ops import *
 from .backbones import *

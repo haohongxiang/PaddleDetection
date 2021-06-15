@@ -23,7 +23,7 @@ import paddle.nn.functional as F
 from ppdet.core.workspace import register
 import pycocotools.mask as mask_util
 
-import ..initializer as init
+from .. import initializer as init
 
 __all__ = ['DETRHead']
 

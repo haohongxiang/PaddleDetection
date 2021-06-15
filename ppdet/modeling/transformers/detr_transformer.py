@@ -25,7 +25,7 @@ import paddle.nn.functional as F
 from ppdet.core.workspace import register
 from .utils import *
 
-import ..initializer as init
+from .. import initializer as init
 
 __all__ = ['DETRTransformer']
 
