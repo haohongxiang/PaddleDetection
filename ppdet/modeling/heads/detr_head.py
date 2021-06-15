@@ -23,6 +23,8 @@ import paddle.nn.functional as F
 from ppdet.core.workspace import register
 import pycocotools.mask as mask_util
 
+import ..initializer as init
+
 __all__ = ['DETRHead']
 
 
@@ -33,7 +35,9 @@ class MLP(nn.Layer):
         h = [hidden_dim] * (num_layers - 1)
         self.layers = nn.LayerList(
             nn.Linear(n, k) for n, k in zip([input_dim] + h, h + [output_dim]))
-
+        
+        init.reset_initialized_parameter(self)
+        
     def forward(self, x):
         for i, layer in enumerate(self.layers):
             x = F.relu(layer(x)) if i < self.num_layers - 1 else layer(x)
@@ -64,7 +68,9 @@ class MultiHeadAttentionMap(nn.Layer):
             bias_attr=bias_attr)
 
         self.normalize_fact = float(hidden_dim / self.num_heads)**-0.5
-
+        
+        init.reset_initialized_parameter(self)
+        
     def forward(self, q, k, mask=None):
         q = self.q_proj(q)
         k = self.k_proj(k)
@@ -127,7 +133,8 @@ class MaskHeadFPNConv(nn.Layer):
                     1,
                     weight_attr=weight_attr,
                     bias_attr=bias_attr))
-
+        init.reset_initialized_parameter(self)
+        
     def _make_layers(self,
                      in_dims,
                      out_dims,
@@ -194,9 +201,10 @@ class DETRHead(nn.Layer):
                                                         nhead)
             self.mask_head = MaskHeadFPNConv(hidden_dim + nhead, fpn_dims,
                                              hidden_dim)
-        self._reset_bias_parameters(self.score_head)
-        self._reset_bias_parameters(self.bbox_head)
-
+        # self._reset_bias_parameters(self.score_head)
+        # self._reset_bias_parameters(self.bbox_head)
+        init.reset_initialized_parameter(self)
+        
     @classmethod
     def from_config(cls, cfg, hidden_dim, nhead, input_shape):
 

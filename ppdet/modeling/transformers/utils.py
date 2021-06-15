@@ -60,7 +60,7 @@ def normal_(tensor: paddle.Tensor, mean=0., std=1.):
     with paddle.no_grad():
         tensor.set_value(
             paddle.normal(
-                mean=mean, std=std, shape=tensor.shape).asypte(tensor.dtype))
+                mean=mean, std=std, shape=tensor.shape))
 
 
 def uniform_(tensor: paddle.Tensor, min, max):

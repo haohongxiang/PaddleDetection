@@ -25,6 +25,8 @@ import paddle.nn.functional as F
 from ppdet.core.workspace import register
 from .utils import *
 
+import ..initializer as init
+
 __all__ = ['DETRTransformer']
 
 
@@ -109,14 +111,16 @@ class MultiHeadAttention(nn.Layer):
         self.out_proj = nn.Linear(embed_dim, embed_dim)
         self._type_list = ('q_proj', 'k_proj', 'v_proj')
 
+        # self._reset_parameters()
+        # init.reset_initialized_parameter(self)
         self._reset_parameters()
-
+        
     def _reset_parameters(self):
         for p in self.parameters():
             if p.dim() > 1:
-                xavier_uniform_(p)
+                init.xavier_uniform_(p, reverse=True)
             else:
-                constant_(p)
+                init.constant_(p)
 
     def compute_qkv(self, tensor, index):
         if self._qkv_same_embed_dim:
@@ -241,8 +245,9 @@ class TransformerEncoderLayer(nn.Layer):
         self.dropout1 = nn.Dropout(dropout, mode="upscale_in_train")
         self.dropout2 = nn.Dropout(dropout, mode="upscale_in_train")
         self.activation = getattr(F, activation)
-        self._reset_linear_parameters()
-
+        # self._reset_linear_parameters()
+        init.reset_initialized_parameter(self)
+        
     def _reset_linear_parameters(self):
         xavier_uniform_(self.linear1.weight)
         xavier_uniform_(self.linear2.weight)
@@ -283,7 +288,7 @@ class TransformerEncoder(nn.Layer):
         self.layers = _get_clones(encoder_layer, num_layers)
         self.num_layers = num_layers
         self.norm = norm
-
+        
     def forward(self, src, src_mask=None, pos_embed=None):
         src_mask = _convert_attention_mask(src_mask, src.dtype)
 
@@ -329,8 +334,9 @@ class TransformerDecoderLayer(nn.Layer):
         self.dropout2 = nn.Dropout(dropout, mode="upscale_in_train")
         self.dropout3 = nn.Dropout(dropout, mode="upscale_in_train")
         self.activation = getattr(F, activation)
-        self._reset_linear_parameters()
-
+        # self._reset_linear_parameters()
+        init.reset_initialized_parameter(self)
+        
     def _reset_linear_parameters(self):
         xavier_uniform_(self.linear1.weight)
         xavier_uniform_(self.linear2.weight)
@@ -477,8 +483,9 @@ class DETRTransformer(nn.Layer):
             normalize=True if position_embed_type == 'sine' else False,
             embed_type=position_embed_type)
 
-        self._reset_parameters()
-
+        # self._reset_parameters()
+        init.reset_initialized_parameter(self)
+        
     def _reset_parameters(self):
         bound = 1 / math.sqrt(math.prod(self.input_proj.weight.shape[1:]))
         uniform_(self.input_proj.weight, -bound, bound)
