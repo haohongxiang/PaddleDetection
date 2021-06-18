@@ -60,7 +60,7 @@ class JDEEmbeddingHead(nn.Layer):
     def __init__(
             self,
             num_classes=1,
-            num_identifiers=14455,  # defined by dataset.total_identities when training
+            num_identifiers=1,  # defined by dataset.total_identities
             anchor_levels=3,
             anchor_scales=4,
             embedding_dim=512,

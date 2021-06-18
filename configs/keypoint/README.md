@@ -21,22 +21,20 @@
 | HigherHRNet+SWAHR | 512      | 32     |     68.9     | [higherhrnet_hrnet_w32_512_swahr.pdparams](https://paddledet.bj.bcebos.com/models/keypoint/higherhrnet_hrnet_w32_512_swahr.pdparams) | [config](./higherhrnet/higherhrnet_hrnet_w32_512_swahr.yml) |
 | HRNet             | 256x192  | 32     |     76.9     | [hrnet_w32_256x192.pdparams](https://paddledet.bj.bcebos.com/models/keypoint/hrnet_w32_256x192.pdparams) | [config](./hrnet/hrnet_w32_256x192.yml)                     |
 | HRNet             | 384x288  | 32     |     77.8     | [hrnet_w32_384x288.pdparams](https://paddledet.bj.bcebos.com/models/keypoint/hrnet_w32_384x288.pdparams) | [config](./hrnet/hrnet_w32_384x288.yml)                     |
-| HRNet+DarkPose             | 256x192  | 32     |     78.0     | [dark_hrnet_w32_256x192.pdparams](https://paddledet.bj.bcebos.com/models/keypoint/dark_hrnet_w32_256x192.pdparams) | [config](./hrnet/dark_hrnet_w32_256x192.yml)                     |
-| HRNet+DarkPose             | 384x288  | 32     |     78.3     | [dark_hrnet_w32_384x288.pdparams](https://paddledet.bj.bcebos.com/models/keypoint/dark_hrnet_w32_384x288.pdparams) | [config](./hrnet/dark_hrnet_w32_384x288.yml)                     |
-备注： Top-Down模型测试AP结果基于GroundTruth标注框
+
+
 
 ## 快速开始
 
 ### 1、环境安装
 
-​    请参考PaddleDetection [安装文档](https://github.com/PaddlePaddle/PaddleDetection/blob/develop/docs/tutorials/INSTALL_cn.md)正确安装PaddlePaddle和PaddleDetection即可
+​    请参考PaddleDetection [安装文档](https://github.com/PaddlePaddle/PaddleDetection/blob/release/2.1/docs/tutorials/INSTALL_cn.md)正确安装PaddlePaddle和PaddleDetection即可
 
 ### 2、数据准备
 
 ​    目前KeyPoint模型基于coco数据集开发，其他数据集尚未验证
 
 ​    请参考PaddleDetection[数据准备部分](https://github.com/PaddlePaddle/PaddleDetection/blob/f0a30f3ba6095ebfdc8fffb6d02766406afc438a/docs/tutorials/PrepareDataSet.md)部署准备COCO数据集即可
-    请注意，Top-Down方案使用检测框测试时，需要给予检测模型生成bbox.json文件，或者从网上[下载地址](https://paddledet.bj.bcebos.com/data/bbox.json)下载后放在根目录（PaddleDetection）下，然后修改config配置文件中use_gt_bbox: False后生效。然后正常执行测试命令即可。
 
 ### 3、训练与测试
 

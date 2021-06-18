@@ -31,11 +31,12 @@ __all__ = [
     'S2ANetBBoxPostProcess',
     'JDEBBoxPostProcess',
     'CenterNetPostProcess',
+    'SparsePostProcess',
 ]
 
 
 @register
-class BBoxPostProcess(nn.Layer):
+class BBoxPostProcess(object):
     __shared__ = ['num_classes']
     __inject__ = ['decode', 'nms']
 
@@ -44,13 +45,8 @@ class BBoxPostProcess(nn.Layer):
         self.num_classes = num_classes
         self.decode = decode
         self.nms = nms
-        self.fake_bboxes = paddle.to_tensor(
-            np.array(
-                [[-1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
-                dtype='float32'))
-        self.fake_bbox_num = paddle.to_tensor(np.array([1], dtype='int32'))
 
-    def forward(self, head_out, rois, im_shape, scale_factor):
+    def __call__(self, head_out, rois, im_shape, scale_factor):
         """
         Decode the bbox and do NMS if needed. 
 
@@ -95,8 +91,10 @@ class BBoxPostProcess(nn.Layer):
         """
 
         if bboxes.shape[0] == 0:
-            bboxes = self.fake_bboxes
-            bbox_num = self.fake_bbox_num
+            bboxes = paddle.to_tensor(
+                np.array(
+                    [[-1, 0.0, 0.0, 0.0, 0.0, 0.0]], dtype='float32'))
+            bbox_num = paddle.to_tensor(np.array([1], dtype='int32'))
 
         origin_shape = paddle.floor(im_shape / scale_factor + 0.5)
 
@@ -329,38 +327,8 @@ class S2ANetBBoxPostProcess(nn.Layer):
 
 
 @register
-class JDEBBoxPostProcess(nn.Layer):
-    __shared__ = ['num_classes']
-    __inject__ = ['decode', 'nms']
-
-    def __init__(self, num_classes=1, decode=None, nms=None, return_idx=True):
-        super(JDEBBoxPostProcess, self).__init__()
-        self.num_classes = num_classes
-        self.decode = decode
-        self.nms = nms
-        self.return_idx = return_idx
-
-        self.fake_bbox_pred = paddle.to_tensor(
-            np.array(
-                [[-1, 0.0, 0.0, 0.0, 0.0, 0.0]], dtype='float32'))
-        self.fake_bbox_num = paddle.to_tensor(np.array([1], dtype='int32'))
-        self.fake_nms_keep_idx = paddle.to_tensor(
-            np.array(
-                [[0]], dtype='int32'))
-
-        self.fake_yolo_boxes_out = paddle.to_tensor(
-            np.array(
-                [[[0.0, 0.0, 0.0, 0.0]]], dtype='float32'))
-        self.fake_yolo_scores_out = paddle.to_tensor(
-            np.array(
-                [[[0.0]]], dtype='float32'))
-        self.fake_boxes_idx = paddle.to_tensor(np.array([[0]], dtype='int64'))
-
-    def forward(self,
-                head_out,
-                anchors,
-                im_shape=[[608, 1088]],
-                scale_factor=[[1.0, 1.0]]):
+class JDEBBoxPostProcess(BBoxPostProcess):
+    def __call__(self, head_out, anchors):
         """
         Decode the bbox and do NMS for JDE model. 
 
@@ -375,31 +343,17 @@ class JDEBBoxPostProcess(nn.Layer):
             bbox_num (Tensor): The number of prediction of each batch with shape [N].
             nms_keep_idx (Tensor): The index of kept bboxes after NMS. 
         """
-        boxes_idx, yolo_boxes_scores = self.decode(head_out, anchors)
-
-        if len(boxes_idx) == 0:
-            boxes_idx = self.fake_boxes_idx
-            yolo_boxes_out = self.fake_yolo_boxes_out
-            yolo_scores_out = self.fake_yolo_scores_out
-        else:
-            yolo_boxes = paddle.gather_nd(yolo_boxes_scores, boxes_idx)
-            # TODO: only support bs=1 now
-            yolo_boxes_out = paddle.reshape(
-                yolo_boxes[:, :4], shape=[1, len(boxes_idx), 4])
-            yolo_scores_out = paddle.reshape(
-                yolo_boxes[:, 4:5], shape=[1, 1, len(boxes_idx)])
-            boxes_idx = boxes_idx[:, 1:]
-
-        bbox_pred, bbox_num, nms_keep_idx = self.nms(
-            yolo_boxes_out, yolo_scores_out, self.num_classes)
+        boxes_idx, bboxes, score = self.decode(head_out, anchors)
+        bbox_pred, bbox_num, nms_keep_idx = self.nms(bboxes, score,
+                                                     self.num_classes)
         if bbox_pred.shape[0] == 0:
-            bbox_pred = self.fake_bbox_pred
-            bbox_num = self.fake_bbox_num
-            nms_keep_idx = self.fake_nms_keep_idx
-        if self.return_idx:
-            return boxes_idx, bbox_pred, bbox_num, nms_keep_idx
-        else:
-            return bbox_pred, bbox_num
+            bbox_pred = paddle.to_tensor(
+                np.array(
+                    [[-1, 0.0, 0.0, 0.0, 0.0, 0.0]], dtype='float32'))
+            bbox_num = paddle.to_tensor(np.array([1], dtype='int32'))
+            nms_keep_idx = paddle.to_tensor(np.array([[0]], dtype='int32'))
+
+        return boxes_idx, bbox_pred, bbox_num, nms_keep_idx
 
 
 @register
@@ -464,7 +418,7 @@ class CenterNetPostProcess(TTFBox):
             x2 = xs + wh[:, 0:1] / 2
             y2 = ys + wh[:, 1:2] / 2
 
-        n, c, feat_h, feat_w = hm.shape[:]
+        n, c, feat_h, feat_w = paddle.shape(hm)
         padw = (feat_w * self.down_ratio - im_shape[0, 1]) / 2
         padh = (feat_h * self.down_ratio - im_shape[0, 0]) / 2
         x1 = x1 * self.down_ratio
@@ -492,3 +446,79 @@ class CenterNetPostProcess(TTFBox):
         else:
             results = paddle.concat([clses, scores, bboxes], axis=1)
             return results, paddle.shape(results)[0:1]
+
+
+@register
+class SparsePostProcess(object):
+    def __init__(self, num_classes, num_proposals):
+        super(SparsePostProcess, self).__init__()
+        self.num_classes = num_classes
+        self.num_proposals = num_proposals
+
+    def __call__(self, box_cls, box_pred, scale_factor_wh, img_whwh):
+        """
+        Arguments:
+            box_cls (Tensor): tensor of shape (batch_size, num_proposals, K).
+                The tensor predicts the classification probability for each proposal.
+            box_pred (Tensor): tensors of shape (batch_size, num_proposals, 4).
+                The tensor predicts 4-vector (x,y,w,h) box
+                regression values for every proposal
+            scale_factor_wh (Tensor): tensors of shape [batch_size, 2] the scalor of  per img
+            img_whwh (Tensor): tensors of shape [batch_size, 4]
+        Returns:
+            bbox_pred (Tensor): tensors of shape [num_boxes, 6] Each row has 6 values:
+            [label, confidence, xmin, ymin, xmax, ymax]
+            bbox_num (Tensor): tensors of shape [batch_size] the number of RoIs in each image.
+        """
+        assert len(box_cls) == len(scale_factor_wh) == len(img_whwh)
+
+        img_wh = img_whwh[:, :2]
+
+        scores = F.sigmoid(box_cls)
+        labels = paddle.arange(0, self.num_classes). \
+            unsqueeze(0).tile([self.num_proposals, 1]).flatten(start_axis=0, stop_axis=1)
+
+        classes_all = []
+        scores_all = []
+        boxes_all = []
+        for i, (scores_per_image, box_pred_per_image) in enumerate(zip(
+                scores, box_pred)):
+
+            scores_per_image, topk_indices = scores_per_image.flatten(0, 1).topk(self.num_proposals, sorted=False)
+            labels_per_image = paddle.gather(labels, topk_indices, axis=0)
+
+            box_pred_per_image = box_pred_per_image.reshape([-1, 1, 4]).tile([1, self.num_classes, 1]).reshape([-1, 4])
+            box_pred_per_image = paddle.gather(box_pred_per_image, topk_indices, axis=0)
+
+            classes_all.append(labels_per_image)
+            scores_all.append(scores_per_image)
+            boxes_all.append(box_pred_per_image)
+
+        bbox_num = paddle.zeros([len(scale_factor_wh)], dtype="int32")
+        boxes_final = []
+
+        for i in range(len(scale_factor_wh)):
+            classes = classes_all[i]
+            boxes = boxes_all[i]
+            scores = scores_all[i]
+
+            boxes[:, 0::2] = paddle.clip(boxes[:, 0::2], min=0, max=img_wh[i][0]) / scale_factor_wh[i][0]
+            boxes[:, 1::2] = paddle.clip(boxes[:, 1::2], min=0, max=img_wh[i][1]) / scale_factor_wh[i][1]
+            boxes_w, boxes_h = (boxes[:, 2] - boxes[:, 0]).numpy(), (boxes[:, 3] - boxes[:, 1]).numpy()
+
+            keep = (boxes_w > 1.) & (boxes_h > 1.)
+
+            if (keep.sum() == 0):
+                bboxes = paddle.zeros([1, 6]).astype("float32")
+            else:
+                boxes = paddle.to_tensor(boxes.numpy()[keep]).astype("float32")
+                classes = paddle.to_tensor(classes.numpy()[keep]).astype("float32").unsqueeze(-1)
+                scores = paddle.to_tensor(scores.numpy()[keep]).astype("float32").unsqueeze(-1)
+
+                bboxes = paddle.concat([classes, scores, boxes], axis=-1)
+
+            boxes_final.append(bboxes)
+            bbox_num[i] = bboxes.shape[0]
+
+        bbox_pred = paddle.concat(boxes_final)
+        return bbox_pred, bbox_num

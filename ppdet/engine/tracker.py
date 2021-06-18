@@ -32,6 +32,7 @@ from ppdet.metrics import Metric, MOTMetric
 import ppdet.utils.stats as stats
 
 from .callbacks import Callback, ComposeCallback
+from .export_utils import _dump_infer_config
 
 from ppdet.utils.logger import setup_logger
 logger = setup_logger(__name__)
@@ -103,10 +104,8 @@ class Tracker(object):
 
     def load_weights_sde(self, det_weights, reid_weights):
         if self.model.detector:
-            load_weight(self.model.detector, det_weights)
-            load_weight(self.model.reid, reid_weights)
-        else:
-            load_weight(self.model.reid, reid_weights, self.optimizer)
+            load_weight(self.model.detector, det_weights, self.optimizer)
+        load_weight(self.model.reid, reid_weights, self.optimizer)
 
     def _eval_seq_jde(self,
                       dataloader,
@@ -131,28 +130,22 @@ class Tracker(object):
 
             # forward
             timer.tic()
-            pred_dets, pred_embs = self.model(data)
-            online_targets = self.model.tracker.update(pred_dets, pred_embs)
+            online_targets = self.model(data)
 
             online_tlwhs, online_ids = [], []
-            online_scores = []
             for t in online_targets:
                 tlwh = t.tlwh
                 tid = t.track_id
-                tscore = t.score
                 vertical = tlwh[2] / tlwh[3] > 1.6
                 if tlwh[2] * tlwh[3] > tracker.min_box_area and not vertical:
                     online_tlwhs.append(tlwh)
                     online_ids.append(tid)
-                    online_scores.append(tscore)
             timer.toc()
 
             # save results
-            results.append(
-                (frame_id + 1, online_tlwhs, online_scores, online_ids))
+            results.append((frame_id + 1, online_tlwhs, online_ids))
             self.save_results(data, frame_id, online_ids, online_tlwhs,
-                              online_scores, timer.average_time, show_image,
-                              save_dir)
+                              timer.average_time, show_image, save_dir)
             frame_id += 1
 
         return results, frame_id, timer.average_time, timer.calls
@@ -206,27 +199,23 @@ class Tracker(object):
 
             # forward
             timer.tic()
-            detections = self.model(data)
-            self.model.tracker.predict()
-            online_targets = self.model.tracker.update(detections)
+            online_targets = self.model(data)
 
             online_tlwhs = []
-            online_scores = []
             online_ids = []
             for track in online_targets:
                 if not track.is_confirmed() or track.time_since_update > 1:
                     continue
-                online_tlwhs.append(track.to_tlwh())
-                online_scores.append(1.0)
-                online_ids.append(track.track_id)
+                tlwh = track.to_tlwh()
+                track_id = track.track_id
+                online_tlwhs.append(tlwh)
+                online_ids.append(track_id)
             timer.toc()
 
             # save results
-            results.append(
-                (frame_id + 1, online_tlwhs, online_scores, online_ids))
+            results.append((frame_id + 1, online_tlwhs, online_ids))
             self.save_results(data, frame_id, online_ids, online_tlwhs,
-                              online_scores, timer.average_time, show_image,
-                              save_dir)
+                              timer.average_time, show_image, save_dir)
             frame_id += 1
 
         return results, frame_id, timer.average_time, timer.calls
@@ -250,7 +239,6 @@ class Tracker(object):
             "model_type should be 'JDE', 'DeepSORT' or 'FairMOT'"
 
         # run tracking
-
         n_frame = 0
         timer_avgs, timer_calls = [], []
         for seq in seqs:
@@ -268,23 +256,23 @@ class Tracker(object):
             meta_info = open(os.path.join(data_root, seq, 'seqinfo.ini')).read()
             frame_rate = int(meta_info[meta_info.find('frameRate') + 10:
                                        meta_info.find('\nseqLength')])
-            with paddle.no_grad():
-                if model_type in ['JDE', 'FairMOT']:
-                    results, nf, ta, tc = self._eval_seq_jde(
-                        dataloader,
-                        save_dir=save_dir,
-                        show_image=show_image,
-                        frame_rate=frame_rate)
-                elif model_type in ['DeepSORT']:
-                    results, nf, ta, tc = self._eval_seq_sde(
-                        dataloader,
-                        save_dir=save_dir,
-                        show_image=show_image,
-                        frame_rate=frame_rate,
-                        det_file=os.path.join(det_results_dir,
-                                              '{}.txt'.format(seq)))
-                else:
-                    raise ValueError(model_type)
+
+            if model_type in ['JDE', 'FairMOT']:
+                results, nf, ta, tc = self._eval_seq_jde(
+                    dataloader,
+                    save_dir=save_dir,
+                    show_image=show_image,
+                    frame_rate=frame_rate)
+            elif model_type in ['DeepSORT']:
+                results, nf, ta, tc = self._eval_seq_sde(
+                    dataloader,
+                    save_dir=save_dir,
+                    show_image=show_image,
+                    frame_rate=frame_rate,
+                    det_file=os.path.join(det_results_dir,
+                                          '{}.txt'.format(seq)))
+            else:
+                raise ValueError(model_type)
 
             self.write_mot_results(result_filename, results, data_type)
             n_frame += nf
@@ -363,25 +351,21 @@ class Tracker(object):
         result_filename = os.path.join(result_root, '{}.txt'.format(seq))
         frame_rate = self.dataset.frame_rate
 
-        with paddle.no_grad():
-            if model_type in ['JDE', 'FairMOT']:
-                results, nf, ta, tc = self._eval_seq_jde(
-                    dataloader,
-                    save_dir=save_dir,
-                    show_image=show_image,
-                    frame_rate=frame_rate)
-            elif model_type in ['DeepSORT']:
-                results, nf, ta, tc = self._eval_seq_sde(
-                    dataloader,
-                    save_dir=save_dir,
-                    show_image=show_image,
-                    frame_rate=frame_rate,
-                    det_file=os.path.join(det_results_dir,
-                                          '{}.txt'.format(seq)))
-            else:
-                raise ValueError(model_type)
-
-        self.write_mot_results(result_filename, results, data_type)
+        if model_type in ['JDE', 'FairMOT']:
+            results, nf, ta, tc = self._eval_seq_jde(
+                dataloader,
+                save_dir=save_dir,
+                show_image=show_image,
+                frame_rate=frame_rate)
+        elif model_type in ['DeepSORT']:
+            results, nf, ta, tc = self._eval_seq_sde(
+                dataloader,
+                save_dir=save_dir,
+                show_image=show_image,
+                frame_rate=frame_rate,
+                det_file=os.path.join(det_results_dir, '{}.txt'.format(seq)))
+        else:
+            raise ValueError(model_type)
 
         if save_videos:
             output_video_path = os.path.join(save_dir, '..',
@@ -393,17 +377,17 @@ class Tracker(object):
 
     def write_mot_results(self, filename, results, data_type='mot'):
         if data_type in ['mot', 'mcmot', 'lab']:
-            save_format = '{frame},{id},{x1},{y1},{w},{h},{score},-1,-1,-1\n'
+            save_format = '{frame},{id},{x1},{y1},{w},{h},1,-1,-1,-1\n'
         elif data_type == 'kitti':
             save_format = '{frame} {id} pedestrian 0 0 -10 {x1} {y1} {x2} {y2} -10 -10 -10 -1000 -1000 -1000 -10\n'
         else:
             raise ValueError(data_type)
 
         with open(filename, 'w') as f:
-            for frame_id, tlwhs, tscores, track_ids in results:
+            for frame_id, tlwhs, track_ids in results:
                 if data_type == 'kitti':
                     frame_id -= 1
-                for tlwh, score, track_id in zip(tlwhs, tscores, track_ids):
+                for tlwh, track_id in zip(tlwhs, track_ids):
                     if track_id < 0:
                         continue
                     x1, y1, w, h = tlwh
@@ -416,13 +400,12 @@ class Tracker(object):
                         x2=x2,
                         y2=y2,
                         w=w,
-                        h=h,
-                        score=score)
+                        h=h)
                     f.write(line)
         logger.info('MOT results save in {}'.format(filename))
 
     def save_results(self, data, frame_id, online_ids, online_tlwhs,
-                     online_scores, average_time, show_image, save_dir):
+                     average_time, show_image, save_dir):
         if show_image or save_dir is not None:
             assert 'ori_image' in data
             img0 = data['ori_image'].numpy()[0]
@@ -430,7 +413,6 @@ class Tracker(object):
                 img0,
                 online_tlwhs,
                 online_ids,
-                online_scores,
                 frame_id=frame_id,
                 fps=1. / average_time)
         if show_image:

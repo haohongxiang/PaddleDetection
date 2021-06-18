@@ -242,6 +242,9 @@ class OptimizerBuilder():
             regularization = None
 
         optim_args = self.optimizer.copy()
+        if "weight_decay" in optim_args:
+            regularization = optim_args["weight_decay"]
+            del optim_args['weight_decay']
         optim_type = optim_args['type']
         del optim_args['type']
         op = getattr(optimizer, optim_type)

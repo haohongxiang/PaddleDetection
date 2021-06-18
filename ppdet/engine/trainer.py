@@ -17,8 +17,6 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-import sys
-import copy
 import time
 import random
 import datetime
@@ -35,6 +33,7 @@ from ppdet.optimizer import ModelEMA
 from ppdet.core.workspace import create
 from ppdet.utils.checkpoint import load_weight, load_pretrain_weight
 from ppdet.utils.visualizer import visualize_results, save_result
+from ppdet.metrics import JDEDetMetric, JDEReIDMetric
 from ppdet.metrics import Metric, COCOMetric, VOCMetric, WiderFaceMetric, get_infer_results, KeyPointTopDownCOCOEval
 from ppdet.data.source.category import get_categories
 import ppdet.utils.stats as stats
@@ -47,8 +46,6 @@ logger = setup_logger('ppdet.engine')
 
 __all__ = ['Trainer']
 
-MOT_ARCH = ['DeepSORT', 'JDE', 'FairMOT']
-
 
 class Trainer(object):
     def __init__(self, cfg, mode='train'):
@@ -60,15 +57,7 @@ class Trainer(object):
         self.is_loaded_weights = False
 
         # build data loader
-        if cfg.architecture in MOT_ARCH and self.mode in ['eval', 'test']:
-            self.dataset = cfg['{}MOTDataset'.format(self.mode.capitalize())]
-        else:
-            self.dataset = cfg['{}Dataset'.format(self.mode.capitalize())]
-
-        if cfg.architecture == 'DeepSORT' and self.mode == 'train':
-            logger.error('DeepSORT has no need of training on mot dataset.')
-            sys.exit(1)
-
+        self.dataset = cfg['{}Dataset'.format(self.mode.capitalize())]
         if self.mode == 'train':
             self.loader = create('{}Reader'.format(self.mode.capitalize()))(
                 self.dataset, cfg.worker_num)
@@ -115,7 +104,7 @@ class Trainer(object):
         self.status = {}
 
         self.start_epoch = 0
-        self.end_epoch = 0 if 'epoch' not in cfg else cfg.epoch
+        self.end_epoch = cfg.epoch
 
         # initial default callbacks
         self._init_callbacks()
@@ -204,6 +193,10 @@ class Trainer(object):
                                         len(eval_dataset), self.cfg.num_joints,
                                         self.cfg.save_dir)
             ]
+        elif self.cfg.metric == 'MOTDet':
+            self._metrics = [JDEDetMetric(), ]
+        elif self.cfg.metric == 'ReID':
+            self._metrics = [JDEReIDMetric(), ]
         else:
             logger.warn("Metric not support for metric type {}".format(
                 self.cfg.metric))
@@ -232,15 +225,14 @@ class Trainer(object):
         if self.is_loaded_weights:
             return
         self.start_epoch = 0
-        load_pretrain_weight(self.model, weights)
-        logger.debug("Load weights {} to start training".format(weights))
-
-    def load_weights_sde(self, det_weights, reid_weights):
-        if self.model.detector:
-            load_weight(self.model.detector, det_weights)
-            load_weight(self.model.reid, reid_weights)
+        if hasattr(self.model, 'detector'):
+            if self.model.__class__.__name__ == 'FairMOT':
+                load_pretrain_weight(self.model, weights)
+            else:
+                load_pretrain_weight(self.model.detector, weights)
         else:
-            load_weight(self.model.reid, reid_weights)
+            load_pretrain_weight(self.model, weights)
+        logger.debug("Load weights {} to start training".format(weights))
 
     def resume_weights(self, weights):
         # support Distill resume weights
@@ -334,7 +326,7 @@ class Trainer(object):
 
             # apply ema weight on model
             if self.use_ema:
-                weight = copy.deepcopy(self.model.state_dict())
+                weight = self.model.state_dict()
                 self.model.set_dict(self.ema.apply())
 
             self._compose_callback.on_epoch_end(self.status)
@@ -480,12 +472,8 @@ class Trainer(object):
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         image_shape = None
-        if self.cfg.architecture in MOT_ARCH:
-            test_reader_name = 'TestMOTReader'
-        else:
-            test_reader_name = 'TestReader'
-        if 'inputs_def' in self.cfg[test_reader_name]:
-            inputs_def = self.cfg[test_reader_name]['inputs_def']
+        if 'inputs_def' in self.cfg['TestReader']:
+            inputs_def = self.cfg['TestReader']['inputs_def']
             image_shape = inputs_def.get('image_shape', None)
         # set image_shape=[3, -1, -1] as default
         if image_shape is None:

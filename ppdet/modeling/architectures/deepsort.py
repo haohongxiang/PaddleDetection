@@ -61,6 +61,7 @@ class DeepSORT(BaseArch):
         }
 
     def _forward(self):
+        assert 'ori_image' in self.inputs
         load_dets = 'pred_bboxes' in self.inputs and 'pred_scores' in self.inputs
 
         ori_image = self.inputs['ori_image']
@@ -101,7 +102,10 @@ class DeepSORT(BaseArch):
         else:
             detections = []
 
-        return detections
+        self.tracker.predict()
+        online_targets = self.tracker.update(detections)
+
+        return online_targets
 
     def get_pred(self):
         return self._forward()
