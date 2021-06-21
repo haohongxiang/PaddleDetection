@@ -62,6 +62,7 @@ def clip_grad_norm_(params, max_norm=0.1, norm_type=2, error_if_nonfinite=True):
     '''
     if isinstance(params, paddle.Tensor):
         params = [params]
+        
     params = [p for p in params if p.stop_gradient is False and p.grad is not None]
     
     if len(params) == 0:
@@ -77,10 +78,11 @@ def clip_grad_norm_(params, max_norm=0.1, norm_type=2, error_if_nonfinite=True):
             p.grad.set_value( p.grad * clip_coef )
     
     if total_norm.isnan() or total_norm.isinf():
+        msg = 'Non-finite norm encountered'
         if error_if_nonfinite:
-            raise RuntimeError('')
+            raise RuntimeError(msg)
         else:
-            print('Non-finite norm encountered')
+            print(msg)
             
     return total_norm
 
@@ -344,6 +346,7 @@ class Trainer(object):
                     scaled_loss.backward()
                     # in dygraph mode, optimizer.minimize is equal to optimizer.step
                     scaler.minimize(self.optimizer, scaled_loss)
+                    
                 else:
                     # model forward
                     outputs = model(data)
@@ -352,7 +355,7 @@ class Trainer(object):
                     loss.backward()
                     
                     # clip_grad_norm_(_parameters_for_clip(model))                 
-                    clip_grad_norm_(clip_params)
+                    # clip_grad_norm_(clip_params)
 
                     self.optimizer.step()
 

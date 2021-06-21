@@ -592,15 +592,22 @@ class RandomFlip(BaseOperator):
 
 @register_op
 class Resize(BaseOperator):
-    def __init__(self, target_size, keep_ratio, interp=cv2.INTER_LINEAR):
+    def __init__(self,
+                 target_size,
+                 keep_ratio,
+                 interp=cv2.INTER_LINEAR,
+                 mode='long'):
         """
-        Resize image to target size. if keep_ratio is True, 
-        resize the image's long side to the maximum of target_size
+        Resize image to target size. if keep_ratio is True and mode is 'long', 
+        resize the image's long side to the maximum of target_size, if keep_ratio 
+        is True and mode is 'short', resize the image's short side to the minimum 
+        of target_size.
         if keep_ratio is False, resize the image to target size(h, w)
         Args:
             target_size (int|list): image target size
             keep_ratio (bool): whether keep_ratio or not, default true
             interp (int): the interpolation method
+            mode (str): resize mode, choose from ('long', 'short')
         """
         super(Resize, self).__init__()
         self.keep_ratio = keep_ratio
@@ -612,6 +619,10 @@ class Resize(BaseOperator):
         if isinstance(target_size, Integral):
             target_size = [target_size, target_size]
         self.target_size = target_size
+
+        self.mode = mode.lower()
+        assert self.mode in (
+            'long', 'short'), 'mode value should choose from (`long`, `short`)'
 
     def apply_image(self, image, scale):
         im_scale_x, im_scale_y = scale
@@ -691,8 +702,12 @@ class Resize(BaseOperator):
             target_size_min = np.min(self.target_size)
             target_size_max = np.max(self.target_size)
 
-            im_scale = min(target_size_min / im_size_min,
-                           target_size_max / im_size_max)
+            if self.mode == 'long':
+                im_scale = min(target_size_min / im_size_min,
+                               target_size_max / im_size_max)
+            else:
+                im_scale = max(target_size_min / im_size_min,
+                               target_size_max / im_size_max)
 
             resize_h = im_scale * float(im_shape[0])
             resize_w = im_scale * float(im_shape[1])
@@ -768,8 +783,6 @@ class Resize(BaseOperator):
         return sample
 
 
-    
-    
 @register_op
 class MultiscaleTestResize(BaseOperator):
     def __init__(self,
@@ -1485,6 +1498,153 @@ class RandomScaledCrop(BaseOperator):
 
 
 @register_op
+class RandomResizeCrop(RandomCrop):
+    """Random resize and crop image and bboxes.
+    Args:
+        resizes (list): resize sizes, [400, 500, 600]. Details see RandomResize
+        cropsizes (list): crop sizes after resize, [(min_crop_1, max_crop_1), ...]
+        mode (str): resize mode, `long` or `short`. Details see RandomResize 
+        prob (float): probability of this op.
+        keep_ratio (bool): whether keep_ratio or not, default true
+        interp (int): the interpolation method
+        thresholds (list): iou thresholds for decide a valid bbox crop.
+        num_attempts (int): number of tries before giving up.
+        allow_no_crop (bool): allow return without actually cropping them.
+        cover_all_box (bool): ensure all bboxes are covered in the final crop.
+        is_mask_crop(bool): whether crop the segmentation.
+    """
+
+    def __init__(
+            self,
+            resizes,
+            cropsizes,
+            prob=0.5,
+            mode='short',
+            keep_ratio=True,
+            interp=cv2.INTER_LINEAR,
+            num_attempts=3,
+            cover_all_box=False,
+            allow_no_crop=False,
+            thresholds=[0.3, 0.5, 0.7, 0.9],
+            is_mask_crop=False, ):
+        super(RandomResizeCrop, self).__init__(
+            num_attempts=num_attempts,
+            cover_all_box=cover_all_box,
+            thresholds=thresholds,
+            allow_no_crop=allow_no_crop,
+            is_mask_crop=is_mask_crop)
+
+        self.resizes = resizes
+        self.cropsizes = cropsizes
+        self.prob = prob
+        self.mode = mode
+        self.interp = interp
+        self.keep_ratio = keep_ratio
+
+    def apply(self, sample, context=None):
+        if random.random() < self.prob:
+            _resize = random.choice(self.resizes)
+            _cropsize = random.choice(self.cropsizes)
+            if isinstance(_cropsize, Integral):
+                _cropsize = (_cropsize, _cropsize)
+
+            resizer = Resize(
+                _resize,
+                keep_ratio=self.keep_ratio,
+                mode=self.mode,
+                interp=self.interp)
+            sample = resizer(sample, context=context)
+            sample = self._random_crop(
+                sample, cropsize=_cropsize, context=context)
+        return sample
+
+    def _random_crop(self, sample, cropsize, context=None):
+        if 'gt_bbox' in sample and len(sample['gt_bbox']) == 0:
+            return sample
+
+        h, w = sample['image'].shape[:2]
+        gt_bbox = sample['gt_bbox']
+        min_crop = min(cropsize)
+        max_crop = max(cropsize)
+
+        thresholds = list(self.thresholds)
+        np.random.shuffle(thresholds)
+
+        for thresh in thresholds:
+            found = False
+            for i in range(self.num_attempts):
+
+                crop_h = random.randint(min_crop, min(h, max_crop))
+                crop_w = random.randint(min_crop, min(w, max_crop))
+
+                crop_y = random.randint(0, h - crop_h)
+                crop_x = random.randint(0, w - crop_w)
+
+                crop_box = [crop_x, crop_y, crop_x + crop_w, crop_y + crop_h]
+                iou = self._iou_matrix(
+                    gt_bbox, np.array(
+                        [crop_box], dtype=np.float32))
+                if iou.max() < thresh:
+                    continue
+
+                if self.cover_all_box and iou.min() < thresh:
+                    continue
+
+                cropped_box, valid_ids = self._crop_box_with_center_constraint(
+                    gt_bbox, np.array(
+                        crop_box, dtype=np.float32))
+                if valid_ids.size > 0:
+                    found = True
+                    break
+
+            if found:
+                if self.is_mask_crop and 'gt_poly' in sample and len(sample[
+                        'gt_poly']) > 0:
+                    crop_polys = self.crop_segms(
+                        sample['gt_poly'],
+                        valid_ids,
+                        np.array(
+                            crop_box, dtype=np.int64),
+                        h,
+                        w)
+                    if [] in crop_polys:
+                        delete_id = list()
+                        valid_polys = list()
+                        for id, crop_poly in enumerate(crop_polys):
+                            if crop_poly == []:
+                                delete_id.append(id)
+                            else:
+                                valid_polys.append(crop_poly)
+                        valid_ids = np.delete(valid_ids, delete_id)
+                        if len(valid_polys) == 0:
+                            return sample
+                        sample['gt_poly'] = valid_polys
+                    else:
+                        sample['gt_poly'] = crop_polys
+
+                if 'gt_segm' in sample:
+                    sample['gt_segm'] = self._crop_segm(sample['gt_segm'],
+                                                        crop_box)
+                    sample['gt_segm'] = np.take(
+                        sample['gt_segm'], valid_ids, axis=0)
+
+                sample['image'] = self._crop_image(sample['image'], crop_box)
+                sample['gt_bbox'] = np.take(cropped_box, valid_ids, axis=0)
+                sample['gt_class'] = np.take(
+                    sample['gt_class'], valid_ids, axis=0)
+                if 'gt_score' in sample:
+                    sample['gt_score'] = np.take(
+                        sample['gt_score'], valid_ids, axis=0)
+
+                if 'is_crowd' in sample:
+                    sample['is_crowd'] = np.take(
+                        sample['is_crowd'], valid_ids, axis=0)
+                return sample
+
+        return sample
+
+
+@register_op
 class Cutmix(BaseOperator):
     def __init__(self, alpha=1.5, beta=1.5):
         """ 
@@ -1508,8 +1668,8 @@ class Cutmix(BaseOperator):
         w = max(img1.shape[1], img2.shape[1])
         cut_rat = np.sqrt(1. - factor)
 
-        cut_w = np.int(w * cut_rat)
-        cut_h = np.int(h * cut_rat)
+        cut_w = np.int32(w * cut_rat)
+        cut_h = np.int32(h * cut_rat)
 
         # uniform
         cx = np.random.randint(w)
@@ -1847,7 +2007,8 @@ class Pad(BaseOperator):
         assert pad_mode in [
             -1, 0, 1, 2
         ], 'currently only supports four modes [-1, 0, 1, 2]'
-        assert pad_mode == -1 and offsets, 'if pad_mode is -1, offsets should not be None'
+        if pad_mode == -1:
+            assert offsets, 'if pad_mode is -1, offsets should not be None'
 
         self.size = size
         self.size_divisor = size_divisor
@@ -1914,7 +2075,7 @@ class Pad(BaseOperator):
                 im_h < h and im_w < w
             ), '(h, w) of target size should be greater than (im_h, im_w)'
         else:
-            h = np.ceil(im_h // self.size_divisor) * self.size_divisor
+            h = np.ceil(im_h / self.size_divisor) * self.size_divisor
             w = np.ceil(im_w / self.size_divisor) * self.size_divisor
 
         if h == im_h and w == im_w:
@@ -2016,12 +2177,12 @@ class Rbox2Poly(BaseOperator):
 
 @register_op
 class AugmentHSV(BaseOperator):
-    def __init__(self, fraction=0.50, is_bgr=False):
+    def __init__(self, fraction=0.50, is_bgr=True):
         """ 
         Augment the SV channel of image data.
         Args:
-            fraction (float): the fraction for augment 
-            is_bgr (bool): whether the image is BGR mode
+            fraction (float): the fraction for augment. Default: 0.5.
+            is_bgr (bool): whether the image is BGR mode. Default: True.
         """
         super(AugmentHSV, self).__init__()
         self.fraction = fraction
@@ -2095,363 +2256,3 @@ class BboxCXCYWH2XYXY(BaseOperator):
         bbox[:, 2:4] = bbox0[:, :2] + bbox0[:, 2:4] / 2.
         sample['gt_bbox'] = bbox
         return sample
-
-    
-    
-    
-@register_op
-class ResizeX(BaseOperator):
-    def __init__(self, target_size, keep_ratio, interp=cv2.INTER_LINEAR, reverse=True):
-        """
-        Resize image to target size. if keep_ratio is True, 
-        resize the image's short side to the maximum of target_size
-        if keep_ratio is False, resize the image to target size(h, w)
-        Args:
-            target_size (int|list): image target size
-            keep_ratio (bool): whether keep_ratio or not, default true
-            interp (int): the interpolation method
-        """
-        super(ResizeX, self).__init__()
-        self.keep_ratio = keep_ratio
-        self.interp = interp
-        if not isinstance(target_size, (Integral, Sequence)):
-            raise TypeError(
-                "Type of target_size is invalid. Must be Integer or List or Tuple, now is {}".
-                format(type(target_size)))
-        if isinstance(target_size, Integral):
-            target_size = [target_size, target_size]
-        self.target_size = target_size
-        self.reverse = reverse
-        
-    def apply_image(self, image, scale):
-        im_scale_x, im_scale_y = scale
-
-        return cv2.resize(
-            image,
-            None,
-            None,
-            fx=im_scale_x,
-            fy=im_scale_y,
-            interpolation=self.interp)
-
-    def apply_bbox(self, bbox, scale, size):
-        im_scale_x, im_scale_y = scale
-        resize_w, resize_h = size
-        bbox[:, 0::2] *= im_scale_x
-        bbox[:, 1::2] *= im_scale_y
-        bbox[:, 0::2] = np.clip(bbox[:, 0::2], 0, resize_w)
-        bbox[:, 1::2] = np.clip(bbox[:, 1::2], 0, resize_h)
-        return bbox
-
-    def apply_segm(self, segms, im_size, scale):
-        def _resize_poly(poly, im_scale_x, im_scale_y):
-            resized_poly = np.array(poly).astype('float32')
-            resized_poly[0::2] *= im_scale_x
-            resized_poly[1::2] *= im_scale_y
-            return resized_poly.tolist()
-
-        def _resize_rle(rle, im_h, im_w, im_scale_x, im_scale_y):
-            if 'counts' in rle and type(rle['counts']) == list:
-                rle = mask_util.frPyObjects(rle, im_h, im_w)
-
-            mask = mask_util.decode(rle)
-            mask = cv2.resize(
-                image,
-                None,
-                None,
-                fx=im_scale_x,
-                fy=im_scale_y,
-                interpolation=self.interp)
-            rle = mask_util.encode(np.array(mask, order='F', dtype=np.uint8))
-            return rle
-
-        im_h, im_w = im_size
-        im_scale_x, im_scale_y = scale
-        resized_segms = []
-        for segm in segms:
-            if is_poly(segm):
-                # Polygon format
-                resized_segms.append([
-                    _resize_poly(poly, im_scale_x, im_scale_y) for poly in segm
-                ])
-            else:
-                # RLE format
-                import pycocotools.mask as mask_util
-                resized_segms.append(
-                    _resize_rle(segm, im_h, im_w, im_scale_x, im_scale_y))
-
-        return resized_segms
-
-    def apply(self, sample, context=None):
-        """ Resize the image numpy.
-        """
-        im = sample['image']
-        if not isinstance(im, np.ndarray):
-            raise TypeError("{}: image type is not numpy.".format(self))
-        if len(im.shape) != 3:
-            raise ImageError('{}: image is not 3-dimensional.'.format(self))
-
-        # apply image
-        im_shape = im.shape
-        if self.keep_ratio and not self.reverse:
-
-            im_size_min = np.min(im_shape[0:2])
-            im_size_max = np.max(im_shape[0:2])
-
-            target_size_min = np.min(self.target_size)
-            target_size_max = np.max(self.target_size)
-
-            im_scale = min(target_size_min / im_size_min,
-                           target_size_max / im_size_max)
-
-            resize_h = im_scale * float(im_shape[0])
-            resize_w = im_scale * float(im_shape[1])
-
-            im_scale_x = im_scale
-            im_scale_y = im_scale
-            
-        elif self.keep_ratio and self.reverse:
-            
-            im_size_min = np.min(im_shape[0:2])
-            im_size_max = np.max(im_shape[0:2])
-
-            target_size_min = np.min(self.target_size)
-            target_size_max = np.max(self.target_size)
-
-            im_scale = max(target_size_min / im_size_min,
-                           target_size_max / im_size_max)
-
-            resize_h = im_scale * float(im_shape[0])
-            resize_w = im_scale * float(im_shape[1])
-
-            im_scale_x = im_scale
-            im_scale_y = im_scale
-            
-        else:
-            resize_h, resize_w = self.target_size
-            im_scale_y = resize_h / im_shape[0]
-            im_scale_x = resize_w / im_shape[1]
-
-        im = self.apply_image(sample['image'], [im_scale_x, im_scale_y])
-        sample['image'] = im
-        sample['im_shape'] = np.asarray([resize_h, resize_w], dtype=np.float32)
-        if 'scale_factor' in sample:
-            scale_factor = sample['scale_factor']
-            sample['scale_factor'] = np.asarray(
-                [scale_factor[0] * im_scale_y, scale_factor[1] * im_scale_x],
-                dtype=np.float32)
-        else:
-            sample['scale_factor'] = np.asarray(
-                [im_scale_y, im_scale_x], dtype=np.float32)
-
-        # apply bbox
-        if 'gt_bbox' in sample and len(sample['gt_bbox']) > 0:
-            sample['gt_bbox'] = self.apply_bbox(sample['gt_bbox'],
-                                                [im_scale_x, im_scale_y],
-                                                [resize_w, resize_h])
-
-        return sample
-
-    
-    
-
-# @register_op
-# class RandomCropX(BaseOperator):
-#     """Resize image and bbox based on min side (with optional random scaling),
-#        then crop or pad image to target size.
-#     Args:
-#         target_dim (int): target size.
-#         interp (int): interpolation method, default to `cv2.INTER_LINEAR`.
-#     """
-
-#     def __init__(self,
-#                  min_size=None,
-#                  max_size=None,):
-#         super(RandomCropX, self).__init__()
-#         self.min_size = min_size
-#         self.max_size = max_size
-
-#     def apply(self, sample, context=None):
-#         img = sample['image']
-#         h, w = img.shape[:2]
-        
-#         _w = random.randint(self.min_size, min(w, self.max_size))
-#         _h = random.randint(self.min_size, min(h, self.max_size))
-        
-#         offset_x = random.randint(0., w - _w)
-#         offset_y = random.randint(0., h - _h)
-        
-#         canvas = np.zeros((_h, _w, 3), dtype=img.dtype)
-#         canvas[:, :, :] = img[offset_y:offset_y+_h, offset_x:offset_x+_w, :]
-        
-#         sample['image'] = canvas
-#         sample['im_shape'] = np.asarray([_h, _w], dtype=np.float32)
-        
-        
-#         if 'gt_bbox' in sample and len(sample['gt_bbox']) > 0:
-#             shift_array = np.array([offset_x, offset_y] * 2, dtype=np.float32)
-#             boxes = sample['gt_bbox'] - shift_array
-            
-#             boxes[..., [0, 2]] = np.clip(boxes[..., [0, 2]], 0, _w)
-#             boxes[..., [1, 3]] = np.clip(boxes[..., [1, 3]], 0, _h)
-#             # bbox[:, 0::2] = np.clip(bbox[:, 0::2], 0, resize_w)
-#             # bbox[:, 1::2] = np.clip(bbox[:, 1::2], 0, resize_h)
-
-#             # filter boxes with no area
-#             area = np.prod(boxes[..., 2:] - boxes[..., :2], axis=1)
-#             valid = (area > 1.).nonzero()[0]
-#             sample['gt_bbox'] = boxes[valid]
-#             sample['gt_class'] = sample['gt_class'][valid]
-
-#         return sample
-
-    
-
-@register_op
-class RandomCropX(BaseOperator):
-    """Random crop image and bboxes.
-    Args:
-        aspect_ratio (list): aspect ratio of cropped region.
-            in [min, max] format.
-        thresholds (list): iou thresholds for decide a valid bbox crop.
-        scaling (list): ratio between a cropped region and the original image.
-             in [min, max] format.
-        num_attempts (int): number of tries before giving up.
-        allow_no_crop (bool): allow return without actually cropping them.
-        cover_all_box (bool): ensure all bboxes are covered in the final crop.
-        is_mask_crop(bool): whether crop the segmentation.
-    """
-    def __init__(self,
-                 min_size=None,
-                 max_size=None,):
-        super(RandomCropX, self).__init__()
-        self.min_size = min_size
-        self.max_size = max_size
-        self.num_attempts = 5
-        self.cover_all_box = False
-        self.thresholds = [0.3, 0.5, 0.7, 0.9,]
-        self.allow_no_crop = False
-        
-    def apply(self, sample, context=None):
-        if 'gt_bbox' in sample and len(sample['gt_bbox']) == 0:
-            return sample
-
-        h, w = sample['image'].shape[:2]
-        gt_bbox = sample['gt_bbox']
-
-        thresholds = list(self.thresholds)
-        if self.allow_no_crop:
-            thresholds.append('no_crop')
-        np.random.shuffle(thresholds)
-
-        for thresh in thresholds:
-            if thresh == 'no_crop':
-                return sample
-
-            found = False
-            for i in range(self.num_attempts):
-                                
-                crop_w = random.randint(self.min_size, min(w, self.max_size))
-                crop_h = random.randint(self.min_size, min(h, self.max_size))
-
-                crop_h = int(crop_h)
-                crop_w = int(crop_w)
-                # print(h, w, crop_h, crop_w)
-                
-                crop_y = random.randint(0, h - crop_h)
-                crop_x = random.randint(0, w - crop_w)
-                
-                crop_box = [crop_x, crop_y, crop_x + crop_w, crop_y + crop_h]
-                iou = self._iou_matrix(
-                    gt_bbox, np.array(
-                        [crop_box], dtype=np.float32))
-                if iou.max() < thresh:
-                    continue
-
-                if self.cover_all_box and iou.min() < thresh:
-                    continue
-
-                cropped_box, valid_ids = self._crop_box_with_center_constraint(
-                    gt_bbox, np.array(
-                        crop_box, dtype=np.float32))
-                if valid_ids.size > 0:
-                    found = True
-                    break
-                
-            if found:
-                sample['image'] = self._crop_image(sample['image'], crop_box)
-                sample['gt_bbox'] = np.take(cropped_box, valid_ids, axis=0)
-                sample['gt_class'] = np.take(
-                    sample['gt_class'], valid_ids, axis=0)
-                if 'gt_score' in sample:
-                    sample['gt_score'] = np.take(
-                        sample['gt_score'], valid_ids, axis=0)
-
-                if 'is_crowd' in sample:
-                    sample['is_crowd'] = np.take(
-                        sample['is_crowd'], valid_ids, axis=0)
-                return sample
-
-        return sample
-
-    def _iou_matrix(self, a, b):
-        tl_i = np.maximum(a[:, np.newaxis, :2], b[:, :2])
-        br_i = np.minimum(a[:, np.newaxis, 2:], b[:, 2:])
-
-        area_i = np.prod(br_i - tl_i, axis=2) * (tl_i < br_i).all(axis=2)
-        area_a = np.prod(a[:, 2:] - a[:, :2], axis=1)
-        area_b = np.prod(b[:, 2:] - b[:, :2], axis=1)
-        area_o = (area_a[:, np.newaxis] + area_b - area_i)
-        return area_i / (area_o + 1e-10)
-
-    def _crop_box_with_center_constraint(self, box, crop):
-        cropped_box = box.copy()
-
-        cropped_box[:, :2] = np.maximum(box[:, :2], crop[:2])
-        cropped_box[:, 2:] = np.minimum(box[:, 2:], crop[2:])
-        cropped_box[:, :2] -= crop[:2]
-        cropped_box[:, 2:] -= crop[:2]
-
-        centers = (box[:, :2] + box[:, 2:]) / 2
-        valid = np.logical_and(crop[:2] <= centers,
-                               centers < crop[2:]).all(axis=1)
-        valid = np.logical_and(
-            valid, (cropped_box[:, :2] < cropped_box[:, 2:]).all(axis=1))
-
-        return cropped_box, np.where(valid)[0]
-
-    def _crop_image(self, img, crop):
-        x1, y1, x2, y2 = crop
-        return img[y1:y2, x1:x2, :]
-
-    def _crop_segm(self, segm, crop):
-        x1, y1, x2, y2 = crop
-        return segm[:, y1:y2, x1:x2]
-
-    
-
-@register_op
-class RandomResizeXRandomCrop(BaseOperator):
-    def __init__(self, resize_sizes, crop_min, crop_max, p=0.5, keep_ratio=True, reverse=True, interp=cv2.INTER_LINEAR):
-        '''reverse == True and keep_ratio == True, minimum side aligned to target_size
-        '''
-        super(RandomResizeXRandomCrop, self).__init__()
-
-        self.resize_sizes = list(resize_sizes)
-        self.crop = RandomCropX(crop_min, crop_max,)
-        self.p = p
-        self.keep_ratio = keep_ratio
-        self.reverse = reverse
-        self.interp = interp
-        
-    def apply(self, sample, context=None):
-        """ Resize the image numpy.
-        """
-        if random.random() < self.p:
-            _size = random.choice(self.resize_sizes)
-            resizer = ResizeX(_size, keep_ratio=self.keep_ratio, interp=self.interp, reverse=self.reverse)
-            sample = resizer(sample, context=context)
-            sample = self.crop(sample, context=context)
-        
-        return sample
-    
