@@ -1,5 +1,6 @@
 architecture: SparseRCNN
-pretrain_weights: /root/paddlejob/workspace/train_data/datasets/data94011/pretrain_paddle.pdparams
+pretrain_weights: https://paddledet.bj.bcebos.com/models/pretrained/ResNet50_cos_pretrained.pdparams
+
 
 SparseRCNN:
   backbone: ResNet

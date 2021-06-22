@@ -19,6 +19,7 @@ from ppdet.core.workspace import register
 from ppdet.modeling.heads.roi_extractor import RoIAlign
 from ppdet.modeling.bbox_utils import box_init, delta2bbox, box_cxcywh_to_xyxy
 
+from .. import initializer as init 
 
 _DEFAULT_SCALE_CLAMP = math.log(100000. / 16)
 
@@ -35,7 +36,7 @@ class DynamicConv(nn.Layer):
         self.dim_dynamic = head_dim_dynamic
         self.num_dynamic = head_num_dynamic
         self.num_params = self.hidden_dim * self.dim_dynamic
-        self.dynamic_layer = nn.Linear(self.hidden_dim, self.num_dynamic * self.num_params)             # 256 ---> 2 * 256 * 64
+        self.dynamic_layer = nn.Linear(self.hidden_dim, self.num_dynamic * self.num_params) # 256 ---> 2 * 256 * 64
 
         self.norm1 = nn.LayerNorm(self.dim_dynamic)
         self.norm2 = nn.LayerNorm(self.hidden_dim)
@@ -46,7 +47,9 @@ class DynamicConv(nn.Layer):
         num_output = self.hidden_dim * pooler_resolution ** 2
         self.out_layer = nn.Linear(num_output, self.hidden_dim)
         self.norm3 = nn.LayerNorm(self.hidden_dim)
-
+        
+        init.reset_initialized_parameter(self)
+        
     def forward(self, pro_features, roi_features):
         '''
         pro_features: (1,  N * nr_boxes, self.d_model)
@@ -137,7 +140,9 @@ class RCNNHead(nn.Layer):
         self.bboxes_delta = nn.Linear(d_model, 4)
         self.scale_clamp = scale_clamp
         self.bbox_weights = bbox_weights
-
+        
+        init.reset_initialized_parameter(self)
+        
     def forward(self, features, bboxes, pro_features, pooler):
         """
         :param bboxes: (N, nr_boxes, 4)
@@ -243,27 +248,39 @@ class SparseRCNNHead(nn.Layer):
         
         # Init parameters.
         self.num_classes = num_classes
-        prior_prob = 0.01
-        self.bias_value = -math.log((1 - prior_prob) / prior_prob)
-        self._reset_parameters()
+
+        # self._reset_parameters()
 
         # build init proposal
         weight_attr = box_init(num_proposals)
         self.init_proposal_features = nn.Embedding(num_proposals, head_hidden_dim)
-        self.init_proposal_boxes = nn.Embedding(num_proposals, 4, weight_attr=ParamAttr(initializer=Assign(weight_attr)))
+        self.init_proposal_boxes = nn.Embedding(num_proposals, 4, )
 
         self.lossfunc = lossfunc
+        
+        init.reset_initialized_parameter(self)
+        self._reset_parameters()
+         
 
     def _reset_parameters(self):
         # init all parameters.
-        for p in self.parameters():
-            if p.shape[-1] == self.num_classes:
-                p = ParamAttr(Constant(self.bias_value))
-
-        for p in self.parameters():
-            if p.dim() > 1:
-                p = ParamAttr(XavierUniform())
+        prior_prob = 0.01
+        bias_value = -math.log((1 - prior_prob) / prior_prob)
+        
+        for m in self.sublayers():
+            if isinstance(m, nn.Linear):
+                init.xavier_uniform_(m.weight, reverse=True)
+            elif not isinstance(m, nn.Embedding) and hasattr(m, 'weight') and m.weight.dim() > 1:
+                init.xavier_uniform_(m.weight, reverse=False)
             
+            if hasattr(m, 'bias') and m.bias is not None and m.bias.shape[-1] == self.num_classes:
+                init.constant_(m.bias, bias_value)
+                        
+        init_bbox = paddle.empty_like(self.init_proposal_boxes.weight)
+        init_bbox[:, :2] = 0.5
+        init_bbox[:, 2:] = 1.0
+        self.init_proposal_boxes.weight.set_value(init_bbox)
+        
     @staticmethod
     def _init_box_pooler(input_shape):
 
