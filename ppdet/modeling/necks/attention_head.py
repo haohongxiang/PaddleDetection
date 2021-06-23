@@ -73,7 +73,7 @@ class DynamicReLUB(nn.Layer):
 
 
 class DynamicHeadBlock(nn.Layer):
-    def __init__(self, levels=3, channels=8, dim=128):
+    def __init__(self, levels=3, channels=8, ):
         super().__init__()
         
         L = levels
@@ -90,21 +90,9 @@ class DynamicHeadBlock(nn.Layer):
                                         nn.ReLU(), 
                                         HardSigmoid(), )
         
-        # self.offset_conv = nn.Conv2D(C, 2 * 3 * 3, 3, 1, 1)
-        # self.weight_conv = nn.Sequential(nn.Conv2D(C, 3 * 3, 3, 1, 1), nn.Sigmoid())
-        # self.deform_convs = nn.LayerList([paddle.vision.ops.DeformConv2D(C, C, 3, 1, 1) for i in range(L)])
-
         self.offset_conv = nn.Conv2D(C, k * k + 2 * k * k, 3, 1, 1)
         self.deform_conv = paddle.vision.ops.DeformConv2D(C * L, C * L, 3, 1, 1, groups=groups)
 
-        self.c_attention = nn.Sequential(nn.AdaptiveAvgPool2D(output_size=1), 
-                                         nn.Flatten(),  
-                                         nn.Linear(C, dim), 
-                                         nn.ReLU(), 
-                                         nn.Linear(dim, C),
-                                         nn.LayerNorm(C),
-                                         ShiftedSigmoid(), )
-        
         self.dynamic_relu = nn.Sequential(nn.AdaptiveAvgPool2D(output_size=1), DynamicReLUB(C))
     
         init.reset_initialized_parameter(self)
@@ -122,13 +110,6 @@ class DynamicHeadBlock(nn.Layer):
         # print('Layers Attention: ', feat.shape)
         
         # spatial
-        # offset = self.offset_conv(feat[:, self.mid_idx])
-        # weight = self.weight_conv(feat[:, self.mid_idx])
-        # sptials = []
-        # for i in range(l):
-        #     sptials.append(self.deform_convs[i](feat[:, i], offset, mask=weight))
-        # feat = paddle.concat([s.unsqueeze(0) for s in sptials], axis=0).mean(axis=0)
-
         output = self.offset_conv(feat[:, self.mid_idx])
         weight = F.sigmoid(output[:, :self.k * self.k])
         offset = output[:, self.k * self.k:]
@@ -143,7 +124,6 @@ class DynamicHeadBlock(nn.Layer):
         feat = self.dynamic_relu(feat) * feat
         # print('Channel Attention: ', feat.shape)
         
-        
         feat = feat.reshape([n, l, c, h, w])
         # print('Ouput: ', feat.shape)
         
@@ -152,25 +132,27 @@ class DynamicHeadBlock(nn.Layer):
 
 @register
 class DynamicHead(nn.Layer):
-    def __init__(self, in_channels, spatial_scales, num_heads=3, mid_layer_idx=None, hidden_dim=128):
+    def __init__(self, in_channels, spatial_scales, out_channels=512, num_heads=3, mid_layer_idx=None, ):
         super().__init__()
                 
         num_layers = len(in_channels)
         if mid_layer_idx is None:
             mid_layer_idx = num_layers // 2
         
-        c = in_channels[mid_layer_idx]
+        c = out_channels # in_channels[mid_layer_idx]
         s = spatial_scales[mid_layer_idx]
         
-        self.convs = nn.LayerList([nn.Conv2D(_c, c, 1, 1) for _c in in_channels])
-        self.dyheads = nn.Sequential(*[DynamicHeadBlock(num_layers, c, hidden_dim) for _ in range(num_heads)])
+        self.in_convs = nn.LayerList([nn.Conv2D(_c, c, 1, 1) for _c in in_channels])
+        # self.out_convs = nn.LayerList([nn.Conv2D(c, out_channels, 1, 1) for _ in range(num_layers)])
+
+        self.dyheads = nn.Sequential(*[DynamicHeadBlock(num_layers, c) for _ in range(num_heads)])
         
         self.mid_layer_idx = mid_layer_idx
         self.num_layers = num_layers
         
         self.in_channels = in_channels
-        self.out_channels = [c for _ in range(num_layers)]
-        self.spatial_scales = [s for _ in range(num_layers)]
+        self.out_channels = [out_channels for _ in range(num_layers)]
+        self.spatial_scales = spatial_scales # [s for _ in range(num_layers)]
         
         init.reset_initialized_parameter(self)
         
@@ -186,16 +168,16 @@ class DynamicHead(nn.Layer):
         return [ShapeSpec(channels=c, stride=1./s) for c, s in zip(self.out_channels, self.spatial_scales)]
 
     def forward(self, feats, for_mot=False):
-        feats = [self.convs[i](x) for i, x in enumerate(feats)]
+        feats = [self.in_convs[i](x) for i, x in enumerate(feats)]
         sizes = [x.shape[2:] for x in feats]
         feats = [F.interpolate(x, size=sizes[self.mid_layer_idx], mode='bilinear') for x in feats]
-        
         feats = paddle.concat([x.unsqueeze(1) for x in feats], axis=1)
+        
         feats = self.dyheads(feats)
+        
         feats = [x.squeeze(1) for x in feats.split(self.num_layers, axis=1)]
-        
+        # feats = [self.out_convs[i](x) for i, x in enumerate(feats)]
         feats = [F.interpolate(x, size=sz, mode='bilinear') for x, sz in zip(feats, sizes)]
-        
         
         return feats[::-1]
 

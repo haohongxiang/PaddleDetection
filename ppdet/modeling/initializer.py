@@ -272,7 +272,7 @@ def reset_initialized_parameter(model, include_self=True):
         None
     """
     for _, m in model.named_sublayers(include_self=include_self):
-        if isinstance(m, nn.Conv2D):
+        if isinstance(m, (nn.Conv2D, paddle.vision.ops.DeformConv2D)):
             k = float(m._groups) / (m._in_channels * m._kernel_size[0] *
                                     m._kernel_size[1])
             k = math.sqrt(k)
