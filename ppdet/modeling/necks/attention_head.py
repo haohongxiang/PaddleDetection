@@ -196,8 +196,6 @@ class DynamicHead(nn.Layer):
         
         feats = [F.interpolate(x, size=sz, mode='bilinear') for x, sz in zip(feats, sizes)]
         
-        # for x in feats:
-        #     print(x.shape)
         
         return feats[::-1]
 
