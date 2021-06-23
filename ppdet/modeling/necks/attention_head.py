@@ -9,6 +9,8 @@ from ppdet.core.workspace import serializable
 from ..shape_spec import ShapeSpec
 from .. import initializer as init
 
+from .yolo_fpn import YOLOv3FPN
+from .fpn import FPN
 
 class HardSigmoid(nn.Layer):
     def __init__(self, ):
@@ -78,7 +80,7 @@ class DynamicHeadBlock(nn.Layer):
         
         L = levels
         C = channels
-        dim = dim
+        dim = 512
         groups = 1
         k = 3
         
@@ -91,7 +93,7 @@ class DynamicHeadBlock(nn.Layer):
                                         HardSigmoid(), )
         
         self.offset_conv = nn.Conv2D(C, k * k + 2 * k * k, 3, 1, 1)
-        self.deform_conv = paddle.vision.ops.DeformConv2D(C * L, C * L, 3, 1, 1, groups=groups)
+        self.deform_conv = paddle.vision.ops.DeformConv2D(C * L, C * L, k, 1, 1, groups=groups)
 
         self.dynamic_relu = nn.Sequential(nn.AdaptiveAvgPool2D(output_size=1), DynamicReLUB(C))
     
@@ -132,9 +134,11 @@ class DynamicHeadBlock(nn.Layer):
 
 @register
 class DynamicHead(nn.Layer):
-    def __init__(self, in_channels, spatial_scales, out_channels=512, num_heads=3, mid_layer_idx=None, ):
+    __shared__ = ['norm_type']
+    
+    def __init__(self, in_channels, spatial_scales, out_channels=512, num_heads=3, mid_layer_idx=None, norm_type='bn', use_fpn=False):
         super().__init__()
-                
+        
         num_layers = len(in_channels)
         if mid_layer_idx is None:
             mid_layer_idx = num_layers // 2
@@ -142,8 +146,12 @@ class DynamicHead(nn.Layer):
         c = out_channels # in_channels[mid_layer_idx]
         s = spatial_scales[mid_layer_idx]
         
-        self.in_convs = nn.LayerList([nn.Conv2D(_c, c, 1, 1) for _c in in_channels])
-        # self.out_convs = nn.LayerList([nn.Conv2D(c, out_channels, 1, 1) for _ in range(num_layers)])
+        self.use_fpn = use_fpn
+        if self.use_fpn:
+            # self.fpn = YOLOv3FPN(in_channels=in_channels, norm_type=norm_type)
+            self.fpn = FPN(in_channels=in_channels, out_channel=out_channels, extra_stage=0, norm_type=norm_type)
+        else:
+            self.in_convs = nn.LayerList([nn.Conv2D(_c, c, 1, 1) for _c in in_channels])
 
         self.dyheads = nn.Sequential(*[DynamicHeadBlock(num_layers, c) for _ in range(num_heads)])
         
@@ -168,7 +176,12 @@ class DynamicHead(nn.Layer):
         return [ShapeSpec(channels=c, stride=1./s) for c, s in zip(self.out_channels, self.spatial_scales)]
 
     def forward(self, feats, for_mot=False):
-        feats = [self.in_convs[i](x) for i, x in enumerate(feats)]
+        
+        if self.use_fpn:
+            feats = self.fpn(feats)
+        else:
+            feats = [self.in_convs[i](x) for i, x in enumerate(feats)]
+                    
         sizes = [x.shape[2:] for x in feats]
         feats = [F.interpolate(x, size=sizes[self.mid_layer_idx], mode='bilinear') for x in feats]
         feats = paddle.concat([x.unsqueeze(1) for x in feats], axis=1)
