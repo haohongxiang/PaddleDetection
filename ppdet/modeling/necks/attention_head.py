@@ -161,7 +161,7 @@ class DynamicHead(nn.Layer):
         
         self.in_channels = in_channels
         self.out_channels = [out_channels for _ in range(num_layers)]
-        self.spatial_scales = spatial_scales # [s for _ in range(num_layers)]
+        self.spatial_scales = spatial_scales
         
         init.reset_initialized_parameter(self)
         
@@ -190,7 +190,7 @@ class DynamicHead(nn.Layer):
         feats = self.dyheads(feats)
         
         feats = [x.squeeze(1) for x in feats.split(self.num_layers, axis=1)]
-        # feats = [self.out_convs[i](x) for i, x in enumerate(feats)]
+        
         feats = [F.interpolate(x, size=sz, mode='bilinear') for x, sz in zip(feats, sizes)]
         
         return feats[::-1]
