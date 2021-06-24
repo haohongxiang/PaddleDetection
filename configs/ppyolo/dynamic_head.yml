@@ -10,7 +10,7 @@ norm_type: sync_bn
 use_ema: true
 ema_decay: 0.9998
 
-snapshot_epoch: 2
+snapshot_epoch: 1
 log_iter: 10
 
 weights: output/ppyolov2_r50vd_dynamic_1x_minicoco/model_final

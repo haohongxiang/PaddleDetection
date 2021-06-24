@@ -12,6 +12,7 @@ from .. import initializer as init
 from .yolo_fpn import YOLOv3FPN
 from .fpn import FPN
 
+
 class HardSigmoid(nn.Layer):
     def __init__(self, ):
         super().__init__()
@@ -46,17 +47,18 @@ class DynamicReLUB(nn.Layer):
         self.mm_coefs = nn.Sequential(nn.Linear(channels, channels // reduction),
                                       nn.ReLU(), 
                                       nn.Linear(channels // reduction, 2 * channels * k),
+                                      nn.LayerNorm(2 * channels * k),
                                       ShiftedSigmoid())
         
         # self.register_buffer('init_w', paddle.to_tensor([1.] * k + [0.5] * k, dtype='float32'))
-        self.register_buffer('init_w', paddle.to_tensor([1.] * k + [1.] * k, dtype='float32'))
+        self.register_buffer('init_w', paddle.to_tensor([1.] * k + [0.5] * k, dtype='float32'))
         self.register_buffer('init_b', paddle.to_tensor([1.] + [0.] * (2 * k - 1), dtype='float32'))
 
     def get_params(self, x):
         # n, c, h, w -> n, c -> n, c * 2k
         theta = paddle.mean(x, axis=-1)
         if self.conv_type == '2d':
-            theta = paddle.mean(theta, axis=-1)        
+            theta = paddle.mean(theta, axis=-1)
         return self.mm_coefs(theta)
 
     def forward(self, x):
