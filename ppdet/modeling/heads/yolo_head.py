@@ -5,6 +5,7 @@ from paddle import ParamAttr
 from paddle.regularizer import L2Decay
 from ppdet.core.workspace import register
 
+from .. import initializer as init
 
 def _de_sigmoid(x, eps=1e-7):
     x = paddle.clip(x, eps, 1. / eps)
@@ -72,6 +73,8 @@ class YOLOv3Head(nn.Layer):
             conv.skip_quant = True
             yolo_output = self.add_sublayer(name, conv)
             self.yolo_outputs.append(yolo_output)
+            
+        init.reset_initialized_parameter(self)
 
     def parse_anchor(self, anchors, anchor_masks):
         self.anchors = [[anchors[i] for i in mask] for mask in anchor_masks]

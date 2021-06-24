@@ -48,7 +48,8 @@ class DynamicReLUB(nn.Layer):
                                       nn.Linear(channels // reduction, 2 * channels * k),
                                       ShiftedSigmoid())
         
-        self.register_buffer('init_w', paddle.to_tensor([1.] * k + [0.5] * k, dtype='float32'))
+        # self.register_buffer('init_w', paddle.to_tensor([1.] * k + [0.5] * k, dtype='float32'))
+        self.register_buffer('init_w', paddle.to_tensor([1.] * k + [1.] * k, dtype='float32'))
         self.register_buffer('init_b', paddle.to_tensor([1.] + [0.] * (2 * k - 1), dtype='float32'))
 
     def get_params(self, x):
@@ -59,7 +60,6 @@ class DynamicReLUB(nn.Layer):
         return self.mm_coefs(theta)
 
     def forward(self, x):
-        
         theta = self.get_params(x)
         theta = theta.reshape([-1, self.channels, 2 * self.k]) * self.init_w + self.init_b
     
@@ -124,9 +124,9 @@ class DynamicHeadBlock(nn.Layer):
         # channel 
         feat = feat.reshape([n, l, c, h * w]).transpose([0, 2, 1, 3])        
         feat = self.dynamic_relu(feat) * feat
+        feat = feat.transpose([0, 2, 1, 3]).reshape([n, l, c, h, w])
         # print('Channel Attention: ', feat.shape)
         
-        feat = feat.reshape([n, l, c, h, w])
         # print('Ouput: ', feat.shape)
         
         return feat

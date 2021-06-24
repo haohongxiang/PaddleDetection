@@ -6,7 +6,12 @@ _BASE_: [
   './_base_/ppyolov2_reader.yml',
 ]
 
-snapshot_epoch: 1
+norm_type: sync_bn
+use_ema: true
+ema_decay: 0.9998
+
+snapshot_epoch: 2
+log_iter: 10
 
 weights: output/ppyolov2_r50vd_dynamic_1x_minicoco/model_final
 
@@ -20,7 +25,6 @@ ResNet:
   depth: 50
   variant: d
   return_idx: [1, 2, 3]
-  # dcn_v2_stages: [3]
   freeze_at: -1
   freeze_norm: false
   norm_decay: 0.
@@ -28,16 +32,16 @@ ResNet:
 DynamicHead:
   num_heads: 6
   mid_layer_idx: 
-  use_fpn: false
-  out_channels: 512
+  use_fpn: true
+  out_channels: 256
 
 
-worker_num: 6
+worker_num: 4
 TrainReader:
-  batch_size: 12
+  batch_size: 8
 
 EvalReader:
-  batch_size: 2
+  batch_size: 1
 
 
 TrainDataset:
@@ -51,7 +55,7 @@ epoch: 150
 
 LearningRate:
   # base_lr: 0.005
-  base_lr: 0.0025
+  base_lr: 0.001
   schedulers:
   - !PiecewiseDecay
     gamma: 0.1
