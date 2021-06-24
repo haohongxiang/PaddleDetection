@@ -352,7 +352,7 @@ class Trainer(object):
                     loss.backward()
                     
                     # clip_grad_norm_(_parameters_for_clip(model))                 
-                    clip_grad_norm_(clip_params)
+                    # clip_grad_norm_(clip_params)
 
                     self.optimizer.step()
 

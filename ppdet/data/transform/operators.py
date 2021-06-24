@@ -2327,7 +2327,7 @@ class RandomCropX(BaseOperator):
         super(RandomCropX, self).__init__()
         self.min_size = min_size
         self.max_size = max_size
-        self.num_attempts = 5
+        self.num_attempts = 3
         self.cover_all_box = False
         self.thresholds = [0.3, 0.5, 0.7, 0.9,]
         self.allow_no_crop = False

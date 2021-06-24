@@ -22,7 +22,13 @@ DETR:
 ResNet:
   # index 0 stands for res2
   depth: 50
+  
   norm_type: bn
+  freeze_norm: True
+  
+  # norm_type: sync_bn
+  # freeze_norm: false
+  
   freeze_at: 0
   return_idx: [3]
   lr_mult_list: [0.0, 0.1, 0.1, 0.1]

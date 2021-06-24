@@ -13,6 +13,7 @@ TrainReader:
   - NormalizeBox: {}
   - BboxXYXY2XYWH: {}
   - Permute: {}
+  
   batch_transforms:
   # - PadBatch: {pad_to_stride: -1, return_pad_mask: true}
   - PadBatch: {pad_to_stride: -1, return_pad_mask: True}
@@ -32,7 +33,6 @@ EvalReader:
   batch_transforms:
   - PadBatch: {pad_to_stride: -1, return_pad_mask: true}
   # - PadBatch: {pad_to_stride: 32, return_pad_mask: True}
-
   batch_size: 1
   shuffle: false
   drop_last: false
