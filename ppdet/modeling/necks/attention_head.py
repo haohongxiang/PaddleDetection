@@ -143,8 +143,9 @@ class DynamicHead(nn.Layer):
         if mid_layer_idx is None:
             mid_layer_idx = num_layers // 2
         
-        c = out_channels # in_channels[mid_layer_idx]
-        s = spatial_scales[mid_layer_idx]
+        c = out_channels
+        # c = in_channels[mid_layer_idx]
+        # s = spatial_scales[mid_layer_idx]
         
         self.use_fpn = use_fpn
         if self.use_fpn:
@@ -176,7 +177,7 @@ class DynamicHead(nn.Layer):
         return [ShapeSpec(channels=c, stride=1./s) for c, s in zip(self.out_channels, self.spatial_scales)]
 
     def forward(self, feats, for_mot=False):
-        
+                    
         if self.use_fpn:
             feats = self.fpn(feats)
         else:

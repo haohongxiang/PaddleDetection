@@ -31,8 +31,8 @@ ResNet:
 DynamicHead:
   num_heads: 6
   mid_layer_idx: 
-  use_fpn: true
-  out_channels: 256
+  use_fpn: false
+  out_channels: 512
 
 YOLOv3Head:
   anchors: [[10, 13], [16, 30], [33, 23],
