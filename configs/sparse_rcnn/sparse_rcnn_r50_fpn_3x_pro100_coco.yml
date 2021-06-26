@@ -6,4 +6,6 @@ _BASE_: [
   '_base_/sparsercnn_reader.yml',
 ]
 
+weights: output/sparse_rcnn_r50_fpn_coco/model_final
+
 #weights:  https://paddledet.bj.bcebos.com/models/pretrained/ResNet50_cos_pretrained.pdparams # /root/paddlejob/workspace/output output
