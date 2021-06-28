@@ -15,6 +15,4 @@ OptimizerBuilder:
   optimizer:
     type: AdamW
     weight_decay: 0.0001
-#  regularizer:
-#    factor: 0.0001
-#    type: L2
+

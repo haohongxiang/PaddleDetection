@@ -33,11 +33,12 @@ class SparseRCNNLoss(nn.Layer):
         1) we compute hungarian assignment between ground truth boxes and the outputs of the model
         2) we supervise each pair of matched ground-truth / prediction (supervise class and box)
     """
+    __shared__ = ['num_classes']
     def __init__(self,  
-                num_classes,
                 losses,
                 focal_loss_alpha,
                 focal_loss_gamma,
+                num_classes=80,
                 class_weight = 2.,
                 l1_weight = 5.,
                 giou_weight = 2.):

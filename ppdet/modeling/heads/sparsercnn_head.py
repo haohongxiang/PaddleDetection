@@ -210,9 +210,10 @@ class SparseRCNNHead(nn.Layer):
         deep_supervision (int): wheather supervise the intermediate results,
         num_proposals (int): the number of proposals boxes and features
     '''
-    __inject__ = ['lossfunc']
+    __inject__ = ['loss_func']
+    __shared__ = ['num_classes']
+
     def __init__(self,
-                num_classes,
                 head_hidden_dim,
                 head_dim_feedforward,
                 nhead,
@@ -224,7 +225,8 @@ class SparseRCNNHead(nn.Layer):
                 head_num_heads,
                 deep_supervision,
                 num_proposals,
-                lossfunc = "SparseRCNNLoss",
+                num_classes=80,
+                loss_func = "SparseRCNNLoss",
                 roi_input_shape = None,
                 ):
         super().__init__()
@@ -254,7 +256,7 @@ class SparseRCNNHead(nn.Layer):
         self.init_proposal_features = nn.Embedding(num_proposals, head_hidden_dim)
         self.init_proposal_boxes = nn.Embedding(num_proposals, 4)
 
-        self.lossfunc = lossfunc
+        self.lossfunc = loss_func
 
         # Init parameters.
         init.reset_initialized_parameter(self)
