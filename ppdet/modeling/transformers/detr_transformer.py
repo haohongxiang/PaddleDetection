@@ -483,15 +483,14 @@ class DETRTransformer(nn.Layer):
             normalize=True if position_embed_type == 'sine' else False,
             embed_type=position_embed_type)
 
-        # self._reset_parameters()
         init.reset_initialized_parameter(self)
+        self._reset_parameters()
         
     def _reset_parameters(self):
-        bound = 1 / math.sqrt(math.prod(self.input_proj.weight.shape[1:]))
-        uniform_(self.input_proj.weight, -bound, bound)
-        uniform_(self.input_proj.bias, -bound, bound)
-        normal_(self.query_pos_embed.weight)
-
+        for m in self.sublayers():
+            if isinstance(m, nn.Linear):
+                init.xavier_uniform_(m.weight, reverse=True)
+    
     @classmethod
     def from_config(cls, cfg, input_shape):
         return {
