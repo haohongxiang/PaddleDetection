@@ -1,4 +1,4 @@
-# Copyright (c) 2020 PaddlePaddle Authors. All Rights Reserved.
+# Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ from ppdet.modeling.bbox_utils import get_bboxes_giou
 
 __all__ = ["SparseRCNNLoss"]
 
+
 @register
 class SparseRCNNLoss(nn.Layer):
     """ This class computes the loss for SparseRCNN.
@@ -33,14 +34,16 @@ class SparseRCNNLoss(nn.Layer):
         1) we compute hungarian assignment between ground truth boxes and the outputs of the model
         2) we supervise each pair of matched ground-truth / prediction (supervise class and box)
     """
-    def __init__(self,  
-                num_classes,
-                losses,
-                focal_loss_alpha,
-                focal_loss_gamma,
-                class_weight = 2.,
-                l1_weight = 5.,
-                giou_weight = 2.):
+    __shared__ = ['num_classes']
+
+    def __init__(self,
+                 losses,
+                 focal_loss_alpha,
+                 focal_loss_gamma,
+                 num_classes=80,
+                 class_weight=2.,
+                 l1_weight=5.,
+                 giou_weight=2.):
         """ Create the criterion.
         Parameters:
             num_classes: number of object categories, omitting the special no-object category
@@ -50,7 +53,11 @@ class SparseRCNNLoss(nn.Layer):
         """
         super().__init__()
         self.num_classes = num_classes
-        weight_dict = {"loss_ce": class_weight, "loss_bbox": l1_weight, "loss_giou": giou_weight}
+        weight_dict = {
+            "loss_ce": class_weight,
+            "loss_bbox": l1_weight,
+            "loss_giou": giou_weight
+        }
         self.weight_dict = weight_dict
         self.losses = losses
         self.giou_loss = GIoULoss(reduction="sum")
@@ -58,9 +65,8 @@ class SparseRCNNLoss(nn.Layer):
         self.focal_loss_alpha = focal_loss_alpha
         self.focal_loss_gamma = focal_loss_gamma
 
-        self.matcher = HungarianMatcher(
-            focal_loss_alpha, focal_loss_gamma, class_weight, l1_weight, giou_weight
-        )
+        self.matcher = HungarianMatcher(focal_loss_alpha, focal_loss_gamma,
+                                        class_weight, l1_weight, giou_weight)
 
     def loss_labels(self, outputs, targets, indices, num_boxes, log=True):
         """Classification loss (NLL)
@@ -70,8 +76,12 @@ class SparseRCNNLoss(nn.Layer):
         src_logits = outputs['pred_logits']
 
         idx = self._get_src_permutation_idx(indices)
-        target_classes_o = paddle.concat([paddle.gather(t["labels"], J, axis=0) for t, (_, J) in zip(targets, indices)])
-        target_classes = paddle.full(src_logits.shape[:2], self.num_classes,dtype="int32")
+        target_classes_o = paddle.concat([
+            paddle.gather(
+                t["labels"], J, axis=0) for t, (_, J) in zip(targets, indices)
+        ])
+        target_classes = paddle.full(
+            src_logits.shape[:2], self.num_classes, dtype="int32")
         for i, ind in enumerate(zip(idx[0], idx[1])):
             target_classes[int(ind[0]), int(ind[1])] = target_classes_o[i]
         target_classes.stop_gradient = True
@@ -81,7 +91,7 @@ class SparseRCNNLoss(nn.Layer):
         # prepare one_hot target.
         target_classes = target_classes.flatten(start_axis=0, stop_axis=1)
         class_ids = paddle.arange(0, self.num_classes)
-        labels = (target_classes.unsqueeze(-1)==class_ids).astype("float32")
+        labels = (target_classes.unsqueeze(-1) == class_ids).astype("float32")
         labels.stop_gradient = True
 
         # comp focal loss.
@@ -90,8 +100,7 @@ class SparseRCNNLoss(nn.Layer):
             labels,
             alpha=self.focal_loss_alpha,
             gamma=self.focal_loss_gamma,
-            reduction="sum",
-        ) / num_boxes
+            reduction="sum", ) / num_boxes
         losses = {'loss_ce': class_loss}
 
         if log:
@@ -100,7 +109,9 @@ class SparseRCNNLoss(nn.Layer):
 
             pred_list = []
             for i in range(outputs["pred_logits"].shape[0]):
-                pred_list.append(paddle.gather(outputs["pred_logits"][i], src_idx[i], axis=0))
+                pred_list.append(
+                    paddle.gather(
+                        outputs["pred_logits"][i], src_idx[i], axis=0))
 
             pred = F.sigmoid(paddle.concat(pred_list, axis=0))
             acc = accuracy(pred, label_acc.astype("int64"))
@@ -113,20 +124,29 @@ class SparseRCNNLoss(nn.Layer):
            targets dicts must contain the key "boxes" containing a tensor of dim [nb_target_boxes, 4]
            The target boxes are expected in format (center_x, center_y, w, h), normalized by the image size.
         """
-        assert 'pred_boxes' in outputs                                                                                              # [batch_size, num_proposals, 4]
+        assert 'pred_boxes' in outputs  # [batch_size, num_proposals, 4]
         src_idx = [src for (src, _) in indices]
         src_boxes_list = []
 
         for i in range(outputs["pred_boxes"].shape[0]):
-            src_boxes_list.append(paddle.gather(outputs["pred_boxes"][i], src_idx[i], axis=0))
+            src_boxes_list.append(
+                paddle.gather(
+                    outputs["pred_boxes"][i], src_idx[i], axis=0))
 
         src_boxes = paddle.concat(src_boxes_list, axis=0)
 
-        target_boxes = paddle.concat([paddle.gather(t['boxes'], I, axis=0) for t, (_, I) in zip(targets, indices)], axis=0)
+        target_boxes = paddle.concat(
+            [
+                paddle.gather(
+                    t['boxes'], I, axis=0)
+                for t, (_, I) in zip(targets, indices)
+            ],
+            axis=0)
         target_boxes.stop_gradient = True
         losses = {}
 
-        losses['loss_giou'] = self.giou_loss(src_boxes, target_boxes) / num_boxes
+        losses['loss_giou'] = self.giou_loss(src_boxes,
+                                             target_boxes) / num_boxes
 
         image_size = paddle.concat([v["img_whwh_tgt"] for v in targets])
         src_boxes_ = src_boxes / image_size
@@ -139,13 +159,15 @@ class SparseRCNNLoss(nn.Layer):
 
     def _get_src_permutation_idx(self, indices):
         # permute predictions following indices
-        batch_idx = paddle.concat([paddle.full_like(src, i) for i, (src, _) in enumerate(indices)])
+        batch_idx = paddle.concat(
+            [paddle.full_like(src, i) for i, (src, _) in enumerate(indices)])
         src_idx = paddle.concat([src for (src, _) in indices])
         return batch_idx, src_idx
 
     def _get_tgt_permutation_idx(self, indices):
         # permute targets following indices
-        batch_idx = paddle.concat([paddle.full_like(tgt, i) for i, (_, tgt) in enumerate(indices)])
+        batch_idx = paddle.concat(
+            [paddle.full_like(tgt, i) for i, (_, tgt) in enumerate(indices)])
         tgt_idx = paddle.concat([tgt for (_, tgt) in indices])
         return batch_idx, tgt_idx
 
@@ -164,19 +186,26 @@ class SparseRCNNLoss(nn.Layer):
              targets: list of dicts, such that len(targets) == batch_size.
                       The expected keys in each dict depends on the losses applied, see each loss' doc
         """
-        outputs_without_aux = {k: v for k, v in outputs.items() if k != 'aux_outputs'}
+        outputs_without_aux = {
+            k: v
+            for k, v in outputs.items() if k != 'aux_outputs'
+        }
 
         # Retrieve the matching between the outputs of the last layer and the targets
         indices = self.matcher(outputs_without_aux, targets)
 
         # Compute the average number of target boxes accross all nodes, for normalization purposes
         num_boxes = sum(len(t["labels"]) for t in targets)
-        num_boxes = paddle.to_tensor([num_boxes], dtype="float32", place=next(iter(outputs.values())).place)
+        num_boxes = paddle.to_tensor(
+            [num_boxes],
+            dtype="float32",
+            place=next(iter(outputs.values())).place)
 
         # Compute all the requested losses
         losses = {}
         for loss in self.losses:
-            losses.update(self.get_loss(loss, outputs, targets, indices, num_boxes))
+            losses.update(
+                self.get_loss(loss, outputs, targets, indices, num_boxes))
 
         # In case of auxiliary losses, we repeat this process with the output of each intermediate layer.
         if 'aux_outputs' in outputs:
@@ -187,12 +216,14 @@ class SparseRCNNLoss(nn.Layer):
                     if loss == 'labels':
                         # Logging is enabled only for the last layer
                         kwargs = {'log': False}
-                    l_dict = self.get_loss(loss, aux_outputs, targets, indices, num_boxes, **kwargs)
+                    l_dict = self.get_loss(loss, aux_outputs, targets, indices,
+                                           num_boxes, **kwargs)
 
                     w_dict = {}
                     for k in l_dict.keys():
                         if k in self.weight_dict:
-                            w_dict[k + f'_{i}'] = l_dict[k] * self.weight_dict[k]
+                            w_dict[k + f'_{i}'] = l_dict[k] * self.weight_dict[
+                                k]
                         else:
                             w_dict[k + f'_{i}'] = l_dict[k]
                     losses.update(w_dict)
@@ -207,7 +238,12 @@ class HungarianMatcher(nn.Layer):
     while the others are un-matched (and thus treated as non-objects).
     """
 
-    def __init__(self, focal_loss_alpha, focal_loss_gamma, cost_class: float = 1, cost_bbox: float = 1, cost_giou: float = 1):
+    def __init__(self,
+                 focal_loss_alpha,
+                 focal_loss_gamma,
+                 cost_class: float=1,
+                 cost_bbox: float=1,
+                 cost_giou: float=1):
         """Creates the matcher
         Params:
             cost_class: This is the relative weight of the classification error in the matching cost
@@ -245,9 +281,10 @@ class HungarianMatcher(nn.Layer):
         bs, num_queries = outputs["pred_logits"].shape[:2]
 
         # We flatten to compute the cost matrices in a batch
-        out_prob = F.sigmoid(outputs["pred_logits"].flatten(start_axis=0, stop_axis=1))
+        out_prob = F.sigmoid(outputs["pred_logits"].flatten(
+            start_axis=0, stop_axis=1))
         out_bbox = outputs["pred_boxes"].flatten(start_axis=0, stop_axis=1)
-      
+
         # Also concat the target labels and boxes
         tgt_ids = paddle.concat([v["labels"] for v in targets])
         assert (tgt_ids > -1).all()
@@ -261,19 +298,28 @@ class HungarianMatcher(nn.Layer):
         alpha = self.focal_loss_alpha
         gamma = self.focal_loss_gamma
 
-        neg_cost_class = (1 - alpha) * (out_prob ** gamma) * (-(1 - out_prob + 1e-8).log())
-        pos_cost_class = alpha * ((1 - out_prob) ** gamma) * (-(out_prob + 1e-8).log())
+        neg_cost_class = (1 - alpha) * (out_prob**gamma) * (-(
+            1 - out_prob + 1e-8).log())
+        pos_cost_class = alpha * ((1 - out_prob)
+                                  **gamma) * (-(out_prob + 1e-8).log())
 
-        cost_class = paddle.gather(pos_cost_class,  tgt_ids, axis=1) - paddle.gather(neg_cost_class,  tgt_ids, axis=1)
+        cost_class = paddle.gather(
+            pos_cost_class, tgt_ids, axis=1) - paddle.gather(
+                neg_cost_class, tgt_ids, axis=1)
 
         # Compute the L1 cost between boxes
-        image_size_out = paddle.concat([v["img_whwh"].unsqueeze(0) for v in targets])
-        image_size_out = image_size_out.unsqueeze(1).tile([1, num_queries, 1]).flatten(start_axis=0, stop_axis=1)
+        image_size_out = paddle.concat(
+            [v["img_whwh"].unsqueeze(0) for v in targets])
+        image_size_out = image_size_out.unsqueeze(1).tile(
+            [1, num_queries, 1]).flatten(
+                start_axis=0, stop_axis=1)
         image_size_tgt = paddle.concat([v["img_whwh_tgt"] for v in targets])
 
         out_bbox_ = out_bbox / image_size_out
         tgt_bbox_ = tgt_bbox / image_size_tgt
-        cost_bbox = F.l1_loss(out_bbox_.unsqueeze(-2), tgt_bbox_, reduction='none').sum(-1)                                                                         # [batch_size * num_queries, num_tgts]
+        cost_bbox = F.l1_loss(
+            out_bbox_.unsqueeze(-2), tgt_bbox_,
+            reduction='none').sum(-1)  # [batch_size * num_queries, num_tgts]
 
         # Compute the giou cost betwen boxes
         cost_giou = -get_bboxes_giou(out_bbox, tgt_bbox)
@@ -284,23 +330,25 @@ class HungarianMatcher(nn.Layer):
 
         sizes = [len(v["boxes"]) for v in targets]
 
-        indices = [linear_sum_assignment(c[i].numpy()) for i, c in enumerate(C.split(sizes, -1))]
-        return [(paddle.to_tensor(i, dtype="int32"), paddle.to_tensor(j, dtype="int32")) for i, j in indices]
+        indices = [
+            linear_sum_assignment(c[i].numpy())
+            for i, c in enumerate(C.split(sizes, -1))
+        ]
+        return [(paddle.to_tensor(
+            i, dtype="int32"), paddle.to_tensor(
+                j, dtype="int32")) for i, j in indices]
 
 
-def sigmoid_focal_loss(inputs,
-                    targets,
-                    alpha,
-                    gamma,
-                    reduction="sum"
-                    ):
+def sigmoid_focal_loss(inputs, targets, alpha, gamma, reduction="sum"):
 
-    assert reduction in ["sum", "mean"], f'do not support this {reduction} reduction?'
-    
+    assert reduction in ["sum", "mean"
+                         ], f'do not support this {reduction} reduction?'
+
     p = F.sigmoid(inputs)
-    ce_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction="none")
+    ce_loss = F.binary_cross_entropy_with_logits(
+        inputs, targets, reduction="none")
     p_t = p * targets + (1 - p) * (1 - targets)
-    loss = ce_loss * ((1 - p_t) ** gamma)
+    loss = ce_loss * ((1 - p_t)**gamma)
 
     if alpha >= 0:
         alpha_t = alpha * targets + (1 - alpha) * (1 - targets)

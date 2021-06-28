@@ -28,10 +28,10 @@ class SparseRCNN(BaseArch):
     __inject__ = ["postprocess"]
 
     def __init__(self,
-                backbone,
-                neck,
-                head = "SparsercnnHead",
-                postprocess = "SparsePostProcess"):
+                 backbone,
+                 neck,
+                 head="SparsercnnHead",
+                 postprocess="SparsePostProcess"):
         super(SparseRCNN, self).__init__()
         self.backbone = backbone
         self.neck = neck
@@ -53,22 +53,20 @@ class SparseRCNN(BaseArch):
             'neck': neck,
             "head": head,
         }
-    
+
     def _forward(self):
         body_feats = self.backbone(self.inputs)
-        fpn_feats =  self.neck(body_feats)
+        fpn_feats = self.neck(body_feats)
         head_outs = self.head(fpn_feats, self.inputs["img_whwh"])
 
         if not self.training:
-            bboxes = self.postprocess( head_outs["pred_logits"], 
-                                        head_outs["pred_boxes"], 
-                                        self.inputs["scale_factor_wh"],
-                                        self.inputs["img_whwh"]
-                                       )
+            bboxes = self.postprocess(
+                head_outs["pred_logits"], head_outs["pred_boxes"],
+                self.inputs["scale_factor_wh"], self.inputs["img_whwh"])
             return bboxes
         else:
             return head_outs
-    
+
     def get_loss(self):
         batch_gt_class = self.inputs["gt_class"]
         batch_gt_box = self.inputs["gt_bbox"]
@@ -80,8 +78,13 @@ class SparseRCNN(BaseArch):
             labels = batch_gt_class[i].squeeze(-1)
             img_whwh = batch_whwh[i]
             img_whwh_tgt = img_whwh.unsqueeze(0).tile([int(boxes.shape[0]), 1])
-            targets.append({"boxes":boxes, "labels":labels, "img_whwh": img_whwh, "img_whwh_tgt": img_whwh_tgt})
-        
+            targets.append({
+                "boxes": boxes,
+                "labels": labels,
+                "img_whwh": img_whwh,
+                "img_whwh_tgt": img_whwh_tgt
+            })
+
         outputs = self._forward()
         loss_dict = self.head.get_loss(outputs, targets)
         acc = loss_dict["acc"]
@@ -89,77 +92,8 @@ class SparseRCNN(BaseArch):
         total_loss = sum(loss_dict.values())
         loss_dict.update({"loss": total_loss, "acc": acc})
         return loss_dict
-    
+
     def get_pred(self):
         bbox_pred, bbox_num = self._forward()
         output = {'bbox': bbox_pred, 'bbox_num': bbox_num}
         return output
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

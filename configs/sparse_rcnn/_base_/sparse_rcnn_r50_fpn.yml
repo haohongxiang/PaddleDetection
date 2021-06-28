@@ -6,7 +6,7 @@ SparseRCNN:
   neck: FPN
   head: SparseRCNNHead
   postprocess: SparsePostProcess
- 
+
 ResNet:
   # index 0 stands for res2
   depth: 50
@@ -19,7 +19,6 @@ FPN:
   out_channel: 256
 
 SparseRCNNHead:
-  num_classes: 80
   head_hidden_dim: 256
   head_dim_feedforward: 2048
   nhead: 8
@@ -31,10 +30,9 @@ SparseRCNNHead:
   head_num_heads: 6
   deep_supervision: true
   num_proposals: 100
-  lossfunc: SparseRCNNLoss
-    
+  loss_func: SparseRCNNLoss
+
 SparseRCNNLoss:
-  num_classes: 80
   losses: ["labels", "boxes"]
   focal_loss_alpha: 0.25
   focal_loss_gamma: 2.0
@@ -43,8 +41,4 @@ SparseRCNNLoss:
   giou_weight: 2.0
 
 SparsePostProcess:
-  num_classes: 80
-  num_proposals: 100    
-
-
-
+  num_proposals: 100

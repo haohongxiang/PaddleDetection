@@ -454,6 +454,8 @@ class CenterNetPostProcess(TTFBox):
 
 @register
 class SparsePostProcess(object):
+    __shared__ = ['num_classes']
+
     def __init__(self, num_classes, num_proposals):
         super(SparsePostProcess, self).__init__()
         self.num_classes = num_classes
