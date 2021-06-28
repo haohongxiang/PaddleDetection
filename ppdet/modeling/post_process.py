@@ -45,6 +45,10 @@ class BBoxPostProcess(object):
         self.num_classes = num_classes
         self.decode = decode
         self.nms = nms
+        self.fake_bboxes = paddle.to_tensor(
+            np.array(
+                [[-1, 0.0, 0.0, 0.0, 0.0, 0.0]], dtype='float32'))
+        self.fake_bbox_num = paddle.to_tensor(np.array([1], dtype='int32'))
 
     def __call__(self, head_out, rois, im_shape, scale_factor):
         """
@@ -481,14 +485,18 @@ class SparsePostProcess(object):
         classes_all = []
         scores_all = []
         boxes_all = []
-        for i, (scores_per_image, box_pred_per_image) in enumerate(zip(
-                scores, box_pred)):
+        for i, (scores_per_image,
+                box_pred_per_image) in enumerate(zip(scores, box_pred)):
 
-            scores_per_image, topk_indices = scores_per_image.flatten(0, 1).topk(self.num_proposals, sorted=False)
+            scores_per_image, topk_indices = scores_per_image.flatten(
+                0, 1).topk(
+                    self.num_proposals, sorted=False)
             labels_per_image = paddle.gather(labels, topk_indices, axis=0)
 
-            box_pred_per_image = box_pred_per_image.reshape([-1, 1, 4]).tile([1, self.num_classes, 1]).reshape([-1, 4])
-            box_pred_per_image = paddle.gather(box_pred_per_image, topk_indices, axis=0)
+            box_pred_per_image = box_pred_per_image.reshape([-1, 1, 4]).tile(
+                [1, self.num_classes, 1]).reshape([-1, 4])
+            box_pred_per_image = paddle.gather(
+                box_pred_per_image, topk_indices, axis=0)
 
             classes_all.append(labels_per_image)
             scores_all.append(scores_per_image)
@@ -502,9 +510,12 @@ class SparsePostProcess(object):
             boxes = boxes_all[i]
             scores = scores_all[i]
 
-            boxes[:, 0::2] = paddle.clip(boxes[:, 0::2], min=0, max=img_wh[i][0]) / scale_factor_wh[i][0]
-            boxes[:, 1::2] = paddle.clip(boxes[:, 1::2], min=0, max=img_wh[i][1]) / scale_factor_wh[i][1]
-            boxes_w, boxes_h = (boxes[:, 2] - boxes[:, 0]).numpy(), (boxes[:, 3] - boxes[:, 1]).numpy()
+            boxes[:, 0::2] = paddle.clip(
+                boxes[:, 0::2], min=0, max=img_wh[i][0]) / scale_factor_wh[i][0]
+            boxes[:, 1::2] = paddle.clip(
+                boxes[:, 1::2], min=0, max=img_wh[i][1]) / scale_factor_wh[i][1]
+            boxes_w, boxes_h = (boxes[:, 2] - boxes[:, 0]).numpy(), (
+                boxes[:, 3] - boxes[:, 1]).numpy()
 
             keep = (boxes_w > 1.) & (boxes_h > 1.)
 
@@ -512,8 +523,10 @@ class SparsePostProcess(object):
                 bboxes = paddle.zeros([1, 6]).astype("float32")
             else:
                 boxes = paddle.to_tensor(boxes.numpy()[keep]).astype("float32")
-                classes = paddle.to_tensor(classes.numpy()[keep]).astype("float32").unsqueeze(-1)
-                scores = paddle.to_tensor(scores.numpy()[keep]).astype("float32").unsqueeze(-1)
+                classes = paddle.to_tensor(classes.numpy()[keep]).astype(
+                    "float32").unsqueeze(-1)
+                scores = paddle.to_tensor(scores.numpy()[keep]).astype(
+                    "float32").unsqueeze(-1)
 
                 bboxes = paddle.concat([classes, scores, boxes], axis=-1)
 
