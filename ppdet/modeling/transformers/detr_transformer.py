@@ -484,7 +484,7 @@ class DETRTransformer(nn.Layer):
             embed_type=position_embed_type)
 
         init.reset_initialized_parameter(self)
-        self._reset_parameters()
+        # self._reset_parameters()
         
     def _reset_parameters(self):
         for m in self.sublayers():
