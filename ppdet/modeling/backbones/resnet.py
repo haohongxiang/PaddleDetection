@@ -437,7 +437,7 @@ class ResNet(nn.Layer):
                  depth=50,
                  ch_in=64,
                  variant='b',
-                 lr_mult_list=[1.0, 1.0, 1.0, 1.0],
+                 lr_mult_list=[1.0, 1.0, 1.0, 1.0, 1.0],
                  groups=1,
                  base_width=64,
                  norm_type='bn',
@@ -488,7 +488,7 @@ class ResNet(nn.Layer):
             'is {}'.format(max(return_idx), num_stages)
         self.return_idx = return_idx
         self.num_stages = num_stages
-        assert len(lr_mult_list) == 4, \
+        assert len(lr_mult_list) == 5, \
             "lr_mult_list length must be 4 but got {}".format(len(lr_mult_list))
         if isinstance(dcn_v2_stages, Integral):
             dcn_v2_stages = [dcn_v2_stages]
@@ -525,7 +525,7 @@ class ResNet(nn.Layer):
                     norm_type=norm_type,
                     norm_decay=norm_decay,
                     freeze_norm=freeze_norm,
-                    lr=1.0))
+                    lr=lr_mult_list[0]))
 
         self.ch_in = ch_in
         ch_out_list = [64, 128, 256, 512]
@@ -536,7 +536,7 @@ class ResNet(nn.Layer):
 
         self.res_layers = []
         for i in range(num_stages):
-            lr_mult = lr_mult_list[i]
+            lr_mult = lr_mult_list[i+1]
             stage_num = i + 2
             res_name = "res{}".format(stage_num)
             res_layer = self.add_sublayer(
