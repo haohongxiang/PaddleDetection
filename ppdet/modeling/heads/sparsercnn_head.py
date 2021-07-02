@@ -320,9 +320,6 @@ class SparseRCNNHead(nn.Layer):
 
     def forward(self, features, input_whwh):
 
-        inter_class_logits = []
-        inter_pred_bboxes = []
-
         bs = len(features[0])
         bboxes = box_cxcywh_to_xyxy(self.init_proposal_boxes.weight.clone(
         )).unsqueeze(0)
@@ -331,6 +328,9 @@ class SparseRCNNHead(nn.Layer):
         init_features = self.init_proposal_features.weight.unsqueeze(0).tile(
             [1, bs, 1])
         proposal_features = init_features.clone()
+
+        inter_class_logits = []
+        inter_pred_bboxes = []
 
         for rcnn_head in self.head_series:
             class_logits, pred_bboxes, proposal_features = rcnn_head(
