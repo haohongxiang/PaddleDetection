@@ -27,6 +27,8 @@ from paddle.vision.ops import DeformConv2D
 from .name_adapter import NameAdapter
 from ..shape_spec import ShapeSpec
 
+import time
+
 __all__ = ['ResNet', 'Res5Head', 'Blocks', 'BasicBlock', 'BottleNeck']
 
 ResNet_cfg = {
@@ -560,6 +562,15 @@ class ResNet(nn.Layer):
             self.res_layers.append(res_layer)
             self.ch_in = self._out_channels[i]
 
+        if freeze_at >= 0:
+            self._freeze_parameters(self.conv1)
+            for i in range(min(freeze_at + 1, num_stages)):
+                self._freeze_parameters(self.res_layers[i])
+
+    def _freeze_parameters(self, m):
+        for p in m.parameters():
+            p.stop_gradient = True
+
     @property
     def out_shape(self):
         return [
@@ -570,15 +581,17 @@ class ResNet(nn.Layer):
 
     def forward(self, inputs):
         x = inputs['image']
+        
+        tic = time.time()
         conv1 = self.conv1(x)
         x = F.max_pool2d(conv1, kernel_size=3, stride=2, padding=1)
         outs = []
         for idx, stage in enumerate(self.res_layers):
             x = stage(x)
-            if idx == self.freeze_at:
-                x.stop_gradient = True
             if idx in self.return_idx:
                 outs.append(x)
+        print('backbone: ', time.time() - tic)
+        
         return outs
 
 

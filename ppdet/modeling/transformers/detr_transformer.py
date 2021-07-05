@@ -26,6 +26,7 @@ from ppdet.core.workspace import register
 from .utils import *
 
 from .. import initializer as init
+import time
 
 __all__ = ['DETRTransformer']
 
@@ -519,6 +520,9 @@ class DETRTransformer(nn.Layer):
             memory (Tensor): [batch_size, hidden_dim, h, w]
         """
         # use last level feature map
+        
+        tic = time.time()
+        
         src_proj = self.input_proj(src[-1])
         bs, c, h, w = src_proj.shape
         # flatten [B, C, H, W] to [B, HxW, C]
@@ -548,5 +552,7 @@ class DETRTransformer(nn.Layer):
             pos_embed=pos_embed,
             query_pos_embed=query_pos_embed)
 
+        print('transformer: ', time.time() - tic)
+        
         return (output, memory.transpose([0, 2, 1]).reshape([bs, c, h, w]),
                 src_proj, src_mask.reshape([bs, 1, 1, h, w]))

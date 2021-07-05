@@ -346,19 +346,32 @@ class Trainer(object):
                     scaler.minimize(self.optimizer, scaled_loss)
                 else:
                     # model forward
+                    tic = time.time()
                     outputs = model(data)
+                    print('forward: ', time.time()-tic )
+                    
                     loss = outputs['loss']
                     # model backward
+                    
+                    tic = time.time()
                     loss.backward()
+                    print('backward: ', time.time()-tic )
                     
                     # clip_grad_norm_(_parameters_for_clip(model))                 
                     # clip_grad_norm_(clip_params)
-
+                    
+                    tic = time.time()
                     self.optimizer.step()
+                    print('optimizer: ', time.time()-tic )
 
                 curr_lr = self.optimizer.get_lr()
                 self.lr.step()
+                
+                tic = time.time()
                 self.optimizer.clear_grad()
+                print('clear_grad: ', time.time()-tic )
+                
+                
                 self.status['learning_rate'] = curr_lr
 
                 if self._nranks < 2 or self._local_rank == 0:
