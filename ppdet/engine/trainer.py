@@ -372,7 +372,6 @@ class Trainer(object):
                 self.optimizer.clear_grad()
                 print('clear_grad: ', time.time()-tic )
                 
-                
                 self.status['learning_rate'] = curr_lr
 
                 if self._nranks < 2 or self._local_rank == 0:

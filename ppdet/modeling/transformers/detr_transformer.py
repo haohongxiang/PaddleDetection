@@ -187,12 +187,13 @@ class MultiHeadAttention(nn.Layer):
         value = query if value is None else value
         # compute q ,k ,v
         
+        n, l, d = key.shape        
         _x = time.time()
         
         if query.shape[1] == key.shape[1] == value.shape[1] and self._qkv_same_embed_dim:
             t = paddle.concat([query, key, value], axis=0) # 3xn,
-            w = self.in_proj_weight.expand([2, ] + self.in_proj_weight.shape).transpose([0, 2, 1]).reshape([6, t.shape[-1], t.shape[-1]])
-            q, k, v = [x.reshape([2, -1, self.num_heads, 32]).transpose([0, 2, 1, 3]) for x in paddle.bmm(t, w).split(3)]
+            w = self.in_proj_weight.expand([n, ] + self.in_proj_weight.shape).transpose([0, 2, 1]).reshape([3 * n, d, d])
+            q, k, v = [x.reshape([n, l, self.num_heads, -1]).transpose([0, 2, 1, 3]) for x in paddle.bmm(t, w).split(3)]
             
         else:
             q, k, v = (self.compute_qkv(t, i) for i, t in enumerate([query, key, value]))

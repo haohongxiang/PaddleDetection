@@ -259,7 +259,6 @@ class HungarianMatcher(nn.Layer):
         
         _sizes = list(itertools.accumulate(sizes))[:-1]
         C = np.split(C.numpy(), _sizes, -1)
-            
         indices = [linear_sum_assignment(c[i]) for i, c in enumerate(C)]
 
         print('linear_sum_assignment: ', time.time() - tic)
