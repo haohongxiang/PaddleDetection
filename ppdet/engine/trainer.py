@@ -346,6 +346,7 @@ class Trainer(object):
                     scaler.minimize(self.optimizer, scaled_loss)
                 else:
                     # model forward
+                    
                     tic = time.time()
                     outputs = model(data)
                     print('forward: ', time.time()-tic )

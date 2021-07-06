@@ -23,6 +23,8 @@ from ppdet.core.workspace import register
 from .iou_loss import GIoULoss
 from ..transformers import bbox_cxcywh_to_xyxy, bbox_overlaps
 
+import time
+
 __all__ = ['DETRLoss']
 
 
@@ -92,7 +94,7 @@ class DETRLoss(nn.Layer):
             src_bbox, target_bbox, reduction='sum') / num_gts
 
         loss['loss_giou'] = self.giou_loss(
-            bbox_cxcywh_to_xyxy(src_bbox), bbox_cxcywh_to_xyxy(target_bbox))
+            bbox_cxcywh_to_xyxy(src_bbox, inspace=False), bbox_cxcywh_to_xyxy(target_bbox))
         loss['loss_giou'] = loss['loss_giou'].sum() / num_gts
         loss['loss_giou'] = self.loss_coeff['giou'] * loss['loss_giou']
         return loss
@@ -236,22 +238,28 @@ class DETRLoss(nn.Layer):
         """
         match_indices = self.matcher(boxes[-1].detach(), scores[-1].detach(),
                                      gt_bbox, gt_class)
-
         total_loss = dict()
+        
+        tic = time.time()
         total_loss.update(
             self._get_loss_class(scores[-1], gt_class, match_indices,
                                  self.num_classes))
+        print('loss_labels: ', time.time() -tic )
+        
+        tic = time.time()
         total_loss.update(
             self._get_loss_bbox(boxes[-1], gt_bbox, match_indices))
+        print('loss_boxes: ', time.time() -tic )
+        
         if masks is not None and gt_mask is not None:
             total_loss.update(
                 self._get_loss_mask(masks, gt_mask, match_indices))
-
+        
         if self.aux_loss:
             total_loss.update(
                 self._get_loss_aux(boxes[:-1], scores[:-1], gt_bbox, gt_class,
                                    self.num_classes))
-
+        
         if self.log_metric:
             total_loss.update(
                 self._log_precision_recall(boxes[-1].detach(), scores[-1]

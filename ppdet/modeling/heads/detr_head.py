@@ -25,6 +25,8 @@ import pycocotools.mask as mask_util
 
 from .. import initializer as init
 
+import time
+
 __all__ = ['DETRHead']
 
 
@@ -272,12 +274,15 @@ class DETRHead(nn.Layer):
             gt_mask = self.get_gt_mask_from_polygons(
                 inputs['gt_poly'],
                 inputs['pad_mask']) if 'gt_poly' in inputs else None
-            return self.loss(
+            tic = time.time()
+            _output = self.loss(
                 outputs_bbox,
                 outputs_score,
                 inputs['gt_bbox'],
                 inputs['gt_class'],
                 masks=outputs_seg,
                 gt_mask=gt_mask)
+            print('loss: ', time.time() - tic)
+            return _output
         else:
             return (outputs_bbox[-1], outputs_score[-1], outputs_seg)

@@ -26,6 +26,9 @@ from scipy.optimize import linear_sum_assignment
 from ppdet.core.workspace import register, serializable
 from ..bbox_utils import bbox_overlaps
 from ..losses.iou_loss import GIoULoss
+import time
+import numpy as np
+import itertools
 
 __all__ = [
     '_get_clones', 'bbox_overlaps', 'bbox_cxcywh_to_xyxy',
@@ -39,10 +42,17 @@ def _get_clones(module, N):
     return nn.LayerList([copy.deepcopy(module) for _ in range(N)])
 
 
-def bbox_cxcywh_to_xyxy(x):
-    x_c, y_c, w, h = x.unbind(-1)
-    b = [(x_c - 0.5 * w), (y_c - 0.5 * h), (x_c + 0.5 * w), (y_c + 0.5 * h)]
-    return paddle.stack(b, axis=-1)
+def bbox_cxcywh_to_xyxy(x, inspace=True):
+    if inspace:
+        shape = x.shape
+        x = x.reshape([-1, 4])
+        x[:, :2] -= x[:, 2:] / 2
+        x[:, 2:] += x[:, :2]
+        return x.reshape(shape)
+    else:
+        x_c, y_c, w, h = x.unbind(-1)
+        b = [(x_c - 0.5 * w), (y_c - 0.5 * h), (x_c + 0.5 * w), (y_c + 0.5 * h)]
+        return paddle.stack(b, axis=-1)
 
 
 def bbox_xyxy_to_cxcywh(x):
@@ -132,6 +142,7 @@ class PositionEmbedding(nn.Layer):
         Returns:
             pos (Tensor): [B, C, H, W]
         """
+        
         assert mask.dtype == paddle.bool
         if self.embed_type == 'sine':
             mask = mask.astype('float32')
@@ -204,7 +215,7 @@ class HungarianMatcher(nn.Layer):
                 - index_j is the indices of the corresponding selected targets (in order)
             For each batch element, it holds:
                 len(index_i) = len(index_j) = min(num_queries, num_target_boxes)
-        """
+        """        
         bs, num_queries = boxes.shape[:2]
 
         # We flatten to compute the cost matrices in a batch
@@ -237,10 +248,22 @@ class HungarianMatcher(nn.Layer):
         C = C.reshape([bs, num_queries, -1])
 
         sizes = [a.shape[0] for a in gt_bbox]
-        indices = [
-            linear_sum_assignment(c[i].numpy())
-            for i, c in enumerate(C.split(sizes, -1))
-        ]
+        
+        tic = time.time()
+#         indices = [
+#             linear_sum_assignment(c[i].numpy())
+#             for i, c in enumerate(C.split(sizes, -1))
+#         ]
+#         for i, c in enumerate(C.split(sizes, -1)):
+#             print(i, c.shape)
+        
+        _sizes = list(itertools.accumulate(sizes))[:-1]
+        C = np.split(C.numpy(), _sizes, -1)
+            
+        indices = [linear_sum_assignment(c[i]) for i, c in enumerate(C)]
+
+        print('linear_sum_assignment: ', time.time() - tic)
+
         return [(paddle.to_tensor(
             i, dtype='int64'), paddle.to_tensor(
                 j, dtype='int64')) for i, j in indices]

@@ -87,10 +87,13 @@ class MultiHeadAttention(nn.Layer):
         self._qkv_same_embed_dim = self.kdim == embed_dim and self.vdim == embed_dim
 
         self.num_heads = num_heads
+
         self.dropout = dropout
         self.need_weights = need_weights
 
         self.head_dim = embed_dim // num_heads
+        self.scaling = float(self.head_dim) ** -0.5
+
         assert self.head_dim * num_heads == self.embed_dim, "embed_dim must be divisible by num_heads"
 
         if self._qkv_same_embed_dim:
@@ -115,7 +118,7 @@ class MultiHeadAttention(nn.Layer):
         # self._reset_parameters()
         init.reset_initialized_parameter(self)
         self._reset_parameters()
-        
+
     def _reset_parameters(self):
         for p in self.parameters():
             if p.dim() > 1:
@@ -127,15 +130,14 @@ class MultiHeadAttention(nn.Layer):
         if self._qkv_same_embed_dim:
             tensor = F.linear(
                 x=tensor,
-                weight=self.in_proj_weight[:, index * self.embed_dim:(index + 1)
-                                           * self.embed_dim],
-                bias=self.in_proj_bias[index * self.embed_dim:(index + 1) *
-                                       self.embed_dim]
+                weight=self.in_proj_weight[:, index * self.embed_dim: (index + 1) * self.embed_dim],
+                bias=self.in_proj_bias[index * self.embed_dim: (index + 1) * self.embed_dim]
                 if self.in_proj_bias is not None else None)
         else:
             tensor = getattr(self, self._type_list[index])(tensor)
-        tensor = tensor.reshape(
-            [0, 0, self.num_heads, self.head_dim]).transpose([0, 2, 1, 3])
+            
+        tensor = tensor.reshape([0, 0, self.num_heads, self.head_dim]).transpose([0, 2, 1, 3])
+        
         return tensor
 
     def forward(self, query, key=None, value=None, attn_mask=None):
@@ -178,28 +180,37 @@ class MultiHeadAttention(nn.Layer):
                 reserves tensors concatanating raw tensors with intermediate \
                 results of current query.
         """
+        
+        tic = time.time()
+        
         key = query if key is None else key
         value = query if value is None else value
         # compute q ,k ,v
-        q, k, v = (self.compute_qkv(t, i)
-                   for i, t in enumerate([query, key, value]))
+        
+        _x = time.time()
+        
+        if query.shape[1] == key.shape[1] == value.shape[1] and self._qkv_same_embed_dim:
+            t = paddle.concat([query, key, value], axis=0) # 3xn,
+            w = self.in_proj_weight.expand([2, ] + self.in_proj_weight.shape).transpose([0, 2, 1]).reshape([6, t.shape[-1], t.shape[-1]])
+            q, k, v = [x.reshape([2, -1, self.num_heads, 32]).transpose([0, 2, 1, 3]) for x in paddle.bmm(t, w).split(3)]
+            
+        else:
+            q, k, v = (self.compute_qkv(t, i) for i, t in enumerate([query, key, value]))
 
+        print('compute_qkv: ', time.time() - _x)
+        
         # scale dot product attention
-        product = paddle.matmul(x=q, y=k, transpose_y=True)
-        scaling = float(self.head_dim)**-0.5
-        product = product * scaling
+        product = paddle.matmul(x=q, y=k, transpose_y=True) * self.scaling
 
         if attn_mask is not None:
             # Support bool or int mask
             attn_mask = _convert_attention_mask(attn_mask, product.dtype)
             product = product + attn_mask
+            
         weights = F.softmax(product)
+        
         if self.dropout:
-            weights = F.dropout(
-                weights,
-                self.dropout,
-                training=self.training,
-                mode="upscale_in_train")
+            weights = F.dropout(weights, self.dropout, training=self.training, mode="upscale_in_train")
 
         out = paddle.matmul(weights, v)
 
@@ -213,9 +224,13 @@ class MultiHeadAttention(nn.Layer):
         outs = [out]
         if self.need_weights:
             outs.append(weights)
+            
+        print('multiheadattention: ', time.time() - tic)
+        
         return out if len(outs) == 1 else tuple(outs)
 
 
+    
 class TransformerEncoderLayer(nn.Layer):
     def __init__(self,
                  d_model,
@@ -267,8 +282,9 @@ class TransformerEncoderLayer(nn.Layer):
         if self.normalize_before:
             src = self.norm1(src)
         q = k = self.with_pos_embed(src, pos_embed)
+        
         src = self.self_attn(q, k, value=src, attn_mask=src_mask)
-
+        
         src = residual + self.dropout1(src)
         if not self.normalize_before:
             src = self.norm1(src)
@@ -428,6 +444,7 @@ class TransformerDecoder(nn.Layer):
 
         if self.return_intermediate:
             return paddle.stack(intermediate)
+            # return paddle.concat([x.unsqueeze(0) for x in intermediate])
 
         return output.unsqueeze(0)
 
@@ -522,35 +539,49 @@ class DETRTransformer(nn.Layer):
         # use last level feature map
         
         tic = time.time()
-        
+
         src_proj = self.input_proj(src[-1])
         bs, c, h, w = src_proj.shape
-        # flatten [B, C, H, W] to [B, HxW, C]
-        src_flatten = src_proj.flatten(2).transpose([0, 2, 1])
+
+
         if src_mask is not None:
             src_mask = F.interpolate(
-                src_mask.unsqueeze(0).astype(src_flatten.dtype),
+                src_mask.unsqueeze(0).astype(src[-1].dtype),
                 size=(h, w))[0].astype('bool')
         else:
             src_mask = paddle.ones([bs, h, w], dtype='bool')
+        
+        _t = time.time()
+        
         pos_embed = self.position_embedding(src_mask).flatten(2).transpose(
             [0, 2, 1])
+        print('pos_embed: ', time.time() - _t)
+        
+    
+        # flatten [B, C, H, W] to [B, HxW, C]
+        src_flatten = src_proj.flatten(2).transpose([0, 2, 1])
 
         src_mask = _convert_attention_mask(src_mask, src_flatten.dtype)
         src_mask = src_mask.reshape([bs, 1, 1, -1])
 
+        x = time.time()
         memory = self.encoder(
             src_flatten, src_mask=src_mask, pos_embed=pos_embed)
-
+        print('encoder: ', time.time() - x)
+        
+        
         query_pos_embed = self.query_pos_embed.weight.unsqueeze(0).tile(
             [bs, 1, 1])
         tgt = paddle.zeros_like(query_pos_embed)
+        
+        x = time.time()
         output = self.decoder(
             tgt,
             memory,
             memory_mask=src_mask,
             pos_embed=pos_embed,
             query_pos_embed=query_pos_embed)
+        print('decoder: ', time.time() - x)
 
         print('transformer: ', time.time() - tic)
         
