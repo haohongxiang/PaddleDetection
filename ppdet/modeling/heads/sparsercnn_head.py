@@ -316,17 +316,16 @@ class SparseRCNNHead(nn.Layer):
             sampling_ratio=sampling_ratio,
             end_level=end_level,
             aligned=True)
+        
         return box_pooler
 
     def forward(self, features, input_whwh):
 
         bs = len(features[0])
-        bboxes = box_cxcywh_to_xyxy(self.init_proposal_boxes.weight.clone(
-        )).unsqueeze(0)
+        bboxes = box_cxcywh_to_xyxy(self.init_proposal_boxes.weight.clone()).unsqueeze(0)
         bboxes = bboxes * input_whwh.unsqueeze(-2)
 
-        init_features = self.init_proposal_features.weight.unsqueeze(0).tile(
-            [1, bs, 1])
+        init_features = self.init_proposal_features.weight.unsqueeze(0).tile([1, bs, 1])
         proposal_features = init_features.clone()
 
         inter_class_logits = []

@@ -58,7 +58,7 @@ class SparseRCNN(BaseArch):
         body_feats = self.backbone(self.inputs)
         fpn_feats = self.neck(body_feats)
         head_outs = self.head(fpn_feats, self.inputs["img_whwh"])
-
+        
         if not self.training:
             bboxes = self.postprocess(
                 head_outs["pred_logits"], head_outs["pred_boxes"],
