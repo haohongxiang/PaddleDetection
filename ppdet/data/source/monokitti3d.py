@@ -36,7 +36,12 @@ class MonoKitti3d(DetDataset):
             **kwargs)
         pass
 
+    
     def parse_dataset(self):
-        pass
 
         self.roidbs = None
+
+        
+    @staticmethod
+    def get_image_index_str(idx):
+        return "{:06d}".format(idx)

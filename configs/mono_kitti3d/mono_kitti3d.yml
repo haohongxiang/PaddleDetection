@@ -14,21 +14,29 @@ num_classes: 3
 # │   │   ├── velodyne
 # https://github.com/traveller59/second.pytorch/tree/master/second/data/ImageSets
 
+
+
+# wget -c  https://raw.githubusercontent.com/traveller59/second.pytorch/master/second/data/ImageSets/test.txt --no-check-certificate --content-disposition -O ./dataset/kitti3d/ImageSets/test.txt
+# wget -c  https://raw.githubusercontent.com/traveller59/second.pytorch/master/second/data/ImageSets/train.txt --no-check-certificate --content-disposition -O ./dataset/kitti3d/ImageSets/train.txt
+# wget -c  https://raw.githubusercontent.com/traveller59/second.pytorch/master/second/data/ImageSets/val.txt --no-check-certificate --content-disposition -O ./dataset/kitti3d/ImageSets/val.txt
+# wget -c  https://raw.githubusercontent.com/traveller59/second.pytorch/master/second/data/ImageSets/trainval.txt --no-check-certificate --content-disposition -O ./dataset/kitti3d/ImageSets/trainval.txt
+
+
 TrainDataset:
   !MonoKitti3d
-    image_dir: training
-    anno_path: ImageSets/train.txt
     dataset_dir: dataset/kitti3d
+    image_dir: training/
+    anno_path: ImageSets/train.txt
     data_fields: ['image', 'gt_bbox', 'gt_class', 'is_crowd']
 
 EvalDataset:
   !MonoKitti3d
-    image_dir: val2017
-    anno_path: ImageSets/val.txt
     dataset_dir: dataset/kitti3d
+    image_dir: testing/
+    anno_path: ImageSets/val.txt
 
 TestDataset:
   !MonoKitti3d
-    image_dir: val2017
-    anno_path: ImageSets/test.txt
     dataset_dir: dataset/kitti3d
+    image_dir: testing/
+    anno_path: ImageSets/test.txt
