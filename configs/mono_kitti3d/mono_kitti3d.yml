@@ -1,0 +1,34 @@
+metric: KITTI3D
+num_classes: 3
+
+# ├── kitti3d
+# │   ├── ImageSets
+# │   ├── testing
+# │   │   ├── calib
+# │   │   ├── image_2
+# │   │   ├── velodyne
+# │   ├── training
+# │   │   ├── calib
+# │   │   ├── image_2
+# │   │   ├── label_2
+# │   │   ├── velodyne
+# https://github.com/traveller59/second.pytorch/tree/master/second/data/ImageSets
+
+TrainDataset:
+  !MonoKitti3d
+    image_dir: training
+    anno_path: ImageSets/train.txt
+    dataset_dir: dataset/kitti3d
+    data_fields: ['image', 'gt_bbox', 'gt_class', 'is_crowd']
+
+EvalDataset:
+  !MonoKitti3d
+    image_dir: val2017
+    anno_path: ImageSets/val.txt
+    dataset_dir: dataset/kitti3d
+
+TestDataset:
+  !MonoKitti3d
+    image_dir: val2017
+    anno_path: ImageSets/test.txt
+    dataset_dir: dataset/kitti3d
