@@ -7,10 +7,10 @@ Sparse RCNN is a purely sparse method for object detection in images.
 
 ## Model Zoo
 
-| Backbone        | Model      | Proposals | lr schedule |FPS | Box AP | download   | config |
-| :-------------- | :------------- | :-----: | :-----: | :------------: | :-----: | :-----: | :-----: |
-| ResNet50-FPN | Sparse RCNN | 100 | 3x | ---- |  43.0  | [download]() | [config](./sparse_rcnn_r50_fpn_3x_pro100_coco.yml) |
-| ResNet50-FPN | Sparse RCNN | 300 | 3x | ---- |  44.6  | [download]() | [config](./sparse_rcnn_r50_fpn_3x_pro300_coco.yml) |
+| Backbone        | Proposals | lr schedule |FPS | Box AP | download   | config |
+| :-------------- | :-----: | :-----: | :------------: | :-----: | :-----: | :-----: |
+| ResNet50-FPN | 100 | 3x | ---- |  43.0  | [download]() | [config](./sparse_rcnn_r50_fpn_3x_pro100_coco.yml) |
+| ResNet50-FPN | 300 | 3x | ---- |  44.6  | [download]() | [config](./sparse_rcnn_r50_fpn_3x_pro300_coco.yml) |
 
 
 ## Citations
