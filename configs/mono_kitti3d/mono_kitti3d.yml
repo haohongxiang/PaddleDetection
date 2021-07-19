@@ -32,11 +32,11 @@ TrainDataset:
 EvalDataset:
   !MonoKitti3d
     dataset_dir: dataset/kitti3d
-    image_dir: testing/
+    image_dir: training/
     anno_path: ImageSets/val.txt
 
-TestDataset:
-  !MonoKitti3d
-    dataset_dir: dataset/kitti3d
-    image_dir: testing/
-    anno_path: ImageSets/test.txt
+# TestDataset:
+#   !MonoKitti3d
+#     dataset_dir: dataset/kitti3d
+#     image_dir: testing/
+#     anno_path: ImageSets/test.txt
