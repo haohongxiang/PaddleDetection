@@ -17,6 +17,8 @@ import copy
 import numpy as np
 import concurrent.futures as futures
 
+from PIL import Image
+
 from ppdet.core.workspace import register, serializable
 from .dataset import DetDataset
 
@@ -29,6 +31,9 @@ __all__ = ['MonoKitti3d']
 @register
 @serializable
 class MonoKitti3d(DetDataset):
+    
+    CLASSES = ('Pedestrian', 'Cyclist', 'Car')
+    
     def __init__(self, dataset_dir, image_dir, anno_path, data_fields=['image'],
                  sample_num=1, use_default_label=None, num_worker=8, **kwargs):
         super().__init__(
@@ -41,77 +46,84 @@ class MonoKitti3d(DetDataset):
             **kwargs)
         
         [setattr(self, k, v) for k, v in locals().items()]
-        
-        self.anno_path = os.path.join(dataset_dir, anno_path)
-        self.data_root = os.path.join(dataset_dir, image_dir)
-        
-        self.parse_dataset()
+                
+        # self.parse_dataset()
         
         
-    def __getitem__(self, idx):
-        # data batch
-        roidb = copy.deepcopy(self.roidbs[idx])
+#     def __getitem__(self, idx):
+#         # data batch
+#         roidb = copy.deepcopy(self.roidbs[idx])
         
-        return roidb
+#         return roidb
     
     def parse_dataset(self):
         '''parse_dataset
         '''
-        image_ids = [lin.strip() for lin in open(self.anno_path, 'r').readlines() if lin]
-        print(self.data_root)
+        anno_path = os.path.join(self.dataset_dir, self.anno_path)
+        data_root = os.path.join(self.dataset_dir, self.image_dir)
+        print(data_root, anno_path)
+
+        image_ids = [lin.strip() for lin in open(anno_path, 'r').readlines() if lin]
         
         def _parse_func(idx):
             info = {}
             
             if 'image' in self.data_fields:
-                info['im_file'] = get_image_path(self.data_root, idx)
-            
+                info['im_file'] = get_image_path(data_root, idx)
+                
             if 'label' in self.data_fields:
-                info.update({'label_path': get_label_path(self.data_root, idx)})
-                info.update(get_label_anno(info['label_path']))
+                label_path = get_label_path(data_root, idx)
+                info.update(get_label_anno(label_path))
                 
             if 'calib' in self.data_fields:
-                info.update({'calib_path': get_calib_path(self.data_root, idx)})
-                info.update(get_calib_info(info['calib_path']))
+                calib_path = get_calib_path(data_root, idx)
+                info.update(get_calib_info(calib_path))
         
             if 'velodyne' in self.data_fields:
-                info['velodyne_path'] = get_velodyne_path(self.data_root, idx)
+                # info['velodyne_path'] = get_velodyne_path(data_root, idx)
+                pass
             
             if 'label' in self.data_fields and 'calib' in self.data_fields:
-                info.update(compute_centers(info))
+                info.update(self.compute_centers(info))
+            
+            # info = {f'gt_{k}': v for k, v in info.items()}
             
             return info 
-        
         
         with futures.ThreadPoolExecutor(self.num_worker) as executor:
             image_infos = executor.map(_parse_func, image_ids)
             
         self.roidbs = list(image_infos)
         
+    @staticmethod
+    def compute_centers(info):
+        '''center3d and center2d
+        '''
+        loc = info['location']
+        dim = info['dimensions']
+        # bbox = info['bbox']
+        P0, P2 = info['P0'], info['P2']
 
-def compute_centers(info):
-    '''center3d and center2d
-    '''
-    loc = info['location']
-    dim = info['dimensions']
-    # bbox = info['bbox']
-    P0, P2 = info['P0'], info['P2']
-    
-    dst = np.array([0.5, 0.5, 0.5])
-    src = np.array([0.5, 1.0, 0.5])
-    center = loc + dim * (dst - src)
-    
-    offset = (P2[0, 3] - P0[0, 3]) / P2[0, 0]
-    center3d = center.copy()
-    center3d[0, 0] += offset # camera_2
-    
-    _center = np.concatenate((center, np.ones((center.shape[0], 1))), axis=-1)
-    _center = (P2 @ _center.T).T
-    _center = _center[:, [0, 1]] / _center[:, [2]]
-    
-    return {'center3d': center3d, 'center2d': _center}
-    
+        dst = np.array([0.5, 0.5, 0.5])
+        src = np.array([0.5, 1.0, 0.5])
+        center = loc + dim * (dst - src)
 
+        offset = (P2[0, 3] - P0[0, 3]) / P2[0, 0]
+        center3d = center.copy()
+        center3d[0, 0] += offset # camera_2
+
+        _center = np.concatenate((center, np.ones((center.shape[0], 1))), axis=-1)
+        _center = (P2 @ _center.T).T
+        _depth = _center[:, 2]
+        _center = _center[:, [0, 1]] / _center[:, [2]]
+        
+        return {'center3d': center3d, 'center2d': _center, 'depth': _depth}
+    
+    @staticmethod
+    def filter_kitti_anno(info):
+        pass
+        
+    
 def _get_image_index_str(idx):
     return "{:0>6}".format(idx)
     
@@ -154,7 +166,7 @@ def get_label_anno(label_path):
     num_gt = len(content)
     num_objects = len([x[0] for x in content if x[0] != 'DontCare'])
     
-    annos['name'] = np.array([x[0] for x in content])
+    annos['name'] = np.array([class_to_label[x[0]] for x in content])
     annos['truncated'] = np.array([float(x[1]) for x in content])
     annos['occluded'] = np.array([int(x[2]) for x in content])
     annos['alpha'] = np.array([float(x[3]) for x in content])
@@ -203,3 +215,21 @@ def get_calib_info(calib_path, use_homo_coord=True):
         
     return blobs
 
+
+
+class_to_label = {
+    'Car': 0,
+    'Pedestrian': 1,
+    'Cyclist': 2,
+    'Van': 3,
+    'Person_sitting': 4,
+    'Truck': 5,
+    'Tram': 6,
+    'Misc': 7,
+    'DontCare': -1,
+}
+
+
+
+def filter_kitti_anno():
+    pass

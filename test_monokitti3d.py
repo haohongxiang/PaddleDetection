@@ -1,14 +1,3 @@
-
-from ppdet.core.workspace import load_config
-
-
-
-cfg = load_config('./configs/mono_kitti3d/mono_kitti3d.yml')
-
-dataset = cfg['TrainDataset']
-
-print(dataset[1])
-    
 import os
 import glob
 from PIL import Image
@@ -17,11 +6,36 @@ import numpy as np
 import copy
 import math
 
-def show(idx, dataset=dataset):
+from ppdet.core.workspace import load_config
+from ppdet.core.workspace import create
+
+
+cfg = load_config('./configs/mono_kitti3d/mono_kitti3d.yml')
+mode = 'train'
+worker_num = 1
+
+dataset = cfg['TrainDataset']
+
+train_loader = create('{}Reader'.format(mode.capitalize()))(dataset, worker_num)
+
+
+# print(dataset[1])
+
+for blob in train_loader:
+    for k in blob:
+        print(k, blob[k].shape)
+
+def show(idx, dataset=train_loader.dataset):
     '''show
     '''
     blobs = dataset[idx]
-    image = Image.open(blobs['im_file'])
+    
+    print('--------------------')
+    print(type(blobs['image']))
+    print('--------------------')
+    
+    
+    image = Image.fromarray(blobs['image'])
     draw = ImageDraw.Draw(image)
 
     for bbx in blobs['bbox']:
@@ -44,5 +58,5 @@ def show(idx, dataset=dataset):
     image.save(f'test_{idx}.jpg')
     
 
-show(2)
-
+# show(2)
+# 

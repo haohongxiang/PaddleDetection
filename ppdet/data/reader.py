@@ -87,17 +87,41 @@ class BatchCompose(Compose):
 
         # batch data, if user-define batch function needed
         # use user-defined here
-        if self.collate_batch:
+        if self.collate_batch is True:
             batch_data = default_collate_fn(data)
-        else:
+            
+        elif self.collate_batch is False:
             batch_data = {}
             for k in data[0].keys():
                 tmp_data = []
                 for i in range(len(data)):
                     tmp_data.append(data[i][k])
+                                    
                 if not 'gt_' in k and not 'is_crowd' in k and not 'difficult' in k:
                     tmp_data = np.stack(tmp_data, axis=0)
+                
                 batch_data[k] = tmp_data
+        
+        
+        elif self.collate_batch is None:
+            
+            batch_data = {}  
+            for k in data[0].keys():
+                if k == 'curr_iter':
+                    continue
+                
+                tmp_data = []
+                for i in range(len(data)):                    
+                    tmp_data.append(data[i][k])
+                
+                try:
+                    batch_data[k] = np.concatenate(tmp_data, axis=0)
+                except:
+                    print(k, [_d.shape for _d in tmp_data])
+                    c += 1
+
+            batch_data['batch_size'] = np.array([len(data)])
+            
         return batch_data
 
 
