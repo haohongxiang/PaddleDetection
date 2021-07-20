@@ -131,7 +131,7 @@ def get_calib_path(prefix, idx):
     return _get_info_path(idx, os.path.join(prefix, 'calib'), '.txt')
 
 def get_velodyne_path(prefix, idx):
-    return _get_info_path(idx, os.path.join(prefix, 'calib'), '.txt')
+    return _get_info_path(idx, os.path.join(prefix, 'velodyne'), '.bin')
     
     
 def get_label_anno(label_path):
