@@ -27,16 +27,18 @@ TrainDataset:
     dataset_dir: dataset/kitti3d
     image_dir: training/
     anno_path: ImageSets/train.txt
-    data_fields: ['image', 'gt_bbox', 'gt_class', 'is_crowd']
+    data_fields: ['image', 'label', 'calib', 'velodyne']
 
 EvalDataset:
   !MonoKitti3d
     dataset_dir: dataset/kitti3d
     image_dir: training/
     anno_path: ImageSets/val.txt
+    data_fields: ['image', 'label', 'calib', 'velodyne']
 
-# TestDataset:
-#   !MonoKitti3d
-#     dataset_dir: dataset/kitti3d
-#     image_dir: testing/
-#     anno_path: ImageSets/test.txt
+TestDataset:
+  !MonoKitti3d
+    dataset_dir: dataset/kitti3d
+    image_dir: testing/
+    anno_path: ImageSets/test.txt
+    data_fields: ['image', 'calib', 'velodyne']
