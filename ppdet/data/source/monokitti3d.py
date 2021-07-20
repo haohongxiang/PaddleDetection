@@ -85,16 +85,21 @@ class MonoKitti3d(DetDataset):
             
             if 'label' in self.data_fields and 'calib' in self.data_fields:
                 info.update(self.compute_centers(info))
-            
-            # info = {f'gt_{k}': v for k, v in info.items()}
-            
+
             return info 
         
         with futures.ThreadPoolExecutor(self.num_worker) as executor:
             image_infos = executor.map(_parse_func, image_ids)
-            
+        
         self.roidbs = list(image_infos)
         
+        
+    def filter_kitti_anno(self, info):
+        mask = np.array([n in self.CLASSES for n in info['name']])
+        info.update( {k: v[mask] for k, v in info.items() if isinstance(v, np.ndarray) and len(v) == len(mask)} )
+        
+        return info
+
     @staticmethod
     def compute_centers(info):
         '''center3d and center2d
@@ -119,10 +124,7 @@ class MonoKitti3d(DetDataset):
         
         return {'center3d': center3d, 'center2d': _center, 'depth': _depth}
     
-    @staticmethod
-    def filter_kitti_anno(info):
-        pass
-        
+    
     
 def _get_image_index_str(idx):
     return "{:0>6}".format(idx)
@@ -167,6 +169,7 @@ def get_label_anno(label_path):
     num_objects = len([x[0] for x in content if x[0] != 'DontCare'])
     
     annos['name'] = np.array([class_to_label[x[0]] for x in content])
+    # annos['name'] = np.array([x[0] for x in content])
     annos['truncated'] = np.array([float(x[1]) for x in content])
     annos['occluded'] = np.array([int(x[2]) for x in content])
     annos['alpha'] = np.array([float(x[3]) for x in content])

@@ -2989,12 +2989,10 @@ class Resize3d(BaseOperator):
         if 'depth' in sample and len(sample['depth']) > 0:
             pass
         
-        if 'P2' in sample:
-            P2[0, :] *= im_scale_x
-            P2[1, :] *= im_scale_y
-            
-            sample['P2'] = P2
-            
+        if 'P2' in sample and len(sample['depth']) > 0:
+            sample['P2'][0, :] *= im_scale_x
+            sample['P2'][1, :] *= im_scale_y
+                        
         return sample
 
     
