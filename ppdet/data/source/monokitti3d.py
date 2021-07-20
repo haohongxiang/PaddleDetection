@@ -46,7 +46,10 @@ class MonoKitti3d(DetDataset):
             **kwargs)
         
         [setattr(self, k, v) for k, v in locals().items()]
-                
+        
+        self.class_label_map = {c:i for i, c in enumerate(self.CLASSES)}
+        print(self.class_label_map)
+        
         # self.parse_dataset()
         
         
@@ -74,7 +77,8 @@ class MonoKitti3d(DetDataset):
             if 'label' in self.data_fields:
                 label_path = get_label_path(data_root, idx)
                 info.update(get_label_anno(label_path))
-                
+                self.filter_kitti_anno(info, self.CLASSES)
+   
             if 'calib' in self.data_fields:
                 calib_path = get_calib_path(data_root, idx)
                 info.update(get_calib_info(calib_path))
@@ -85,7 +89,10 @@ class MonoKitti3d(DetDataset):
             
             if 'label' in self.data_fields and 'calib' in self.data_fields:
                 info.update(self.compute_centers(info))
-
+            
+            if 'type' in info:
+                info['type'] = [self.class_label_map[n] for n in info['type']]
+            
             return info 
         
         with futures.ThreadPoolExecutor(self.num_worker) as executor:
@@ -93,13 +100,21 @@ class MonoKitti3d(DetDataset):
         
         self.roidbs = list(image_infos)
         
+    
+    @staticmethod
+    def filter_kitti_anno(info, used_classes=None, h_thresh=None, score_thresh=None):
+        if used_classes is not None:
+            mask = np.array([n in used_classes for n in info['type']])
+            info.update( {k: v[mask] for k, v in info.items() if isinstance(v, np.ndarray)} )
         
-    def filter_kitti_anno(self, info):
-        mask = np.array([n in self.CLASSES for n in info['name']])
-        info.update( {k: v[mask] for k, v in info.items() if isinstance(v, np.ndarray) and len(v) == len(mask)} )
+        if h_thresh is not None:
+            pass
+        
+        if score_thresh is not None:
+            pass
         
         return info
-
+    
     @staticmethod
     def compute_centers(info):
         '''center3d and center2d
@@ -154,7 +169,7 @@ def get_label_anno(label_path):
 
     annos = {}
     annos.update({
-        'name': [],
+        'type': [],
         'truncated': [],
         'occluded': [],
         'alpha': [],
@@ -168,8 +183,7 @@ def get_label_anno(label_path):
     num_gt = len(content)
     num_objects = len([x[0] for x in content if x[0] != 'DontCare'])
     
-    annos['name'] = np.array([class_to_label[x[0]] for x in content])
-    # annos['name'] = np.array([x[0] for x in content])
+    annos['type'] = np.array([x[0] for x in content])
     annos['truncated'] = np.array([float(x[1]) for x in content])
     annos['occluded'] = np.array([int(x[2]) for x in content])
     annos['alpha'] = np.array([float(x[3]) for x in content])
@@ -231,8 +245,3 @@ class_to_label = {
     'Misc': 7,
     'DontCare': -1,
 }
-
-
-
-def filter_kitti_anno():
-    pass

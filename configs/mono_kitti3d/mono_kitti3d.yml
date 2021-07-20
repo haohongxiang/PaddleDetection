@@ -1,4 +1,4 @@
-metric: KITTI3D
+metric: MonoKitti3d
 num_classes: 3
 
 # ├── kitti3d
@@ -12,10 +12,9 @@ num_classes: 3
 # │   │   ├── image_2
 # │   │   ├── label_2
 # │   │   ├── velodyne
+
+
 # https://github.com/traveller59/second.pytorch/tree/master/second/data/ImageSets
-
-
-
 # wget -c  https://raw.githubusercontent.com/traveller59/second.pytorch/master/second/data/ImageSets/test.txt --no-check-certificate --content-disposition -O ./dataset/kitti3d/ImageSets/test.txt
 # wget -c  https://raw.githubusercontent.com/traveller59/second.pytorch/master/second/data/ImageSets/train.txt --no-check-certificate --content-disposition -O ./dataset/kitti3d/ImageSets/train.txt
 # wget -c  https://raw.githubusercontent.com/traveller59/second.pytorch/master/second/data/ImageSets/val.txt --no-check-certificate --content-disposition -O ./dataset/kitti3d/ImageSets/val.txt
@@ -53,7 +52,7 @@ TrainReader:
       - RandomFlip3d: { prob: 0.5}
       - NormalizeImage: {is_scale: true, mean: [0.485,0.456,0.406], std: [0.229, 0.224,0.225]}
       - Permute: {}
-  batch_size: 2
+  batch_size: 16
   shuffle: true
   drop_last: true
   collate_batch: ~
@@ -68,6 +67,7 @@ EvalReader:
   shuffle: false
   drop_last: false
   drop_empty: false
+  collate_batch: ~
   
 TestReader:
   sample_transforms:
