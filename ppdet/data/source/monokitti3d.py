@@ -72,14 +72,13 @@ class MonoKitti3d(DetDataset):
             info = {}
             
             if 'image' in self.data_fields:
-                info['label'] = {'im_file': get_image_path(data_root, idx)}
+                info['im_file'] = get_image_path(data_root, idx)
                 
             if 'label' in self.data_fields:
                 label_path = get_label_path(data_root, idx)
                 label = get_label_anno(label_path)
                 label = self.filter_kitti_anno(label, used_classes=self.CLASSES, volume_thresh=0.001)
-                
-                info['label'].update(label)
+                info['label'] = label
    
             if 'calib' in self.data_fields:
                 calib_path = get_calib_path(data_root, idx)
@@ -97,7 +96,10 @@ class MonoKitti3d(DetDataset):
             
             _info = {}
             for k in info:
-                _info.update(info[k])
+                if isinstance(info[k], dict):
+                    _info.update(info[k])
+                else:
+                    _info[k] = info[k]
             
             return _info 
         
