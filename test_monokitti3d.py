@@ -6,6 +6,8 @@ import numpy as np
 import copy
 import math
 
+import paddle
+
 from ppdet.core.workspace import load_config
 from ppdet.core.workspace import create
 
@@ -22,8 +24,11 @@ train_loader = create('{}Reader'.format(mode.capitalize()))(dataset, worker_num)
 # print(dataset[1])
 
 for blob in train_loader:
-    for k in blob:
-        print(k, blob[k].shape)
+    for k, v in blob.items():
+        if isinstance(v, paddle.Tensor):
+            print(k, blob[k].shape)
+        else:
+            print(k, len(blob[k]))
 
 def show(idx, dataset=train_loader.dataset):
     '''show

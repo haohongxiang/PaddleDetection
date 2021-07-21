@@ -105,22 +105,20 @@ class BatchCompose(Compose):
         
         elif self.collate_batch is None:
             
-            batch_data = {}  
+            batch_data = {} 
+            
             for k in data[0].keys():
                 if k == 'curr_iter':
                     continue
                 
                 tmp_data = []
-                for i in range(len(data)):                    
+                for i in range(len(data)):
                     tmp_data.append(data[i][k])
-                
-                try:
-                    batch_data[k] = np.concatenate(tmp_data, axis=0)
-                except:
-                    print(k, [_d.shape for _d in tmp_data])
-                    c += 1
+                        
+                if 'image' in k:
+                    tmp_data = np.stack(tmp_data, axis=0)
 
-            batch_data['batch_size'] = np.array([len(data)])
+                batch_data[k] = tmp_data
             
         return batch_data
 

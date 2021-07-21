@@ -72,28 +72,34 @@ class MonoKitti3d(DetDataset):
             info = {}
             
             if 'image' in self.data_fields:
-                info['im_file'] = get_image_path(data_root, idx)
+                info['label'] = {'im_file': get_image_path(data_root, idx)}
                 
             if 'label' in self.data_fields:
                 label_path = get_label_path(data_root, idx)
-                info.update(get_label_anno(label_path))
-                self.filter_kitti_anno(info, self.CLASSES)
+                label = get_label_anno(label_path)
+                label = self.filter_kitti_anno(label, used_classes=self.CLASSES, volume_thresh=0.001)
+                
+                info['label'].update(label)
    
             if 'calib' in self.data_fields:
                 calib_path = get_calib_path(data_root, idx)
-                info.update(get_calib_info(calib_path))
+                info['calib'] = get_calib_info(calib_path)
         
             if 'velodyne' in self.data_fields:
-                # info['velodyne_path'] = get_velodyne_path(data_root, idx)
+                # info['velodyne'] = get_velodyne_path(data_root, idx)
                 pass
-            
+
             if 'label' in self.data_fields and 'calib' in self.data_fields:
-                info.update(self.compute_centers(info))
+                info['label'].update(self.compute_centers(info['label'], info['calib']))
             
-            if 'type' in info:
-                info['type'] = [self.class_label_map[n] for n in info['type']]
+            if 'label' in self.data_fields:
+                info['label']['type'] = np.array([self.class_label_map[n] for n in info['label']['type']])
             
-            return info 
+            _info = {}
+            for k in info:
+                _info.update(info[k])
+            
+            return _info 
         
         with futures.ThreadPoolExecutor(self.num_worker) as executor:
             image_infos = executor.map(_parse_func, image_ids)
@@ -102,27 +108,32 @@ class MonoKitti3d(DetDataset):
         
     
     @staticmethod
-    def filter_kitti_anno(info, used_classes=None, h_thresh=None, score_thresh=None):
+    def filter_kitti_anno(label, used_classes=None, h_thresh=None, score_thresh=None, volume_thresh=0.001):
         if used_classes is not None:
-            mask = np.array([n in used_classes for n in info['type']])
-            info.update( {k: v[mask] for k, v in info.items() if isinstance(v, np.ndarray)} )
-        
+            mask = np.array([n in used_classes for n in label['type']])
+            label.update( {k: v[mask] for k, v in label.items() if isinstance(v, np.ndarray)} )
+            
+        if score_thresh is not None and 'score' in label:
+            mask = label['score'] > volume_thresh
+            label.update( {k: v[mask] for k, v in label.items() if isinstance(v, np.ndarray)} )
+
         if h_thresh is not None:
-            pass
-        
-        if score_thresh is not None:
-            pass
-        
-        return info
+            mask = label['dimensions'][:, 1] > volume_thresh
+            label.update( {k: label[k][mask] for k in ['dimensions', 'location', 'rotation_y']} )
+            
+        if volume_thresh > 0:
+            mask = label['dimensions'].prod(axis=-1) > volume_thresh
+            label.update( {k: label[k][mask] for k in ['dimensions', 'location', 'rotation_y']} )
+            
+        return label
     
     @staticmethod
-    def compute_centers(info):
+    def compute_centers(label, calib):
         '''center3d and center2d
         '''
-        loc = info['location']
-        dim = info['dimensions']
-        # bbox = info['bbox']
-        P0, P2 = info['P0'], info['P2']
+        loc = label['location']
+        dim = label['dimensions']
+        P0, P2 = calib['P0'], calib['P2']
 
         dst = np.array([0.5, 0.5, 0.5])
         src = np.array([0.5, 1.0, 0.5])
