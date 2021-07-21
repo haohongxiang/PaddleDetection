@@ -2982,9 +2982,12 @@ class Resize3d(BaseOperator):
         # apply bbox
         if 'bbox' in sample and len(sample['bbox']) > 0:
             sample['bbox'] = self.apply_bbox(sample['bbox'], [im_scale_x, im_scale_y], [resize_w, resize_h])
+            
+        if 'bbox_2d' in sample and len(sample['bbox_2d']) > 0:
+            sample['bbox_2d'] = self.apply_bbox(sample['bbox_2d'], [im_scale_x, im_scale_y], [resize_w, resize_h])
 
-        if 'center2d' in sample and len(sample['center2d']) > 0:
-            sample['center2d'] = self.apply_point(sample['center2d'], [im_scale_x, im_scale_y], [resize_w, resize_h])
+        if 'center_2d' in sample and len(sample['center_2d']) > 0:
+            sample['center_2d'] = self.apply_point(sample['center_2d'], [im_scale_x, im_scale_y], [resize_w, resize_h])
             
         if 'depth' in sample and len(sample['depth']) > 0:
             pass
@@ -3044,9 +3047,12 @@ class RandomFlip3d(BaseOperator):
             
             if 'bbox' in sample and len(sample['bbox']) > 0:
                 sample['bbox'] = self.apply_bbox(sample['bbox'], width)
-                                
-            if 'center2d' in sample and len(sample['center2d']) > 0:
-                sample['center2d'] = self.apply_keypoint(sample['center2d'], width)
+                
+            if 'bbox_2d' in sample and len(sample['bbox_2d']) > 0:
+                sample['bbox_2d'] = self.apply_bbox(sample['bbox_2d'], width)
+
+            if 'center_2d' in sample and len(sample['center_2d']) > 0:
+                sample['center_2d'] = self.apply_keypoint(sample['center_2d'], width)
                 
             if 'depth' in sample and len(sample['depth']) > 0:
                 pass
