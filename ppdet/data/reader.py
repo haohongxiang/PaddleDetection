@@ -108,18 +108,16 @@ class BatchCompose(Compose):
             batch_data = {} 
             
             for k in data[0].keys():
-                if k == 'curr_iter':
-                    continue
+                # if k == 'curr_iter':
+                #     continue
                 
-                tmp_data = []
-                for i in range(len(data)):
-                    tmp_data.append(data[i][k])
-                        
+                tmp_data = [_d[k] for _d in data]
+                
                 if 'image' in k:
                     tmp_data = np.stack(tmp_data, axis=0)
 
                 batch_data[k] = tmp_data
-            
+                        
         return batch_data
 
 
