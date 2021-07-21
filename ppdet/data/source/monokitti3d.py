@@ -14,6 +14,7 @@
 
 import os
 import copy
+import math
 import numpy as np
 import concurrent.futures as futures
 
@@ -90,7 +91,8 @@ class MonoKitti3d(DetDataset):
 
             if 'label' in self.data_fields and 'calib' in self.data_fields:
                 info['label'].update(self.compute_centers(info['label'], info['calib']))
-            
+                info['label'].update(self.compute_corners(info['label'], info['calib']))
+                
             if 'label' in self.data_fields:
                 info['label']['type'] = np.array([self.class_label_map[n] for n in info['label']['type']])
             
@@ -142,18 +144,77 @@ class MonoKitti3d(DetDataset):
         center = loc + dim * (dst - src)
 
         offset = (P2[0, 3] - P0[0, 3]) / P2[0, 0]
-        center3d = center.copy()
-        center3d[0, 0] += offset # camera_2
+        _center3d = center.copy()
+        _center3d[0, 0] += offset # camera_2
 
         _center = np.concatenate((center, np.ones((center.shape[0], 1))), axis=-1)
         _center = (P2 @ _center.T).T
         _depth = _center[:, 2]
         _center = _center[:, [0, 1]] / _center[:, [2]]
         
-        return {'center3d': center3d, 'center2d': _center, 'depth': _depth}
+        return {'center_3d': _center3d, 'center_2d': _center, 'depth': _depth}
     
     
+    @staticmethod
+    def compute_corners(label, calib, bbox2d=True):
+        '''
+        y z x(h w l)(kitti label file) <-> x y z(l h w)(camera)
+        '''
+        dims = label['dimensions']
+        locs = label['location']
+        rys = label['rotation_y']
+        K = calib['P2']
+        
+        corners_3d = []
+        corners_2d = []
+        
+        for dim, loc, ry in zip(dims, locs, rys):
+            l, h, w = dim
+            R = rotate_matrix(ry)
+
+            _x = np.array([l, l, 0, 0, l, l, 0, 0]) - l/2
+            _y = np.array([h, h, h, h, 0, 0, 0, 0]) - h
+            _z = np.array([w, 0, 0, w, w, 0, 0, w]) - w/2
+            _corners_3d = np.vstack([_x, _y, _z])
+            _corners_3d = R @ _corners_3d + np.array(loc).reshape(3, 1) # 3 x 8
+            
+            _corners_2d = K[:3, :3] @ _corners_3d
+            _corners_2d = _corners_2d[[0, 1], :] / _corners_2d[[2], :] # 2 x 8
+
+            corners_3d.append(_corners_3d.T)
+            corners_2d.append(_corners_2d.T)
+        
+        corners_2d = np.array(corners_2d)
+        corners_3d = np.array(corners_3d)
+        
+        assert corners_2d.shape == (dims.shape[0], 8, 2), 'corners_2d'
+        assert corners_3d.shape == (dims.shape[0], 8, 3), 'corners_3d'
+        
+        result = {'corners_2d': corners_2d, 'corners_3d': corners_3d}
+        
+        if bbox2d is True:
+            xmin = corners_2d[:, :, 0].min(axis=-1).reshape(-1, 1)
+            xmax = corners_2d[:, :, 0].max(axis=-1).reshape(-1, 1)
+            ymin = corners_2d[:, :, 1].min(axis=-1).reshape(-1, 1)
+            ymax = corners_2d[:, :, 1].max(axis=-1).reshape(-1, 1)
+            bbox_2d = np.concatenate([xmin, ymin, xmax, ymax], axis=-1)
+            
+            assert bbox_2d.shape == (dims.shape[0], 4), 'bbox_2d'
+            
+            result.update({'bbox_2d': bbox_2d})
+            
+        return result
     
+    
+def rotate_matrix(ry):
+    '''yam _rotate_matrix
+    '''
+    R = np.array([[math.cos(ry), 0, math.sin(ry)], 
+                  [0, 1, 0], 
+                  [-math.sin(ry), 0, math.cos(ry)]])
+    return R
+        
+        
 def _get_image_index_str(idx):
     return "{:0>6}".format(idx)
     
@@ -223,6 +284,7 @@ def _to_homo_coord(mat):
     _j, _i = mat.shape
     _mat[:_j, :_i] = mat    
     return _mat
+
 
 def get_calib_info(calib_path, use_homo_coord=True):
     '''P0 P1 P2 P3 R0_rect Tr_velo_to_cam Tr_imu_to_velo
