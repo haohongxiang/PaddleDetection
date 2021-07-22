@@ -21,22 +21,26 @@ dataset = cfg['TrainDataset']
 train_loader = create('{}Reader'.format(mode.capitalize()))(dataset, worker_num)
 
 
-# print(dataset[1])
+print(dataset[1])
 
-for blob in train_loader:
+for i, blob in enumerate(train_loader):
     for k, v in blob.items():
         if isinstance(v, paddle.Tensor):
             print(k, blob[k].shape)
         else:
             print(k, len(blob[k]))
-
+            
+    if i == 3:
+        break
+        
+        
 def show(idx, dataset=train_loader.dataset):
     '''show
     '''
     blobs = dataset[idx]
     
     print('--------------------')
-    print(type(blobs['image']))
+    print(type(blobs['image']), blobs['image'].shape)
     print('--------------------')
     
     
@@ -49,13 +53,13 @@ def show(idx, dataset=train_loader.dataset):
         y = (bbx[1::2]).sum() / 2
         draw.ellipse((x-3, y-3, x+3, y+3), fill='red')
 
-#     pts = blobs['P2'][:3, :3] @ blobs['center3d']
-#     for pt in pts.T:
-#         x = pt[0] / pt[2]
-#         y = pt[1] / pt[2]
-#         draw.ellipse((x-3, y-3, x+3, y+3), fill='green')
+    for bbx in blobs['bbox_2d']:
+        draw.rectangle(tuple(bbx), outline='blue')
+        # x = (bbx[0::2]).sum() / 2
+        # y = (bbx[1::2]).sum() / 2
+        # draw.ellipse((x-3, y-3, x+3, y+3), fill='blue')
 
-    for pt in blobs['center2d']: 
+    for pt in blobs['center_2d']: 
         x = pt[0]
         y = pt[1]
         draw.ellipse((x-3, y-3, x+3, y+3), fill='green')
@@ -63,5 +67,4 @@ def show(idx, dataset=train_loader.dataset):
     image.save(f'test_{idx}.jpg')
     
 
-# show(2)
-# 
+show(2)
