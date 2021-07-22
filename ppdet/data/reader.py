@@ -98,8 +98,21 @@ class BatchCompose(Compose):
                 if not 'gt_' in k and not 'is_crowd' in k and not 'difficult' in k:
                     tmp_data = np.stack(tmp_data, axis=0)
                 batch_data[k] = tmp_data
-        return batch_data
+                
+        elif self.collate_batch is None:
+            batch_data = {} 
+            for k in data[0].keys():
+                # if k == 'curr_iter':
+                #     continue
+                tmp_data = [_d[k] for _d in data]
+                
+                if 'image' in k:
+                    tmp_data = np.stack(tmp_data, axis=0)
 
+                batch_data[k] = tmp_data
+                        
+        return batch_data
+    
 
 class BaseDataLoader(object):
     """
