@@ -43,7 +43,6 @@ def show(idx, dataset=train_loader.dataset):
     print(type(blobs['image']), blobs['image'].shape)
     print('--------------------')
     
-    
     image = Image.fromarray(blobs['image'])
     draw = ImageDraw.Draw(image)
 
@@ -52,7 +51,9 @@ def show(idx, dataset=train_loader.dataset):
         x = (bbx[0::2]).sum() / 2
         y = (bbx[1::2]).sum() / 2
         draw.ellipse((x-3, y-3, x+3, y+3), fill='red')
-
+        
+        print(bbx)
+        
     for bbx in blobs['bbox_2d']:
         draw.rectangle(tuple(bbx), outline='blue')
         # x = (bbx[0::2]).sum() / 2
@@ -67,4 +68,4 @@ def show(idx, dataset=train_loader.dataset):
     image.save(f'test_{idx}.jpg')
     
 
-show(2)
+show(23)

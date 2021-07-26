@@ -48,7 +48,7 @@ class MonoKitti3d(DetDataset):
         
         [setattr(self, k, v) for k, v in locals().items()]
         
-        self.class_label_map = {c:i for i, c in enumerate(self.CLASSES)}
+        self.class_label_map = {c: int(i) for i, c in enumerate(self.CLASSES)}
         print(self.class_label_map)
         
         # self.parse_dataset()
@@ -94,14 +94,16 @@ class MonoKitti3d(DetDataset):
                 info['label'].update(self.compute_corners(info['label'], info['calib']))
                 
             if 'label' in self.data_fields:
-                info['label']['type'] = np.array([self.class_label_map[n] for n in info['label']['type']])
-            
+                info['label']['type'] = np.array([self.class_label_map[n] for n in info['label']['type']], dtype=np.float64)
+    
             _info = {}
             for k in info:
                 if isinstance(info[k], dict):
                     _info.update(info[k])
                 else:
                     _info[k] = info[k]
+            
+            _info.update({k: v.astype(np.float32) for k, v in _info.items() if k != 'type' and isinstance(v, np.ndarray) })
             
             return _info 
         
