@@ -367,12 +367,12 @@ def build_corners(center, depth, size, rs, K):
         n x 8 x 3
     '''
     if center.shape[-1] == 2:
-        center = np.concatenate((center, np.ones(center.shape[0], 1)), axis=-1)
+        center = np.concatenate((center, np.ones((center.shape[0], 1))), axis=-1)
     center *= depth.reshape(-1, 1)
     
     K_inv = np.linalg.pinv(K) # n x 4 x 4
     
-    center_3d = K_inv[:3, :3] @ center[:, :, None] # n x 3 x 1
+    center_3d = K_inv[:, :3, :3] @ center[:, :, None] # n x 3 x 1
     
     corner_3d = []
     for loc, dim, ry, k in zip(center_3d, size, rs, K):
