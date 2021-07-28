@@ -267,7 +267,7 @@ def get_label_anno(label_path):
     # dimensions will convert hwl format to standard lhw(camera) format.
     annos['dimensions'] = np.array([[float(info) for info in x[8:11]] for x in content]).reshape(-1, 3)[:, [2, 0, 1]]
     annos['location'] = np.array([[float(info) for info in x[11:14]] for x in content]).reshape(-1, 3)
-    annos['rotation_y'] = np.array([float(x[14]) for x in content]).reshape(-1)
+    annos['rotation_y'] = np.array([float(x[14]) for x in content]).reshape(-1, 1)
     
     if len(content) != 0 and len(content[0]) == 16:  # have score
         annos['score'] = np.array([float(x[15]) for x in content])
@@ -306,8 +306,11 @@ def get_calib_info(calib_path, use_homo_coord=True):
                 blobs[items[0]] = _to_homo_coord(matrix)
             else:
                 blobs[items[0]] = matrix
-        
+    
+            # blobs[items[0]+'_inv'] = np.linalg.pinv(blobs[items[0]])
+
     return blobs
+
 
 
 
@@ -322,3 +325,59 @@ class_to_label = {
     'Misc': 7,
     'DontCare': -1,
 }
+
+
+
+
+
+def rotate_matrix(ry):
+    '''yam _rotate_matrix
+    '''
+    R = np.array([[math.cos(ry), 0, math.sin(ry)], 
+                  [0, 1, 0], 
+                  [-math.sin(ry), 0, math.cos(ry)]])
+    return R
+
+
+def _corners(loc, dim, ry, K):
+    '''
+    y z x(h w l)(kitti label file) <-> x y z(l h w)(camera)
+    '''
+    l, h, w = dim
+    R = rotate_matrix(ry)
+
+    _x = np.array([l, l, 0, 0, l, l, 0, 0]) - l/2
+    _y = np.array([h, h, h, h, 0, 0, 0, 0]) - h/2
+    _z = np.array([w, 0, 0, w, w, 0, 0, w]) - w/2
+    _corners_3d = np.vstack([_x, _y, _z])
+    _corners_3d = R @ _corners_3d + np.array(loc).reshape(3, 1) # 3 x 8
+
+    return _corners_3d.T 
+    
+    
+def build_corners(center, depth, size, rs, K):
+    '''Corners
+    args:
+        n x 2 [x, y]
+        n x 1
+        n x 3 [l, h, w]
+        n x 1
+        n x 4 x 4
+    return 
+        n x 8 x 3
+    '''
+    if center.shape[-1] == 2:
+        center = np.concatenate((center, np.ones(center.shape[0], 1)), axis=-1)
+    center *= depth.reshape(-1, 1)
+    
+    K_inv = np.linalg.pinv(K) # n x 4 x 4
+    
+    center_3d = K_inv[:3, :3] @ center[:, :, None] # n x 3 x 1
+    
+    corner_3d = []
+    for loc, dim, ry, k in zip(center_3d, size, rs, K):
+        corner_3d.append(_corners(loc, dim, ry, k))
+    
+    corner_3d = np.array(corner_3d) # n, 8, 3
+    
+    return corner_3d
