@@ -60,13 +60,13 @@ def build_corners(center, depth, size, rs, K, origin=(0.5, 0.5, 0.5)):
 
 def point3d_to_image(points, K):
     '''
-    m x 3
-    4 x 4
+    n x m x 3
+    n x 4 x 4
     '''
-    _points = K[:3, :3] @ points.T
-    _points = _points.T
-    _points[:, [0, 1]] /= _points[:, [2]]
+    _points = K[:, :3, :3] @ points.transpose(0, 2, 1)
+    _points = _points.transpose(0, 2, 1)
+    _points[:, :, [0, 1]] /= _points[:, :, [2]]
     
-    return _points[:, [0, 1]]
+    return _points[:, :, [0, 1]]
 
 
