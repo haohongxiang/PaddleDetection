@@ -55,3 +55,18 @@ def build_corners(center, depth, size, rs, K, origin=(0.5, 0.5, 0.5)):
     corner_3d = np.array(corner_3d) # n, 8, 3
     
     return corner_3d
+
+
+
+def point3d_to_image(points, K):
+    '''
+    m x 3
+    4 x 4
+    '''
+    _points = K[:3, :3] @ points.T
+    _points = _points.T
+    _points[:, [0, 1]] /= _points[:, [2]]
+    
+    return _points[:, [0, 1]]
+
+
