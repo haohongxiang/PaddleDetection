@@ -381,3 +381,34 @@ def build_corners(center, depth, size, rs, K):
     corner_3d = np.array(corner_3d) # n, 8, 3
     
     return corner_3d
+
+
+
+from PIL import Image
+from PIL import ImageDraw
+
+def draw_box_3d(image, corners, color=None):
+    '''
+    PIL.Image
+    8 x 2
+    str
+    '''
+    face_idx = [[0, 1, 5, 4],
+                [1, 2, 6, 5],
+                [2, 3, 7, 6],
+                [3, 0, 4, 7]]
+    
+    if color == None:
+        color = 'red'
+        
+    draw = ImageDraw.draw(image)
+    
+    for ind_f in range(4):
+        ind_f = -1
+        f = face_idx[ind_f]
+        for j in range(4):
+            x1, y1 = corners[f[j], 0], corners[f[j], 1]
+            x2, y2 = corners[f[(j + 1) % 4], 0], corners[f[(j + 1) % 4], 1]
+            draw.line(((x1, y1), (x2, y2)), fill=color, width=0)
+            
+    return image
