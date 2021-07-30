@@ -403,9 +403,8 @@ def draw_box_3d(image, corners, color=None):
         
     draw = ImageDraw.draw(image)
     
-    for ind_f in range(4):
-        ind_f = -1
-        f = face_idx[ind_f]
+    for f_i in range(4):
+        f = face_idx[f_i]
         for j in range(4):
             x1, y1 = corners[f[j], 0], corners[f[j], 1]
             x2, y2 = corners[f[(j + 1) % 4], 0], corners[f[(j + 1) % 4], 1]
