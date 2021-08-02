@@ -9,9 +9,16 @@ Welcome to PaddleDetectionL's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: diyibu
-   
+   :caption: 模型库
+
+   CHANGELOG.md
    MODEL_ZOO_cn.md
+
+.. toctree::
+   :maxdepth: 2
+   :caption: 入门
+
+   tutorials/index.rst
 
 
 Indices and tables
