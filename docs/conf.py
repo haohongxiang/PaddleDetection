@@ -30,12 +30,24 @@ release = 'v0.1'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 
-extensions = ['myst_parser', 'sphinx_rtd_theme']
+# extensions = ['myst_parser', 'sphinx_rtd_theme']
 
-source_suffix = {
-    '.rst': 'restructuredtext',
-    '.md': 'markdown',
-}
+extensions = [
+    # 'recommonmark', # for markdown
+    'myst_parser',
+    'sphinx_rtd_theme',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.autosectionlabel',
+]
+autosectionlabel_prefix_document = True
+
+# source_suffix = {
+#     '.rst': 'restructuredtext',
+#     '.md': 'markdown',
+# }
+source_suffix = ['.rst', '.md']
 
 # The master toctree document.
 master_doc = 'index'
@@ -61,3 +73,13 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# github_doc_root = 'https://github.com/rtfd/recommonmark/tree/master/docs/'
+# import recommonmark
+# from recommonmark.transform import AutoStructify
+# def setup(app):
+#     app.add_config_value('recommonmark_config', {
+#             'url_resolver': lambda url: github_doc_root + url,
+#             'auto_toc_tree_section': 'Contents',
+#             }, True)
+#     app.add_transform(AutoStructify)
