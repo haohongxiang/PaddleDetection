@@ -20,6 +20,14 @@ Welcome to PaddleDetectionL's documentation!
 
    tutorials/index.rst
 
+
+.. toctree::
+   :maxdepth: 2
+   :caption: 高阶
+
+   advanced_tutorials/index.rst
+
+
 .. toctree::
    :maxdepth: 2
    :caption: Notebook
