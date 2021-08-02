@@ -20,6 +20,12 @@ Welcome to PaddleDetectionL's documentation!
 
    tutorials/index.rst
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Notebook
+
+   yolov5_mosaic.ipynb
+
 
 Indices and tables
 ==================
