@@ -6,10 +6,12 @@
 Welcome to PaddleDetectionL's documentation!
 ============================================
 
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
-
+   :caption: diyibu
+   
+   MODEL_ZOO_cn.md
 
 
 Indices and tables
