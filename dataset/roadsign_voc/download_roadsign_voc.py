@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # Copyright (c) 2019 PaddlePaddle Authors. All Rights Reserved.
+=======
+# Copyright (c) 2020 PaddlePaddle Authors. All Rights Reserved.
+>>>>>>> 879c90b6d0420410973f5e22932417d174ef45a9
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.

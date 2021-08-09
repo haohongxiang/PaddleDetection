@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # NOTE: this config file is only used for evaluation on COCO test2019 set,
 #       for training or evaluationg on COCO val2017, please use ppyolo.yml
 architecture: YOLOv3
@@ -137,3 +138,20 @@ TestReader:
     - !Permute
       to_bgr: false
       channel_first: True
+=======
+_BASE_: [
+  '../datasets/coco_detection.yml',
+  '../runtime.yml',
+  './_base_/ppyolo_r50vd_dcn.yml',
+  './_base_/optimizer_1x.yml',
+  './_base_/ppyolo_reader.yml',
+]
+
+snapshot_epoch: 16
+
+EvalDataset:
+  !COCODataSet
+    image_dir: test2017
+    anno_path: annotations/image_info_test-dev2017.json
+    dataset_dir: dataset/coco
+>>>>>>> 879c90b6d0420410973f5e22932417d174ef45a9

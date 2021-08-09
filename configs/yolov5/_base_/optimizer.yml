@@ -1,0 +1,17 @@
+epoch: 150
+
+LearningRate:
+  base_lr: 0.01
+  schedulers:
+    - !OneCycle
+      max_epochs: 150
+      use_warmup: True
+    - !LinearWarmup
+      start_factor: 0.0
+      steps: 2896 # 3 epochs, for minicoco 1.5 epochs
+
+OptimizerBuilder:
+  optimizer:
+    type: "Momentum"
+    momentum: 0.937
+    use_nesterov: True

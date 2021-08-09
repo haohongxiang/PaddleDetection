@@ -1,16 +1,20 @@
 # C++端预测部署
 
-## 本教程结构
 
+
+## 各环境编译部署教程
+- [Linux 编译部署](docs/linux_build.md)
+- [Windows编译部署(使用Visual Studio 2019)](docs/windows_vs2019_build.md)
+- [NV Jetson编译部署](docs/Jetson_build.md)
+
+
+## C++部署总览
 [1.说明](#1说明)
 
 [2.主要目录和文件](#2主要目录和文件)
 
-[3.编译部署](#3编译)
 
-
-
-## 1.说明
+### 1.说明
 
 本目录为用户提供一个跨平台的`C++`部署方案，让用户通过`PaddleDetection`训练的模型导出后，即可基于本项目快速运行，也可以快速集成代码结合到自己的项目实际应用中去。
 
@@ -18,9 +22,9 @@
 - 跨平台，支持在 `Windows` 和 `Linux` 完成编译、二次开发集成和部署运行
 - 可扩展性，支持用户针对新模型开发自己特殊的数据预处理等逻辑
 - 高性能，除了`PaddlePaddle`自身带来的性能优势，我们还针对图像检测的特点对关键步骤进行了性能优化
-- 支持各种不同检测模型结构，包括`Yolov3`/`Faster_RCNN`/`SSD`/`RetinaNet`等
+- 支持各种不同检测模型结构，包括`Yolov3`/`Faster_RCNN`/`SSD`等
 
-## 2.主要目录和文件
+### 2.主要目录和文件
 
 ```bash
 deploy/cpp
@@ -48,6 +52,7 @@ deploy/cpp
 └── cmake # 依赖的外部项目cmake（目前仅有yaml-cpp）
 
 ```
+<<<<<<< HEAD
 
 ## 3.编译部署
 
@@ -69,3 +74,5 @@ yolov3_darknet # 模型目录
 仅支持在`Windows`和`Linux`平台编译和使用
 - [Linux 编译指南](https://github.com/PaddlePaddle/PaddleDetection/blob/master/deploy/cpp/docs/linux_build.md)
 - [Windows编译指南(使用Visual Studio 2019)](https://github.com/PaddlePaddle/PaddleDetection/blob/master/deploy/cpp/docs/windows_vs2019_build.md)
+=======
+>>>>>>> 879c90b6d0420410973f5e22932417d174ef45a9

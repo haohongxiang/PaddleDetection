@@ -11,3 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
+               utils, slim)
+
+
+try:
+    from .version import full_version as __version__
+    from .version import commit as __git_commit__
+except ImportError:
+    import sys
+    sys.stderr.write("Warning: import ppdet from source directory " \
+            "without installing, run 'python setup.py install' to " \
+            "install ppdet firstly\n")

@@ -18,9 +18,13 @@ addons:
       - python2.7-dev
   ssh_known_hosts: 13.229.163.131
 before_install:
-  - sudo pip install -U virtualenv pre-commit pip
+  - sudo pip install -U virtualenv pre-commit pip -i https://pypi.tuna.tsinghua.edu.cn/simple
   - docker pull paddlepaddle/paddle:latest
+<<<<<<< HEAD
   - git pull https://github.com/PaddlePaddle/PaddleDetection release/0.4 -r
+=======
+  - git pull https://github.com/PaddlePaddle/PaddleDetection develop
+>>>>>>> 879c90b6d0420410973f5e22932417d174ef45a9
 
 script:
   - exit_code=0

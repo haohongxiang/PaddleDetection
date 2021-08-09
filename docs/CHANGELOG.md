@@ -2,6 +2,121 @@
 
 ## 最新版本信息
 
+<<<<<<< HEAD
+=======
+### 2.1(05.20/2021)
+- 模型丰富度提升：
+    - 发布关键点模型HRNet，HigherHRNet
+    - 发布多目标跟踪模型DeepSort, FairMot, JDE
+
+- 框架基础能力：
+    - 支持无标注框训练
+
+- 预测部署：
+    - Paddle Inference YOLOv3系列模型支持batch size>1预测
+    - 旋转框检测S2ANet模型预测部署打通
+    - 增加量化模型Benchmark
+    - 增加动态图模型与静态图模型Paddle-Lite demo
+
+- 检测模型压缩：
+    - 发布PPYOLO系列模型压缩模型
+
+- 文档：
+    - 更新快速开始，预测部署等教程文档
+    - 新增ONNX模型导出教程
+    - 新增移动端部署文档
+
+
+### 2.0(04.15/2021)
+
+  **说明：** 自2.0版本开始，动态图作为PaddleDetection默认版本，原`dygraph`目录切换为根目录，原静态图实现移动到`static`目录下。
+
+  - 动态图模型丰富度提升：
+    - 发布PP-YOLOv2及PP-YOLO tiny模型，PP-YOLOv2 COCO test数据集精度达到49.5%，V100预测速度达到68.9 FPS
+    - 发布旋转框检测模型S2ANet
+    - 发布两阶段实用模型PSS-Det
+    - 发布人脸检测模型Blazeface
+
+  - 新增基础模块：
+    - 新增SENet，GhostNet，Res2Net骨干网络
+    - 新增VisualDL训练可视化支持
+    - 新增单类别精度计算及PR曲线绘制功能
+    - YOLO系列模型支持NHWC数据格式
+
+  - 预测部署：
+    - 发布主要模型的预测benchmark数据
+    - 适配TensorRT6，支持TensorRT动态尺寸输入，支持TensorRT int8量化预测
+    - PP-YOLO, YOLOv3, SSD, TTFNet, FCOS, Faster RCNN等7类模型在Linux、Windows、NV Jetson平台下python/cpp/TRT预测部署打通:
+
+  - 检测模型压缩：
+    - 蒸馏：新增动态图蒸馏支持，并发布YOLOv3-MobileNetV1蒸馏模型
+    - 联合策略：新增动态图剪裁+蒸馏联合策略压缩方案，并发布YOLOv3-MobileNetV1的剪裁+蒸馏压缩模型
+    - 问题修复：修复动态图量化模型导出问题
+
+  - 文档：
+    - 新增动态图英文文档：包含首页文档，入门使用，快速开始，模型算法、新增数据集等
+    - 新增动态图中英文安装文档
+    - 新增动态图RCNN系列和YOLO系列配置文件模板及配置项说明文档
+
+
+## 历史版本信息
+
+### 2.0-rc(02.23/2021)
+  - 动态图模型丰富度提升：
+    - 优化RCNN模型组网及训练方式，RCNN系列模型精度提升(依赖Paddle develop或2.0.1版本)
+    - 新增支持SSDLite，FCOS，TTFNet，SOLOv2系列模型
+    - 新增行人和车辆垂类目标检测模型
+
+  - 新增动态图基础模块：
+    - 新增MobileNetV3，HRNet骨干网络
+    - 优化RoIAlign计算逻辑，RCNN系列模型精度提升(依赖Paddle develop或2.0.1版本)
+    - 新增支持Synchronized Batch Norm
+    - 新增支持Modulated Deformable Convolution
+
+  - 预测部署：
+    - 发布动态图python、C++、Serving部署解决方案及文档，支持Faster RCNN，Mask RCNN，YOLOv3，PP-YOLO，SSD，TTFNet，FCOS，SOLOv2等系列模型预测部署
+    - 动态图预测部署支持TensorRT模式FP32，FP16推理加速
+
+  - 检测模型压缩：
+    - 裁剪：新增动态图裁剪支持，并发布YOLOv3-MobileNetV1裁剪模型
+    - 量化：新增动态图量化支持，并发布YOLOv3-MobileNetV1和YOLOv3-MobileNetV3量化模型
+
+  - 文档：
+    - 新增动态图入门教程文档：包含安装说明，快速开始，准备数据，训练/评估/预测流程文档
+    - 新增动态图进阶教程文档：包含模型压缩、推理部署文档
+    - 新增动态图模型库文档
+
+### v2.0-beta(12.20/2020)
+  - 动态图支持:
+    - 支持Faster-RCNN, Mask-RCNN, FPN, Cascade Faster/Mask RCNN, YOLOv3和SSD模型，试用版本。
+  - 模型提升：
+    - 更新PP-YOLO MobileNetv3 large和small模型，精度提升，并新增裁剪和蒸馏后的模型。
+  - 新功能：
+    - 支持VisualDL可视化数据预处理图片。
+
+  - Bug修复:
+    - 修复BlazeFace人脸关键点预测bug。
+
+
+### v0.5.0(11/2020)
+  - 模型丰富度提升：
+    - 发布SOLOv2系列模型，其中SOLOv2-Light-R50-VD-DCN-FPN 模型在单卡V100上达到 38.6 FPS，加速24% ，COCO验证集精度达到38.8%, 提升2.4绝对百分点。
+    - 新增Android移动端检测demo，包括SSD、YOLO系列模型，可直接扫码安装体验。
+
+  - 移动端模型优化：
+    - 新增PACT新量化策略，YOLOv3-Mobilenetv3在COCO数据集上比普通量化相比提升0.7%。
+
+  - 易用性提升及功能组件：
+    - 增强generate_proposal_labels算子功能，规避模型出nan风险。
+    - 修复deploy下python与C++预测若干问题。
+    - 统一COCO与VOC数据集下评估流程，支持输出单类AP和P-R曲线。
+    - PP-YOLO支持矩形输入图像。
+
+  - 文档：
+    - 新增目标检测全流程教程，新增Jetson平台部署教程。
+
+
+>>>>>>> 879c90b6d0420410973f5e22932417d174ef45a9
 ### v0.4.0(07/2020)
   - 模型丰富度提升：
     - 发布PPYOLO模型，COCO数据集精度达到45.2%，单卡V100预测速度达到72.9 FPS，精度和预测速度优于YOLOv4模型。
@@ -14,7 +129,11 @@
   - 移动端模型优化：
     - 新增SSDLite系列优化模型，包括新增GhostNet的Backbone，新增FPN组件等，精度提升0.5%-1.5%。
 
+<<<<<<< HEAD
   - 易用性提升机功能组件：
+=======
+  - 易用性提升及功能组件：
+>>>>>>> 879c90b6d0420410973f5e22932417d174ef45a9
     - 新增GridMask, RandomErasing数据增强方法。
     - 新增Matrix NMS支持。
     - 新增EMA(Exponential Moving Average)训练支持。
@@ -44,9 +163,6 @@
     - 支持迁移学习自动进行shape匹配。
     - 优化mask分支评估阶段内存占用。
 
-
-## 历史版本信息
-
 ### v0.2.0(02/2020)
   - 新增模型:
     - 新增基于CBResNet模型。
@@ -72,7 +188,7 @@
   - 文档:
     - 增加详细的数据预处理模块介绍文档以及实现自定义数据Reader文档。
     - 增加如何新增算法模型的文档。
-    - 文档部署到网站: https://paddledetection.readthedocs.io/zh/latest/
+    - 文档部署到网站: https://paddledetection.readthedocs.io
 
 ### 12/2019
 - 增加Res2Net模型。
