@@ -7,5 +7,5 @@ _BASE_:
     "_base_/yolov5_reader.yml",
   ]
 
-snapshot_epoch: 1
-weights: output/yolov5x_minicoco/model_final
+snapshot_epoch: 5
+weights: output/yolov5x_coco/model_final

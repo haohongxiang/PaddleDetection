@@ -19,6 +19,16 @@ YOLOv5FPN:
   width_multiple: 1.25
   feature_maps: [17, 20, 23]
 
+# CSPDarknet:
+#   depth_multiple: 1.0
+#   width_multiple: 1.0
+
+# YOLOv5FPN:
+#   depth_multiple: 1.0
+#   width_multiple: 1.0
+#   feature_maps: [17, 20, 23]
+
+
 YOLOv3Head:
   anchors:
     [

@@ -230,43 +230,58 @@ class YOLOv5Loss(nn.Layer):
         self.num_classes = num_classes
         self.balance = balance
         self.downsample = downsample
-
+        
+        self.num_classes = 80
+        self.no = self.num_classes + 4 + 1 
+        
     def obj_loss(self, pobj, giou, mask):
 
         giou_mask = giou * mask
         giou_mask = paddle.max(giou_mask, axis=1)
         giou_mask = paddle.clip(giou_mask.detach(), min=0)
+        
         mask = paddle.sum(mask, axis=1)
         mask = (mask >= 1)
+        
         # pobj = paddle.reshape(pobj, (-1)
         tobj = ((1 - self.giou_ratio) + self.giou_ratio * giou_mask) * mask
         tobj.stop_gradient = True
-        loss_obj = F.binary_cross_entropy_with_logits(
-                pobj[:, 0, :, :, :], tobj, reduction='mean')
+        
+        loss_obj = F.binary_cross_entropy_with_logits(pobj[:, 0, :, :, :], tobj, reduction='mean')
+        
         return loss_obj
 
     def cls_loss(self, pcls, tcls, mask):
-
         #pcls = pcls.reshape((-1, self.num_classes))
         #tcls = tcls.reshape((-1, self.num_classes))
+        tcls.stop_gradient = True
+        
         loss_cls = F.binary_cross_entropy_with_logits(
             pcls, tcls, reduction='none')
         loss_cls = paddle.mean(loss_cls, axis=-1)
         loss_cls = paddle.sum(loss_cls * mask)
+        
         return loss_cls
 
     def yolov5_loss(self, p, t, anchor, downsample, balance, eps=1e-8):
         loss_boxes, loss_objs, loss_clss = [], [], []
 
-        anchor = [[i / downsample for i in xy] for xy in anchor]
-        x = F.sigmoid(p[:, :, :, :, :, 0]) * 2 - 0.5
-        y = F.sigmoid(p[:, :, :, :, :, 1]) * 2 - 0.5
-        anchor = np.array(anchor).reshape((1, 3, 1, 1, 2)).astype(np.float32)
-        anchor = np.tile(anchor[:, None, :, :, :, :], (1, self.nt_max, 1, 1, 1, 1))
+#         anchor = [[i / downsample for i in xy] for xy in anchor]
+#         anchor = np.array(anchor).reshape((1, 3, 1, 1, 2)).astype(np.float32)
+#         anchor = np.tile(anchor[:, None, :, :, :, :], (1, self.nt_max, 1, 1, 1, 1))
+#         anchor_w = anchor[:, :, :, :, :, 0]
+#         anchor_h = anchor[:, :, :, :, :, 1]
+#         anchor_w = paddle.to_tensor(anchor_w)
+#         anchor_h = paddle.to_tensor(anchor_h)
+        
+        anchor = anchor.reshape((1, 1, 3, 1, 1, 2)) / downsample
+        anchor = paddle.expand(anchor, [1, self.nt_max, 3, 1, 1, 2])
         anchor_w = anchor[:, :, :, :, :, 0]
         anchor_h = anchor[:, :, :, :, :, 1]
-        anchor_w = paddle.to_tensor(anchor_w)
-        anchor_h = paddle.to_tensor(anchor_h)
+
+        x = F.sigmoid(p[:, :, :, :, :, 0]) * 2 - 0.5
+        y = F.sigmoid(p[:, :, :, :, :, 1]) * 2 - 0.5
+
         w = (F.sigmoid(p[:, :, :, :, :, 2]) * 2) ** 2 * anchor_w
         h = (F.sigmoid(p[:, :, :, :, :, 3]) * 2) ** 2 * anchor_h
         pobj, pcls = p[:, :, :, :, :, 4], p[:, :, :, :, :, 5:]
@@ -277,15 +292,16 @@ class YOLOv5Loss(nn.Layer):
         th = t[:, :, :, :, :, 3]
         mask = t[:, :, :, :, :, 4]
         tcls = t[:, :, :, :, :, 5:]
+        
         nm = paddle.sum(mask) + eps
 
         loss = dict()
 
-        pbox = [x, y, w, h]
-        tbox = [tx, ty, tw, th]
+        # pbox = [x, y, w, h]
+        # tbox = [tx, ty, tw, th]
 
-        pbox = xywh2xyxy(pbox)
-        tbox = xywh2xyxy(tbox)
+        pbox = xywh2xyxy([x, y, w, h])
+        tbox = xywh2xyxy([tx, ty, tw, th])
 
         giou = bbox_iou(pbox, tbox, ciou=True)
         loss_box = paddle.sum((1 - giou) * mask)
@@ -293,6 +309,7 @@ class YOLOv5Loss(nn.Layer):
 
         loss_obj = self.obj_loss(pobj, giou, mask)
         loss_cls = self.cls_loss(pcls, tcls, mask)
+        
         loss['loss_obj'] = loss_obj * 1.0 * balance
         loss['loss_cls'] = loss_cls / nm * 0.5
 
@@ -301,18 +318,22 @@ class YOLOv5Loss(nn.Layer):
     def forward(self, inputs, targets, anchors):
         np = len(inputs)
         gt_targets = [targets['target{}'.format(i)] for i in range(np)]
+        
         yolo_losses = dict()
-        for i, (x, t, anchor, downsample) in enumerate(zip(inputs, gt_targets, anchors,
-                                            self.downsample)):
+        for i, (x, t, anchor, downsample) in enumerate(zip(inputs, gt_targets, anchors, self.downsample)):
+                        
             na = len(anchor)
             b, c, h, w = x.shape
             self.nt_max = t.shape[1]
-            no = 85
+
             x = paddle.unsqueeze(x, axis=1)
             x = paddle.expand(x, [b, self.nt_max, c, h, w])
-            x = x.reshape((b, self.nt_max, na, no, h, w)).transpose((0, 1, 2, 4, 5, 3))
-            t = t.reshape((b, self.nt_max, na, no, h, w)).transpose((0, 1, 2, 4, 5, 3))
+            x = x.reshape((b, self.nt_max, na, self.no, h, w)).transpose((0, 1, 2, 4, 5, 3))
+            
+            t = t.reshape((b, self.nt_max, na, self.no, h, w)).transpose((0, 1, 2, 4, 5, 3))
+            
             yolo_loss = self.yolov5_loss(x, t, anchor, downsample, self.balance[i])
+            
             for k, v in yolo_loss.items():
                 if k in yolo_losses:
                     yolo_losses[k] += v
@@ -324,5 +345,6 @@ class YOLOv5Loss(nn.Layer):
             loss += v
 
         yolo_losses['loss'] = loss
+        
         return yolo_losses
 

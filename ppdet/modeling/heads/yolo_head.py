@@ -49,6 +49,7 @@ class YOLOv3Head(nn.Layer):
         self.iou_aware_factor = iou_aware_factor
 
         self.parse_anchor(anchors, anchor_masks)
+                
         self.num_outputs = len(self.anchors)
         self.data_format = data_format
 
@@ -70,7 +71,11 @@ class YOLOv3Head(nn.Layer):
             conv.skip_quant = True
             yolo_output = self.add_sublayer(name, conv)
             self.yolo_outputs.append(yolo_output)
+            
+            
+        self.anchors = [paddle.to_tensor(t, dtype='float32') for t in self.anchors]
 
+        
     def parse_anchor(self, anchors, anchor_masks):
         self.anchors = [[anchors[i] for i in mask] for mask in anchor_masks]
         self.mask_anchors = []

@@ -383,6 +383,7 @@ class Gt2Yolov5Target(BaseOperator):
                     sample['target{}'.format(i)][target_id, a, 2:4, gj, gi] = t[:, 2:4]
                     sample['target{}'.format(i)][target_id, a, 4, gj, gi] = 1.
                     sample['target{}'.format(i)][target_id, a, 5 + c, gj, gi] = 1.
+                    
         return samples
 
 @register_op

@@ -95,6 +95,7 @@ class Trainer(object):
             steps_per_epoch = len(self.loader)
             print("--------steps_per_epoch--------")
             print(steps_per_epoch)
+            
             self.lr = create('LearningRate')(steps_per_epoch)
             
             # g0, g1, g2 = [], [], [] # optimizer parameter groups
@@ -123,6 +124,10 @@ class Trainer(object):
         self._init_metrics()
         self._reset_metrics()
 
+        print('-------------------------')
+        
+        
+        
     def _init_callbacks(self):
         if self.mode == 'train':
             self._callbacks = [LogPrinter(self), Checkpointer(self)]
