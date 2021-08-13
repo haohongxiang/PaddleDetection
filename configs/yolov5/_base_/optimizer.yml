@@ -1,11 +1,11 @@
 # epoch: 150
-epoch: 150
+epoch: 300
 
 LearningRate:
   base_lr: 0.01
   schedulers:
     - !OneCycle
-      max_epochs: 150
+      max_epochs: 300
       use_warmup: True
     - !LinearWarmup
       start_factor: 0.0

@@ -256,8 +256,7 @@ class YOLOv5Loss(nn.Layer):
         #tcls = tcls.reshape((-1, self.num_classes))
         tcls.stop_gradient = True
         
-        loss_cls = F.binary_cross_entropy_with_logits(
-            pcls, tcls, reduction='none')
+        loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='none')
         loss_cls = paddle.mean(loss_cls, axis=-1)
         loss_cls = paddle.sum(loss_cls * mask)
         
