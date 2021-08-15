@@ -110,6 +110,8 @@ class Trainer(object):
             #     elif hasattr(v, 'weight') and isinstance(v.weight, paddle.nn.Parameter):
             #         g1.append(v.weight)
             
+            # self.model = paddle.nn.SyncBatchNorm.convert_sync_batchnorm(self.model)
+
             self.optimizer = create('OptimizerBuilder')(self.lr, self.model.parameters())
 
         self._nranks = dist.get_world_size()
