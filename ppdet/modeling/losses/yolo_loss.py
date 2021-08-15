@@ -363,9 +363,9 @@ class YOLOv5Loss(nn.Layer):
             self.nt_max = t.shape[1]
 
             # x = paddle.unsqueeze(x, axis=1)
-            # x = paddle.expand(x.unsqueeze(axis=1))
-            x = x.unsqueeze(axis=1).expand([self.nt_max, c, h, w])
-            
+            # x = paddle.expand(x.unsqueeze(axis=1), [b, self.nt_max, c, h, w])
+            x = x.unsqueeze(axis=1).expand(shape=[b, self.nt_max, c, h, w])
+
             x = x.reshape((b, self.nt_max, na, self.no, h, w)).transpose((0, 1, 2, 4, 5, 3))
             t = t.reshape((b, self.nt_max, na, self.no, h, w)).transpose((0, 1, 2, 4, 5, 3))
             
