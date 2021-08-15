@@ -1,1258 +1,0 @@
-  File "tools/train.py", line 27
-    <<<<<<< HEAD
-     ^
-SyntaxError: invalid syntax
-  File "tools/train.py", line 297
-    =======
-     ^
-SyntaxError: invalid syntax
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-Traceback (most recent call last):
-  File "tools/train.py", line 33, in <module>
-    from ppdet.core.workspace import load_config, merge_config
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/__init__.py", line 15, in <module>
-    from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/__init__.py", line 15, in <module>
-    from . import source
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/source/__init__.py", line 15, in <module>
-    from . import coco
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/source/coco.py", line 132
-    <<<<<<< HEAD
-    ^
-IndentationError: expected an indented block
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-Traceback (most recent call last):
-  File "tools/train.py", line 33, in <module>
-    from ppdet.core.workspace import load_config, merge_config
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/__init__.py", line 15, in <module>
-    from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/__init__.py", line 15, in <module>
-    from . import source
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/source/__init__.py", line 15, in <module>
-    from . import coco
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/source/coco.py", line 17, in <module>
-    from ppdet.core.workspace import register, serializable
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/core/workspace.py", line 152
-    <<<<<<< HEAD
-     ^
-SyntaxError: invalid syntax
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-Traceback (most recent call last):
-  File "tools/train.py", line 33, in <module>
-    from ppdet.core.workspace import load_config, merge_config
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/__init__.py", line 15, in <module>
-    from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/__init__.py", line 15, in <module>
-    from . import source
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/source/__init__.py", line 15, in <module>
-    from . import coco
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/source/coco.py", line 18, in <module>
-    from .dataset import DetDataset
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/source/dataset.py", line 118
-    <<<<<<< HEAD
-     ^
-SyntaxError: invalid syntax
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-Traceback (most recent call last):
-  File "tools/train.py", line 33, in <module>
-    from ppdet.core.workspace import load_config, merge_config
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/__init__.py", line 15, in <module>
-    from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/__init__.py", line 15, in <module>
-    from . import source
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/source/__init__.py", line 15, in <module>
-    from . import coco
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/source/coco.py", line 18, in <module>
-    from .dataset import DetDataset
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/source/dataset.py", line 24, in <module>
-    from ppdet.utils.download import get_dataset_path
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/utils/download.py", line 28
-    <<<<<<< HEAD
-     ^
-SyntaxError: invalid syntax
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-Traceback (most recent call last):
-  File "tools/train.py", line 33, in <module>
-    from ppdet.core.workspace import load_config, merge_config
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/__init__.py", line 15, in <module>
-    from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/__init__.py", line 16, in <module>
-    from . import transform
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/__init__.py", line 15, in <module>
-    from . import operators
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/operators.py", line 41, in <module>
-    from ppdet.modeling import bbox_utils
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/__init__.py", line 19, in <module>
-    from . import ops
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/ops.py", line 56
-    <<<<<<< HEAD
-    ^
-IndentationError: expected an indented block
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/ops.py:494: DeprecationWarning: invalid escape sequence \_
-  """
-/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/ops.py:1298: DeprecationWarning: invalid escape sequence \l
-  """
-Traceback (most recent call last):
-  File "tools/train.py", line 33, in <module>
-    from ppdet.core.workspace import load_config, merge_config
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/__init__.py", line 15, in <module>
-    from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/__init__.py", line 16, in <module>
-    from . import transform
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/__init__.py", line 15, in <module>
-    from . import operators
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/operators.py", line 41, in <module>
-    from ppdet.modeling import bbox_utils
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/__init__.py", line 20, in <module>
-    from . import backbones
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/backbones/__init__.py", line 19, in <module>
-    from . import mobilenet_v3
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/backbones/mobilenet_v3.py", line 26
-    <<<<<<< HEAD
-     ^
-SyntaxError: invalid syntax
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-Traceback (most recent call last):
-  File "tools/train.py", line 33, in <module>
-    from ppdet.core.workspace import load_config, merge_config
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/__init__.py", line 15, in <module>
-    from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/__init__.py", line 16, in <module>
-    from . import transform
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/__init__.py", line 15, in <module>
-    from . import operators
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/operators.py", line 41, in <module>
-    from ppdet.modeling import bbox_utils
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/__init__.py", line 20, in <module>
-    from . import backbones
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/backbones/__init__.py", line 19, in <module>
-    from . import mobilenet_v3
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/backbones/mobilenet_v3.py", line 150
-    =======
-     ^
-SyntaxError: invalid syntax
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-Traceback (most recent call last):
-  File "tools/train.py", line 33, in <module>
-    from ppdet.core.workspace import load_config, merge_config
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/__init__.py", line 15, in <module>
-    from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/__init__.py", line 16, in <module>
-    from . import transform
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/__init__.py", line 15, in <module>
-    from . import operators
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/operators.py", line 41, in <module>
-    from ppdet.modeling import bbox_utils
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/__init__.py", line 20, in <module>
-    from . import backbones
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/backbones/__init__.py", line 19, in <module>
-    from . import mobilenet_v3
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/backbones/mobilenet_v3.py", line 61
-    >>>>>>> 879c90b6d0420410973f5e22932417d174ef45a9
-     ^
-SyntaxError: invalid syntax
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-Traceback (most recent call last):
-  File "tools/train.py", line 33, in <module>
-    from ppdet.core.workspace import load_config, merge_config
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/__init__.py", line 15, in <module>
-    from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/__init__.py", line 16, in <module>
-    from . import transform
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/__init__.py", line 15, in <module>
-    from . import operators
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/operators.py", line 41, in <module>
-    from ppdet.modeling import bbox_utils
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/__init__.py", line 20, in <module>
-    from . import backbones
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/backbones/__init__.py", line 28, in <module>
-    from . import cspdarknet
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/backbones/cspdarknet.py", line 3
-    from __future__ import absolute_import
-    ^
-SyntaxError: from __future__ imports must occur at the beginning of the file
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-Traceback (most recent call last):
-  File "tools/train.py", line 33, in <module>
-    from ppdet.core.workspace import load_config, merge_config
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/__init__.py", line 15, in <module>
-    from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/__init__.py", line 16, in <module>
-    from . import transform
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/__init__.py", line 15, in <module>
-    from . import operators
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/operators.py", line 41, in <module>
-    from ppdet.modeling import bbox_utils
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/__init__.py", line 20, in <module>
-    from . import backbones
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/backbones/__init__.py", line 28, in <module>
-    from . import cspdarknet
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/backbones/cspdarknet.py", line 10, in <module>
-    from ..architectures.common import parse_model
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/architectures/__init__.py", line 16, in <module>
-    from . import ttfnet
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/architectures/ttfnet.py", line 50
-    <<<<<<< HEAD
-     ^
-SyntaxError: invalid syntax
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-Traceback (most recent call last):
-  File "tools/train.py", line 33, in <module>
-    from ppdet.core.workspace import load_config, merge_config
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/__init__.py", line 15, in <module>
-    from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/__init__.py", line 16, in <module>
-    from . import transform
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/__init__.py", line 15, in <module>
-    from . import operators
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/operators.py", line 41, in <module>
-    from ppdet.modeling import bbox_utils
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/__init__.py", line 20, in <module>
-    from . import backbones
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/backbones/__init__.py", line 28, in <module>
-    from . import cspdarknet
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/backbones/cspdarknet.py", line 10, in <module>
-    from ..architectures.common import parse_model
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/architectures/__init__.py", line 20, in <module>
-    from . import jde
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/architectures/jde.py", line 20, in <module>
-    from ppdet.modeling.mot.utils import scale_coords
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/mot/__init__.py", line 15, in <module>
-    from . import matching
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/mot/matching/__init__.py", line 15, in <module>
-    from . import jde_matching
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/mot/matching/jde_matching.py", line 18, in <module>
-    import lap
-ModuleNotFoundError: No module named 'lap'
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-/usr/local/lib/python3.7/dist-packages/paddle/tensor/creation.py:125: DeprecationWarning: `np.object` is a deprecated alias for the builtin `object`. To silence this warning, use `object` by itself. Doing this will not modify any behavior and is safe. 
-Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
-  if data.dtype == np.object:
-Traceback (most recent call last):
-  File "tools/train.py", line 33, in <module>
-    from ppdet.core.workspace import load_config, merge_config
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/__init__.py", line 15, in <module>
-    from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/__init__.py", line 16, in <module>
-    from . import transform
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/__init__.py", line 15, in <module>
-    from . import operators
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/operators.py", line 41, in <module>
-    from ppdet.modeling import bbox_utils
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/__init__.py", line 23, in <module>
-    from . import heads
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/heads/__init__.py", line 27, in <module>
-    from . import centernet_head
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/heads/centernet_head.py", line 21, in <module>
-    from ppdet.modeling.losses import CTFocalLoss
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/losses/__init__.py", line 16, in <module>
-    from . import iou_aware_loss
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/losses/iou_aware_loss.py", line 21, in <module>
-    from .iou_loss import IouLoss
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/losses/iou_loss.py", line 199
-    <<<<<<< HEAD
-     ^
-SyntaxError: invalid syntax
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-/usr/local/lib/python3.7/dist-packages/paddle/tensor/creation.py:125: DeprecationWarning: `np.object` is a deprecated alias for the builtin `object`. To silence this warning, use `object` by itself. Doing this will not modify any behavior and is safe. 
-Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
-  if data.dtype == np.object:
-Traceback (most recent call last):
-  File "tools/train.py", line 33, in <module>
-    from ppdet.core.workspace import load_config, merge_config
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/__init__.py", line 15, in <module>
-    from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/__init__.py", line 16, in <module>
-    from . import transform
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/__init__.py", line 15, in <module>
-    from . import operators
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/operators.py", line 41, in <module>
-    from ppdet.modeling import bbox_utils
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/__init__.py", line 23, in <module>
-    from . import heads
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/heads/__init__.py", line 27, in <module>
-    from . import centernet_head
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/heads/centernet_head.py", line 21, in <module>
-    from ppdet.modeling.losses import CTFocalLoss
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/losses/__init__.py", line 19, in <module>
-    from . import fcos_loss
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/modeling/losses/fcos_loss.py", line 80
-    <<<<<<< HEAD
-     ^
-SyntaxError: invalid syntax
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-/usr/local/lib/python3.7/dist-packages/paddle/tensor/creation.py:125: DeprecationWarning: `np.object` is a deprecated alias for the builtin `object`. To silence this warning, use `object` by itself. Doing this will not modify any behavior and is safe. 
-Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
-  if data.dtype == np.object:
-Traceback (most recent call last):
-  File "tools/train.py", line 33, in <module>
-    from ppdet.core.workspace import load_config, merge_config
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/__init__.py", line 15, in <module>
-    from . import (core, data, engine, modeling, model_zoo, optimizer, metrics,
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/__init__.py", line 16, in <module>
-    from . import transform
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/__init__.py", line 15, in <module>
-    from . import operators
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/operators.py", line 42, in <module>
-    from ..reader import Compose
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/reader.py", line 171
-    <<<<<<< HEAD
-     ^
-SyntaxError: invalid syntax
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-/usr/local/lib/python3.7/dist-packages/paddle/tensor/creation.py:125: DeprecationWarning: `np.object` is a deprecated alias for the builtin `object`. To silence this warning, use `object` by itself. Doing this will not modify any behavior and is safe. 
-Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
-  if data.dtype == np.object:
-Warning: import ppdet from source directory without installing, run 'python setup.py install' to install ppdet firstly
-Traceback (most recent call last):
-  File "tools/train.py", line 139, in <module>
-    main()
-  File "tools/train.py", line 115, in main
-    cfg = load_config(FLAGS.config)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/core/workspace.py", line 112, in load_config
-    cfg = _load_config_with_base(file_path)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/core/workspace.py", line 92, in _load_config_with_base
-    base_cfg = _load_config_with_base(base_yml)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/core/workspace.py", line 79, in _load_config_with_base
-    file_cfg = yaml.load(f, Loader=yaml.Loader)
-  File "/usr/local/lib/python3.7/dist-packages/yaml/__init__.py", line 114, in load
-    return loader.get_single_data()
-  File "/usr/local/lib/python3.7/dist-packages/yaml/constructor.py", line 51, in get_single_data
-    return self.construct_document(node)
-  File "/usr/local/lib/python3.7/dist-packages/yaml/constructor.py", line 60, in construct_document
-    for dummy in generator:
-  File "/usr/local/lib/python3.7/dist-packages/yaml/constructor.py", line 408, in construct_yaml_seq
-    data.extend(self.construct_sequence(node))
-  File "/usr/local/lib/python3.7/dist-packages/yaml/constructor.py", line 130, in construct_sequence
-    for child in node.value]
-  File "/usr/local/lib/python3.7/dist-packages/yaml/constructor.py", line 130, in <listcomp>
-    for child in node.value]
-  File "/usr/local/lib/python3.7/dist-packages/yaml/constructor.py", line 100, in construct_object
-    data = constructor(self, node)
-  File "/usr/local/lib/python3.7/dist-packages/yaml/constructor.py", line 429, in construct_undefined
-    node.start_mark)
-yaml.constructor.ConstructorError: could not determine a constructor for the tag '!OneCycle'
-  in "configs/yolov5/_base_/optimizer.yml", line 6, column 7
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-/usr/local/lib/python3.7/dist-packages/paddle/tensor/creation.py:125: DeprecationWarning: `np.object` is a deprecated alias for the builtin `object`. To silence this warning, use `object` by itself. Doing this will not modify any behavior and is safe. 
-Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
-  if data.dtype == np.object:
-Warning: import ppdet from source directory without installing, run 'python setup.py install' to install ppdet firstly
-W0809 03:45:28.675200  8749 gen_comm_id_helper.cc:120] connect addr=127.0.0.1:60014 failed 1 times with reason: Connection refused retry after 0.5 seconds
-I0809 03:45:29.175793  8749 nccl_context.cc:74] init nccl context nranks: 4 local rank: 0 gpu id: 0 ring id: 0
-W0809 03:45:30.177915  8749 device_context.cc:404] Please NOTE: device: 0, GPU Compute Capability: 7.0, Driver API Version: 11.2, Runtime API Version: 11.2
-W0809 03:45:30.181808  8749 device_context.cc:422] device: 0, cuDNN Version: 8.1.
-loading annotations into memory...
-Done (t=3.76s)
-creating index...
-index created!
---------steps_per_epoch--------
-97
-[08/09 03:45:46] ppdet.utils.download WARNING: Config dataset_dir ../../dataset/coco is not exits, dataset config is not valid
-[08/09 03:45:46] ppdet.utils.download INFO: Dataset /home/codes/dataset/coco is not valid for reason above, try searching /root/.cache/paddle/dataset or downloading dataset...
-[08/09 03:45:46] ppdet.utils.download INFO: Downloading train2017.zip from http://images.cocodataset.org/zips/train2017.zip
-  0%|          | 0/18883655 [00:00<?, ?KB/s]  0%|          | 13/18883655 [00:00<52:46:02, 99.41KB/s]  0%|          | 30/18883655 [00:00<69:58:42, 74.96KB/s]  0%|          | 38/18883655 [00:03<737:35:17,  7.11KB/s]  0%|          | 43/18883655 [00:04<631:18:48,  8.31KB/s]  0%|          | 78/18883655 [00:05<302:31:34, 17.34KB/s]  0%|          | 82/18883655 [00:05<362:28:51, 14.47KB/s]  0%|          | 90/18883655 [00:05<315:14:49, 16.64KB/s]  0%|          | 93/18883655 [00:06<366:57:43, 14.29KB/s]  0%|          | 96/18883655 [00:06<424:17:56, 12.36KB/s]  0%|          | 98/18883655 [00:08<894:32:04,  5.86KB/s]  0%|          | 108/18883655 [00:08<550:56:10,  9.52KB/s]  0%|          | 111/18883655 [00:13<1625:05:51,  3.23KB/s]  0%|          | 113/18883655 [00:13<1568:54:36,  3.34KB/s]  0%|          | 116/18883655 [00:14<1795:01:09,  2.92KB/s]  0%|          | 117/18883655 [00:15<1852:53:23,  2.83KB/s]  0%|          | 120/18883655 [00:15<1432:49:37,  3.66KB/s]  0%|          | 122/18883655 [00:15<1252:34:19,  4.19KB/s]  0%|          | 124/18883655 [00:16<1098:51:48,  4.77KB/s]  0%|          | 128/18883655 [00:16<777:39:02,  6.75KB/s]   0%|          | 132/18883655 [00:16<603:49:00,  8.69KB/s]  0%|          | 136/18883655 [00:16<499:46:19, 10.50KB/s]  0%|          | 140/18883655 [00:17<433:55:39, 12.09KB/s]  0%|          | 146/18883655 [00:17<420:17:26, 12.48KB/s]  0%|          | 154/18883655 [00:17<301:11:44, 17.42KB/s]  0%|          | 158/18883655 [00:18<372:59:03, 14.06KB/s]  0%|          | 161/18883655 [00:18<378:38:43, 13.85KB/s]  0%|          | 168/18883655 [00:18<294:50:29, 17.79KB/s]  0%|          | 171/18883655 [00:19<550:28:47,  9.53KB/s]  0%|          | 173/18883655 [00:19<558:09:41,  9.40KB/s]  0%|          | 176/18883655 [00:20<829:34:00,  6.32KB/s]  0%|          | 181/18883655 [00:20<607:43:17,  8.63KB/s]WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-  0%|          | 183/18883655 [00:22<1146:39:29,  4.57KB/s]  0%|          | 188/18883655 [00:22<795:20:50,  6.60KB/s]   0%|          | 190/18883655 [00:22<760:03:59,  6.90KB/s]WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-  0%|          | 192/18883655 [00:24<1392:31:59,  3.77KB/s]WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-  0%|          | 193/18883655 [00:24<1522:16:50,  3.45KB/s]  0%|          | 197/18883655 [00:24<1005:43:20,  5.22KB/s]  0%|          | 199/18883655 [00:25<911:51:20,  5.75KB/s]   0%|          | 203/18883655 [00:25<668:07:32,  7.85KB/s]WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-  0%|          | 207/18883655 [00:25<643:40:26,  8.15KB/s]  0%|          | 213/18883655 [00:26<449:52:58, 11.66KB/s]  0%|          | 215/18883655 [00:26<475:58:08, 11.02KB/s]  0%|          | 218/18883655 [00:26<455:41:05, 11.51KB/s]  0%|          | 222/18883655 [00:26<403:03:29, 13.01KB/s]  0%|          | 226/18883655 [00:27<370:01:43, 14.18KB/s]  0%|          | 230/18883655 [00:27<348:28:39, 15.05KB/s]  0%|          | 234/18883655 [00:27<333:58:37, 15.71KB/s]  0%|          | 238/18883655 [00:27<323:35:31, 16.21KB/s]WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-  0%|          | 244/18883655 [00:27<274:25:14, 19.11KB/s]  0%|          | 250/18883655 [00:28<248:49:36, 21.08KB/s]  0%|          | 253/18883655 [00:28<444:01:27, 11.81KB/s]  0%|          | 257/18883655 [00:29<403:08:41, 13.01KB/s]  0%|          | 259/18883655 [00:29<437:31:48, 11.99KB/s]  0%|          | 262/18883655 [00:29<427:45:46, 12.26KB/s]WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-  0%|          | 265/18883655 [00:30<750:39:25,  6.99KB/s]  0%|          | 271/18883655 [00:30<509:49:43, 10.29KB/s]  0%|          | 273/18883655 [00:30<524:40:54, 10.00KB/s]  0%|          | 276/18883655 [00:31<491:24:20, 10.67KB/s]  0%|          | 279/18883655 [00:31<465:47:46, 11.26KB/s]  0%|          | 282/18883655 [00:32<670:31:27,  7.82KB/s]  0%|          | 288/18883655 [00:32<463:40:56, 11.31KB/s]  0%|          | 291/18883655 [00:32<444:47:46, 11.79KB/s]  0%|          | 294/18883655 [00:32<433:27:54, 12.10KB/s]  0%|          | 296/18883655 [00:33<596:12:20,  8.80KB/s]  0%|          | 298/18883655 [00:33<597:19:42,  8.78KB/s]  0%|          | 301/18883655 [00:33<523:46:14, 10.01KB/s]  0%|          | 303/18883655 [00:33<539:42:40,  9.72KB/s]  0%|          | 306/18883655 [00:34<493:44:14, 10.62KB/s]  0%|          | 309/18883655 [00:34<463:41:00, 11.31KB/s]  0%|          | 312/18883655 [00:34<443:47:33, 11.82KB/s]  0%|          | 314/18883655 [00:35<606:02:03,  8.66KB/s]  0%|          | 315/18883655 [00:35<897:03:41,  5.85KB/s]  0%|          | 319/18883655 [00:35<631:03:05,  8.31KB/s]  0%|          | 321/18883655 [00:37<1320:10:58,  3.97KB/s]  0%|          | 322/18883655 [00:37<1302:07:32,  4.03KB/s]  0%|          | 325/18883655 [00:37<951:18:01,  5.51KB/s]   0%|          | 327/18883655 [00:37<859:11:42,  6.10KB/s]  0%|          | 331/18883655 [00:37<614:26:16,  8.54KB/s]  0%|          | 335/18883655 [00:38<832:29:01,  6.30KB/s]  0%|          | 336/18883655 [00:39<876:56:36,  5.98KB/s]  0%|          | 338/18883655 [00:39<806:28:06,  6.50KB/s]  0%|          | 341/18883655 [00:39<662:37:05,  7.92KB/s]  0%|          | 344/18883655 [00:40<964:00:57,  5.44KB/s]  0%|          | 345/18883655 [00:43<3226:32:26,  1.63KB/s]  0%|          | 346/18883655 [00:44<3091:13:28,  1.70KB/s]  0%|          | 347/18883655 [00:44<2731:26:47,  1.92KB/s]  0%|          | 348/18883655 [00:44<2404:26:55,  2.18KB/s]  0%|          | 351/18883655 [00:44<1446:11:34,  3.63KB/s]  0%|          | 353/18883655 [00:45<1181:45:46,  4.44KB/s]  0%|          | 355/18883655 [00:45<1002:16:58,  5.23KB/s]  0%|          | 357/18883655 [00:45<880:47:22,  5.96KB/s]   0%|          | 359/18883655 [00:45<795:37:40,  6.59KB/s]  0%|          | 362/18883655 [00:46<639:38:24,  8.20KB/s]  0%|          | 365/18883655 [00:46<553:27:20,  9.48KB/s]  0%|          | 368/18883655 [00:46<503:39:58, 10.41KB/s]  0%|          | 370/18883655 [00:47<966:11:11,  5.43KB/s]  0%|          | 379/18883655 [00:47<457:13:21, 11.47KB/s]  0%|          | 381/18883655 [00:48<578:17:53,  9.07KB/s]  0%|          | 384/18883655 [00:48<532:19:48,  9.85KB/s]  0%|          | 386/18883655 [00:48<546:11:46,  9.60KB/s]  0%|          | 388/18883655 [00:48<558:12:35,  9.40KB/s]  0%|          | 391/18883655 [00:49<507:44:34, 10.33KB/s]  0%|          | 393/18883655 [00:49<812:26:09,  6.46KB/s]  0%|          | 398/18883655 [00:49<551:04:40,  9.52KB/s]  0%|          | 400/18883655 [00:50<561:18:28,  9.34KB/s]  0%|          | 403/18883655 [00:50<512:04:47, 10.24KB/s]  0%|          | 405/18883655 [00:50<668:22:35,  7.85KB/s]  0%|          | 408/18883655 [00:51<580:52:04,  9.03KB/s]  0%|          | 410/18883655 [00:51<585:37:31,  8.96KB/s]  0%|          | 414/18883655 [00:51<470:33:26, 11.15KB/s]  0%|          | 417/18883655 [00:51<449:30:57, 11.67KB/s]  0%|          | 420/18883655 [00:52<555:20:25,  9.45KB/s]  0%|          | 425/18883655 [00:52<620:56:31,  8.45KB/s]ERROR:root:DataLoader reader thread raised an exception!
-Exception in thread Thread-1:
-Traceback (most recent call last):
-  File "/usr/lib/python3.7/threading.py", line 926, in _bootstrap_inner
-    self.run()
-  File "/usr/lib/python3.7/threading.py", line 870, in run
-    self._target(*self._args, **self._kwargs)
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/dataloader_iter.py", line 411, in _thread_loop
-    batch = self._get_data()
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/dataloader_iter.py", line 525, in _get_data
-    batch.reraise()
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/worker.py", line 168, in reraise
-    raise self.exc_type(msg)
-TypeError: __init__() missing 1 required positional argument: 'dtype'
-
-  0%|          | 428/18883655 [00:53<779:32:09,  6.73KB/s]  0%|          | 429/18883655 [00:53<826:35:05,  6.35KB/s]  0%|          | 431/18883655 [00:54<772:00:54,  6.79KB/s]  0%|          | 432/18883655 [00:54<825:57:41,  6.35KB/s]  0%|          | 433/18883655 [00:54<900:56:45,  5.82KB/s]  0%|          | 435/18883655 [00:54<792:40:05,  6.62KB/s]  0%|          | 436/18883655 [00:55<872:47:53,  6.01KB/s]  0%|          | 438/18883655 [00:55<775:51:46,  6.76KB/s]Process Process-2:
-Traceback (most recent call last):
-  File "/usr/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
-    self.run()
-  File "/usr/lib/python3.7/multiprocessing/process.py", line 99, in run
-    self._target(*self._args, **self._kwargs)
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/worker.py", line 346, in _worker_loop
-    six.reraise(*sys.exc_info())
-  File "/usr/local/lib/python3.7/dist-packages/six.py", line 719, in reraise
-    raise value
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/worker.py", line 341, in _worker_loop
-    out_queue.put((idx, batch, structure))
-  File "/usr/lib/python3.7/multiprocessing/queues.py", line 87, in put
-    self._start_thread()
-  File "/usr/lib/python3.7/multiprocessing/queues.py", line 170, in _start_thread
-    self._thread.start()
-  File "/usr/lib/python3.7/threading.py", line 852, in start
-    _start_new_thread(self._bootstrap, ())
-RuntimeError: can't start new thread
-  0%|          | 439/18883655 [00:55<1343:01:49,  3.91KB/s]  0%|          | 440/18883655 [00:56<1560:22:31,  3.36KB/s]  0%|          | 441/18883655 [00:56<1486:33:40,  3.53KB/s]  0%|          | 443/18883655 [00:56<1115:31:23,  4.70KB/s]  0%|          | 443/18883655 [00:56<673:24:42,  7.79KB/s] 
-Traceback (most recent call last):
-  File "tools/train.py", line 139, in <module>
-    main()
-  File "tools/train.py", line 135, in main
-    run(FLAGS, cfg)
-  File "tools/train.py", line 110, in run
-    trainer.train(FLAGS.eval)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/engine/trainer.py", line 257, in train
-    self._init_metrics(validate=validate)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/engine/trainer.py", line 166, in _init_metrics
-    eval_dataset.check_or_download_dataset()
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/source/dataset.py", line 90, in check_or_download_dataset
-    self.image_dir)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/utils/download.py", line 213, in get_dataset_path
-    get_path(url, data_dir, md5sum, check_exist)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/utils/download.py", line 288, in get_path
-    fullname = _download_dist(url, root_dir, md5sum)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/utils/download.py", line 409, in _download_dist
-    _download(url, path, md5sum)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/utils/download.py", line 377, in _download
-    unit='KB'):
-  File "/usr/local/lib/python3.7/dist-packages/tqdm/std.py", line 1185, in __iter__
-    for obj in iterable:
-  File "/usr/local/lib/python3.7/dist-packages/requests/models.py", line 753, in generate
-    for chunk in self.raw.stream(chunk_size, decode_content=True):
-  File "/usr/local/lib/python3.7/dist-packages/urllib3/response.py", line 576, in stream
-    data = self.read(amt=amt, decode_content=decode_content)
-  File "/usr/local/lib/python3.7/dist-packages/urllib3/response.py", line 519, in read
-    data = self._fp.read(amt) if not fp_closed else b""
-  File "/usr/lib/python3.7/http/client.py", line 461, in read
-    n = self.readinto(b)
-  File "/usr/lib/python3.7/http/client.py", line 505, in readinto
-    n = self.fp.readinto(b)
-  File "/usr/lib/python3.7/socket.py", line 589, in readinto
-    return self._sock.recv_into(b)
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/multiprocess_utils.py", line 138, in __handler__
-    core._throw_error_if_process_failed()
-SystemError: (Fatal) DataLoader process (pid 8855) exited unexpectedly with code 1. Error detailed are lost due to multiprocessing. Rerunning with:
-  1. If run DataLoader by DataLoader.from_generator(...), run with DataLoader.from_generator(..., use_multiprocess=False) may give better error trace.
-  2. If run DataLoader by DataLoader(dataset, ...), run with DataLoader(dataset, ..., num_workers=0) may give better error trace (at /paddle/paddle/fluid/imperative/data_loader.cc:156)
-
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-/usr/local/lib/python3.7/dist-packages/paddle/tensor/creation.py:125: DeprecationWarning: `np.object` is a deprecated alias for the builtin `object`. To silence this warning, use `object` by itself. Doing this will not modify any behavior and is safe. 
-Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
-  if data.dtype == np.object:
-Warning: import ppdet from source directory without installing, run 'python setup.py install' to install ppdet firstly
-W0809 03:49:33.610731 10314 gen_comm_id_helper.cc:120] connect addr=127.0.0.1:31524 failed 1 times with reason: Connection refused retry after 0.5 seconds
-I0809 03:49:34.111027 10314 nccl_context.cc:74] init nccl context nranks: 4 local rank: 0 gpu id: 0 ring id: 0
-W0809 03:49:35.276441 10314 device_context.cc:404] Please NOTE: device: 0, GPU Compute Capability: 7.0, Driver API Version: 11.2, Runtime API Version: 11.2
-W0809 03:49:35.285420 10314 device_context.cc:422] device: 0, cuDNN Version: 8.1.
-loading annotations into memory...
-Done (t=3.57s)
-creating index...
-index created!
-[08/09 03:49:45] reader WARNING: Shared memory size is less than 1G, disable shared_memory in DataLoader
---------steps_per_epoch--------
-97
-[08/09 03:49:48] ppdet.utils.download WARNING: Config dataset_dir ../../dataset/coco is not exits, dataset config is not valid
-[08/09 03:49:48] ppdet.utils.download INFO: Dataset /home/codes/dataset/coco is not valid for reason above, try searching /root/.cache/paddle/dataset or downloading dataset...
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-Process Process-2:
-Traceback (most recent call last):
-  File "/usr/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
-    self.run()
-  File "/usr/lib/python3.7/multiprocessing/process.py", line 99, in run
-    self._target(*self._args, **self._kwargs)
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/worker.py", line 346, in _worker_loop
-    six.reraise(*sys.exc_info())
-  File "/usr/local/lib/python3.7/dist-packages/six.py", line 719, in reraise
-    raise value
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/worker.py", line 341, in _worker_loop
-    out_queue.put((idx, batch, structure))
-  File "/usr/lib/python3.7/multiprocessing/queues.py", line 87, in put
-    self._start_thread()
-  File "/usr/lib/python3.7/multiprocessing/queues.py", line 170, in _start_thread
-    self._thread.start()
-  File "/usr/lib/python3.7/threading.py", line 852, in start
-    _start_new_thread(self._bootstrap, ())
-RuntimeError: can't start new thread
-Traceback (most recent call last):
-  File "tools/train.py", line 139, in <module>
-    main()
-  File "tools/train.py", line 135, in main
-    run(FLAGS, cfg)
-  File "tools/train.py", line 110, in run
-    trainer.train(FLAGS.eval)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/engine/trainer.py", line 257, in train
-    self._init_metrics(validate=validate)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/engine/trainer.py", line 166, in _init_metrics
-    eval_dataset.check_or_download_dataset()
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/source/dataset.py", line 90, in check_or_download_dataset
-    self.image_dir)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/utils/download.py", line 213, in get_dataset_path
-    get_path(url, data_dir, md5sum, check_exist)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/utils/download.py", line 288, in get_path
-    fullname = _download_dist(url, root_dir, md5sum)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/utils/download.py", line 413, in _download_dist
-    time.sleep(0.5)
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/multiprocess_utils.py", line 138, in __handler__
-    core._throw_error_if_process_failed()
-SystemError: (Fatal) DataLoader process (pid 10423) exited unexpectedly with code 1. Error detailed are lost due to multiprocessing. Rerunning with:
-  1. If run DataLoader by DataLoader.from_generator(...), run with DataLoader.from_generator(..., use_multiprocess=False) may give better error trace.
-  2. If run DataLoader by DataLoader(dataset, ...), run with DataLoader(dataset, ..., num_workers=0) may give better error trace (at /paddle/paddle/fluid/imperative/data_loader.cc:156)
-
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-/usr/local/lib/python3.7/dist-packages/paddle/tensor/creation.py:125: DeprecationWarning: `np.object` is a deprecated alias for the builtin `object`. To silence this warning, use `object` by itself. Doing this will not modify any behavior and is safe. 
-Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
-  if data.dtype == np.object:
-Warning: import ppdet from source directory without installing, run 'python setup.py install' to install ppdet firstly
-W0809 03:51:11.713088 11852 gen_comm_id_helper.cc:120] connect addr=127.0.0.1:49475 failed 1 times with reason: Connection refused retry after 0.5 seconds
-I0809 03:51:12.213543 11852 nccl_context.cc:74] init nccl context nranks: 4 local rank: 0 gpu id: 0 ring id: 0
-W0809 03:51:13.228929 11852 device_context.cc:404] Please NOTE: device: 0, GPU Compute Capability: 7.0, Driver API Version: 11.2, Runtime API Version: 11.2
-W0809 03:51:13.235427 11852 device_context.cc:422] device: 0, cuDNN Version: 8.1.
-loading annotations into memory...
-Done (t=3.77s)
-creating index...
-index created!
---------steps_per_epoch--------
-97
-[08/09 03:51:25] ppdet.utils.download WARNING: Config dataset_dir ../../dataset/coco is not exits, dataset config is not valid
-[08/09 03:51:25] ppdet.utils.download INFO: Dataset /home/codes/dataset/coco is not valid for reason above, try searching /root/.cache/paddle/dataset or downloading dataset...
-[08/09 03:51:25] ppdet.utils.download INFO: Downloading train2017.zip from http://images.cocodataset.org/zips/train2017.zip
-  0%|          | 0/18883655 [00:00<?, ?KB/s]  0%|          | 14/18883655 [00:00<81:09:20, 64.63KB/s]  0%|          | 35/18883655 [00:00<68:38:27, 76.42KB/s]  0%|          | 43/18883655 [00:00<87:55:59, 59.65KB/s]  0%|          | 60/18883655 [00:00<82:45:26, 63.38KB/s]  0%|          | 92/18883655 [00:01<58:10:06, 90.18KB/s]  0%|          | 106/18883655 [00:01<107:49:48, 48.65KB/s]  0%|          | 156/18883655 [00:02<60:32:00, 86.65KB/s]   0%|          | 178/18883655 [00:02<59:04:44, 88.79KB/s]WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-  0%|          | 192/18883655 [00:03<98:52:58, 53.05KB/s]  0%|          | 223/18883655 [00:03<75:07:05, 69.83KB/s]  0%|          | 234/18883655 [00:03<99:16:09, 52.84KB/s]  0%|          | 242/18883655 [00:04<129:56:22, 40.37KB/s]  0%|          | 249/18883655 [00:04<162:42:43, 32.24KB/s]  0%|          | 254/18883655 [00:05<206:44:12, 25.37KB/s]  0%|          | 258/18883655 [00:05<218:18:58, 24.03KB/s]  0%|          | 261/18883655 [00:05<294:24:00, 17.82KB/s]  0%|          | 264/18883655 [00:06<310:51:12, 16.87KB/s]  0%|          | 266/18883655 [00:06<347:51:04, 15.08KB/s]  0%|          | 269/18883655 [00:06<359:39:47, 14.58KB/s]  0%|          | 275/18883655 [00:06<299:57:34, 17.49KB/s]  0%|          | 280/18883655 [00:06<281:59:37, 18.60KB/s]  0%|          | 286/18883655 [00:07<459:16:25, 11.42KB/s]  0%|          | 294/18883655 [00:08<336:39:44, 15.58KB/s]  0%|          | 297/18883655 [00:08<348:23:28, 15.06KB/s]  0%|          | 300/18883655 [00:08<359:24:23, 14.59KB/s]WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-  0%|          | 303/18883655 [00:09<457:43:03, 11.46KB/s]  0%|          | 311/18883655 [00:09<317:01:42, 16.55KB/s]WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-  0%|          | 315/18883655 [00:09<314:07:38, 16.70KB/s]WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-  0%|          | 321/18883655 [00:09<275:14:13, 19.06KB/s]  0%|          | 326/18883655 [00:09<265:33:17, 19.75KB/s]  0%|          | 332/18883655 [00:10<244:14:31, 21.48KB/s]WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-  0%|          | 337/18883655 [00:10<243:36:22, 21.53KB/s]  0%|          | 343/18883655 [00:10<229:50:55, 22.82KB/s]  0%|          | 351/18883655 [00:10<199:38:09, 26.27KB/s]  0%|          | 360/18883655 [00:11<226:31:51, 23.16KB/s]  0%|          | 370/18883655 [00:11<186:19:38, 28.15KB/s]  0%|          | 375/18883655 [00:12<250:00:07, 20.98KB/s]  0%|          | 378/18883655 [00:12<274:02:04, 19.14KB/s]WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-  0%|          | 381/18883655 [00:12<443:02:40, 11.84KB/s]WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-  0%|          | 392/18883655 [00:13<334:41:05, 15.67KB/s]  0%|          | 394/18883655 [00:13<364:59:07, 14.37KB/s]  0%|          | 399/18883655 [00:13<329:47:49, 15.90KB/s]  0%|          | 403/18883655 [00:14<323:04:32, 16.24KB/s]  0%|          | 407/18883655 [00:14<317:42:30, 16.51KB/s]  0%|          | 412/18883655 [00:14<293:57:54, 17.84KB/s]  0%|          | 419/18883655 [00:14<247:03:06, 21.23KB/s]  0%|          | 426/18883655 [00:15<220:34:37, 23.78KB/s]  0%|          | 431/18883655 [00:15<290:55:17, 18.03KB/s]  0%|          | 441/18883655 [00:16<320:07:57, 16.38KB/s]  0%|          | 443/18883655 [00:16<351:26:44, 14.93KB/s]  0%|          | 447/18883655 [00:17<624:38:45,  8.40KB/s]WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-  0%|          | 451/18883655 [00:17<542:35:42,  9.67KB/s]  0%|          | 454/18883655 [00:17<512:45:03, 10.23KB/s]  0%|          | 456/18883655 [00:18<528:23:10,  9.93KB/s]  0%|          | 459/18883655 [00:19<1020:13:39,  5.14KB/s]  0%|          | 461/18883655 [00:19<936:15:28,  5.60KB/s]   0%|          | 463/18883655 [00:20<861:56:27,  6.09KB/s]  0%|          | 468/18883655 [00:20<795:11:49,  6.60KB/s]  0%|          | 472/18883655 [00:20<629:08:01,  8.34KB/s]  0%|          | 475/18883655 [00:21<569:15:25,  9.21KB/s]  0%|          | 477/18883655 [00:21<576:25:09,  9.10KB/s]  0%|          | 483/18883655 [00:21<402:41:05, 13.03KB/s]  0%|          | 487/18883655 [00:22<648:02:51,  8.09KB/s]  0%|          | 489/18883655 [00:22<640:19:04,  8.19KB/s]  0%|          | 491/18883655 [00:23<872:52:35,  6.01KB/s]  0%|          | 494/18883655 [00:23<730:05:08,  7.18KB/s]  0%|          | 497/18883655 [00:23<631:10:36,  8.31KB/s]  0%|          | 500/18883655 [00:24<562:19:44,  9.33KB/s]  0%|          | 505/18883655 [00:24<428:21:16, 12.25KB/s]  0%|          | 509/18883655 [00:25<675:34:16,  7.76KB/s]  0%|          | 515/18883655 [00:25<481:36:45, 10.89KB/s]  0%|          | 518/18883655 [00:25<463:52:20, 11.31KB/s]  0%|          | 521/18883655 [00:25<449:08:22, 11.68KB/s]  0%|          | 523/18883655 [00:26<812:42:27,  6.45KB/s]  0%|          | 525/18883655 [00:27<768:35:05,  6.82KB/s]  0%|          | 528/18883655 [00:27<654:17:30,  8.02KB/s]  0%|          | 532/18883655 [00:28<859:46:36,  6.10KB/s]  0%|          | 533/18883655 [00:28<1184:02:04,  4.43KB/s]  0%|          | 535/18883655 [00:30<1664:40:20,  3.15KB/s]  0%|          | 537/18883655 [00:30<1384:45:06,  3.79KB/s]  0%|          | 540/18883655 [00:30<1030:55:41,  5.09KB/s]  0%|          | 543/18883655 [00:30<817:07:50,  6.42KB/s]   0%|          | 549/18883655 [00:31<513:38:58, 10.21KB/s]  0%|          | 554/18883655 [00:31<413:03:54, 12.70KB/s]  0%|          | 556/18883655 [00:31<552:08:21,  9.50KB/s]  0%|          | 558/18883655 [00:31<562:48:09,  9.32KB/s]  0%|          | 561/18883655 [00:32<514:56:24, 10.19KB/s]Process Process-3:
-Traceback (most recent call last):
-  File "/usr/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
-    self.run()
-  File "/usr/lib/python3.7/multiprocessing/process.py", line 99, in run
-    self._target(*self._args, **self._kwargs)
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/worker.py", line 346, in _worker_loop
-    six.reraise(*sys.exc_info())
-  File "/usr/local/lib/python3.7/dist-packages/six.py", line 719, in reraise
-    raise value
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/worker.py", line 341, in _worker_loop
-    out_queue.put((idx, batch, structure))
-  File "/usr/lib/python3.7/multiprocessing/queues.py", line 87, in put
-    self._start_thread()
-  File "/usr/lib/python3.7/multiprocessing/queues.py", line 170, in _start_thread
-    self._thread.start()
-  File "/usr/lib/python3.7/threading.py", line 852, in start
-    _start_new_thread(self._bootstrap, ())
-RuntimeError: can't start new thread
-  0%|          | 563/18883655 [00:33<1193:27:00,  4.40KB/s]  0%|          | 564/18883655 [00:34<1361:00:05,  3.85KB/s]  0%|          | 571/18883655 [00:34<674:29:52,  7.78KB/s]   0%|          | 574/18883655 [00:34<603:35:21,  8.69KB/s]  0%|          | 576/18883655 [00:34<316:08:52, 16.59KB/s]
-Traceback (most recent call last):
-  File "tools/train.py", line 139, in <module>
-    main()
-  File "tools/train.py", line 135, in main
-    run(FLAGS, cfg)
-  File "tools/train.py", line 110, in run
-    trainer.train(FLAGS.eval)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/engine/trainer.py", line 257, in train
-    self._init_metrics(validate=validate)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/engine/trainer.py", line 166, in _init_metrics
-    eval_dataset.check_or_download_dataset()
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/source/dataset.py", line 90, in check_or_download_dataset
-    self.image_dir)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/utils/download.py", line 213, in get_dataset_path
-    get_path(url, data_dir, md5sum, check_exist)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/utils/download.py", line 288, in get_path
-    fullname = _download_dist(url, root_dir, md5sum)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/utils/download.py", line 409, in _download_dist
-    _download(url, path, md5sum)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/utils/download.py", line 377, in _download
-    unit='KB'):
-  File "/usr/local/lib/python3.7/dist-packages/tqdm/std.py", line 1185, in __iter__
-    for obj in iterable:
-  File "/usr/local/lib/python3.7/dist-packages/requests/models.py", line 753, in generate
-    for chunk in self.raw.stream(chunk_size, decode_content=True):
-  File "/usr/local/lib/python3.7/dist-packages/urllib3/response.py", line 576, in stream
-    data = self.read(amt=amt, decode_content=decode_content)
-  File "/usr/local/lib/python3.7/dist-packages/urllib3/response.py", line 519, in read
-    data = self._fp.read(amt) if not fp_closed else b""
-  File "/usr/lib/python3.7/http/client.py", line 461, in read
-    n = self.readinto(b)
-  File "/usr/lib/python3.7/http/client.py", line 505, in readinto
-    n = self.fp.readinto(b)
-  File "/usr/lib/python3.7/socket.py", line 589, in readinto
-    return self._sock.recv_into(b)
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/multiprocess_utils.py", line 138, in __handler__
-    core._throw_error_if_process_failed()
-SystemError: (Fatal) DataLoader process (pid 11950) exited unexpectedly with code 1. Error detailed are lost due to multiprocessing. Rerunning with:
-  1. If run DataLoader by DataLoader.from_generator(...), run with DataLoader.from_generator(..., use_multiprocess=False) may give better error trace.
-  2. If run DataLoader by DataLoader(dataset, ...), run with DataLoader(dataset, ..., num_workers=0) may give better error trace (at /paddle/paddle/fluid/imperative/data_loader.cc:156)
-
-Traceback (most recent call last):
-  File "/usr/lib/python3.7/multiprocessing/queues.py", line 236, in _feed
-    obj = _ForkingPickler.dumps(obj)
-  File "/usr/lib/python3.7/multiprocessing/reduction.py", line 51, in dumps
-    cls(buf, protocol).dump(obj)
-OverflowError: cannot serialize a bytes object larger than 4 GiB
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-/usr/local/lib/python3.7/dist-packages/paddle/tensor/creation.py:125: DeprecationWarning: `np.object` is a deprecated alias for the builtin `object`. To silence this warning, use `object` by itself. Doing this will not modify any behavior and is safe. 
-Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
-  if data.dtype == np.object:
-Warning: import ppdet from source directory without installing, run 'python setup.py install' to install ppdet firstly
-W0809 03:59:08.655330 13842 gen_comm_id_helper.cc:120] connect addr=127.0.0.1:45345 failed 1 times with reason: Connection refused retry after 0.5 seconds
-I0809 03:59:09.155819 13842 nccl_context.cc:74] init nccl context nranks: 4 local rank: 0 gpu id: 0 ring id: 0
-W0809 03:59:10.374122 13842 device_context.cc:404] Please NOTE: device: 0, GPU Compute Capability: 7.0, Driver API Version: 11.2, Runtime API Version: 11.2
-W0809 03:59:10.380787 13842 device_context.cc:422] device: 0, cuDNN Version: 8.1.
-loading annotations into memory...
-Done (t=3.63s)
-creating index...
-index created!
---------steps_per_epoch--------
-97
-[08/09 03:59:20] ppdet.utils.download WARNING: Config dataset_dir ../../dataset/coco is not exits, dataset config is not valid
-[08/09 03:59:20] ppdet.utils.download INFO: Dataset /home/codes/dataset/coco is not valid for reason above, try searching /root/.cache/paddle/dataset or downloading dataset...
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-WARNING:root:DataLoader reader thread raised an exception.
-Exception in thread Thread-1:
-Traceback (most recent call last):
-  File "/usr/lib/python3.7/threading.py", line 926, in _bootstrap_inner
-    self.run()
-  File "/usr/lib/python3.7/threading.py", line 870, in run
-    self._target(*self._args, **self._kwargs)
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/dataloader_iter.py", line 199, in _thread_loop
-    six.reraise(*sys.exc_info())
-  File "/usr/local/lib/python3.7/dist-packages/six.py", line 719, in reraise
-    raise value
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/dataloader_iter.py", line 167, in _thread_loop
-    batch = self._dataset_fetcher.fetch(indices)
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/fetcher.py", line 109, in fetch
-    data = self.collate_fn(data)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/reader.py", line 91, in __call__
-    batch_data = default_collate_fn(data)
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/collate.py", line 70, in default_collate_fn
-    for key in sample
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/collate.py", line 70, in <dictcomp>
-    for key in sample
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/collate.py", line 58, in default_collate_fn
-    batch = np.stack(batch, axis=0)
-  File "<__array_function__ internals>", line 6, in stack
-  File "/usr/local/lib/python3.7/dist-packages/numpy/core/shape_base.py", line 433, in stack
-    return _nx.concatenate(expanded_arrays, axis=axis, out=out)
-  File "<__array_function__ internals>", line 6, in concatenate
-numpy.core._exceptions._ArrayMemoryError: Unable to allocate 19.5 GiB for an array with shape (64, 50, 3, 85, 80, 80) and data type float32
-
-grep: warning: GREP_OPTIONS is deprecated; please use an alias or script
-/usr/local/lib/python3.7/dist-packages/paddle/tensor/creation.py:125: DeprecationWarning: `np.object` is a deprecated alias for the builtin `object`. To silence this warning, use `object` by itself. Doing this will not modify any behavior and is safe. 
-Deprecated in NumPy 1.20; for more details and guidance: https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations
-  if data.dtype == np.object:
-Warning: import ppdet from source directory without installing, run 'python setup.py install' to install ppdet firstly
-W0809 04:03:24.950592 14237 gen_comm_id_helper.cc:120] connect addr=127.0.0.1:57266 failed 1 times with reason: Connection refused retry after 0.5 seconds
-I0809 04:03:25.451061 14237 nccl_context.cc:74] init nccl context nranks: 4 local rank: 0 gpu id: 0 ring id: 0
-W0809 04:03:26.503587 14237 device_context.cc:404] Please NOTE: device: 0, GPU Compute Capability: 7.0, Driver API Version: 11.2, Runtime API Version: 11.2
-W0809 04:03:26.510387 14237 device_context.cc:422] device: 0, cuDNN Version: 8.1.
-loading annotations into memory...
-Done (t=4.09s)
-creating index...
-index created!
---------steps_per_epoch--------
-97
-[08/09 04:03:38] ppdet.utils.download WARNING: Config dataset_dir ../../dataset/coco is not exits, dataset config is not valid
-[08/09 04:03:38] ppdet.utils.download INFO: Dataset /home/codes/dataset/coco is not valid for reason above, try searching /root/.cache/paddle/dataset or downloading dataset...
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-ERROR:root:DataLoader reader thread raised an exception!
-Exception in thread Thread-1:
-Traceback (most recent call last):
-  File "/usr/lib/python3.7/threading.py", line 926, in _bootstrap_inner
-    self.run()
-  File "/usr/lib/python3.7/threading.py", line 870, in run
-    self._target(*self._args, **self._kwargs)
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/dataloader_iter.py", line 411, in _thread_loop
-    batch = self._get_data()
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/dataloader_iter.py", line 525, in _get_data
-    batch.reraise()
-  File "/usr/local/lib/python3.7/dist-packages/paddle/fluid/dataloader/worker.py", line 168, in reraise
-    raise self.exc_type(msg)
-TypeError: __init__() missing 1 required positional argument: 'dtype'
-
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-[08/09 04:03:50] reader WARNING: fail to map batch transform [Gt2Yolov5Target_5df836] with error: Unable to allocate 174. MiB for an array with shape (28, 3, 85, 80, 80) and data type float32 and stack:
-Traceback (most recent call last):
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/reader.py", line 73, in __call__
-    data = f(data)
-  File "/home/codes/train_yolov5/PaddleDetection/ppdet/data/transform/batch_operators.py", line 324, in __call__
-    dtype=np.float32)
-numpy.core._exceptions._ArrayMemoryError: Unable to allocate 174. MiB for an array with shape (28, 3, 85, 80, 80) and data type float32
-
-WARNING: Detect dataset only contains single fileds, return format changed since Paddle 2.1. In Paddle <= 2.0, DataLoader add a list surround output data(e.g. return [data]), and in Paddle >= 2.1, DataLoader return the single filed directly (e.g. return data). For example, in following code: 
-
-import numpy as np
-from paddle.io import DataLoader, Dataset
-
-class RandomDataset(Dataset):
-    def __getitem__(self, idx):
-        data = np.random.random((2, 3)).astype('float32')
-
-        return data
-
-    def __len__(self):
-        return 10
-
-dataset = RandomDataset()
-loader = DataLoader(dataset, batch_size=1)
-data = next(loader())
-
-In Paddle <= 2.0, data is in format '[Tensor(shape=(1, 2, 3), dtype=float32)]', and in Paddle >= 2.1, data is in format 'Tensor(shape=(1, 2, 3), dtype=float32)'
-
-
-
---------------------------------------
-C++ Traceback (most recent call last):
---------------------------------------
-0   paddle::framework::SignalHandle(char const*, int)
-1   paddle::platform::GetCurrentTraceBackString[abi:cxx11]()
-
-----------------------
-Error Message Summary:
-----------------------
-FatalError: `Termination signal` is detected by the operating system.
-  [TimeInfo: *** Aborted at 1628481837 (unix time) try "date -d @1628481837" if you are using GNU date ***]
-  [SignalInfo: *** SIGTERM (@0x3760) received by PID 14237 (TID 0x7f5026d9e740) from PID 14176 ***]
-

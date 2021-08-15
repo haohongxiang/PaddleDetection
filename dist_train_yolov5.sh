@@ -1,3 +1,5 @@
+rm /dev/shm/* -rf
+
 ps aux | grep tools/train.py | awk '{print $2}' | xargs kill -9
 
 sleep 3
