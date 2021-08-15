@@ -246,7 +246,7 @@ class YOLOv5Loss(nn.Layer):
         # pobj = paddle.reshape(pobj, (-1)
         tobj = ((1 - self.giou_ratio) + self.giou_ratio * giou_mask) * mask
         tobj.stop_gradient = True
-        
+    
         loss_obj = F.binary_cross_entropy_with_logits(pobj[:, 0, :, :, :], tobj, reduction='mean')
         
         return loss_obj
@@ -254,11 +254,21 @@ class YOLOv5Loss(nn.Layer):
     def cls_loss(self, pcls, tcls, mask):
         #pcls = pcls.reshape((-1, self.num_classes))
         #tcls = tcls.reshape((-1, self.num_classes))
-        tcls.stop_gradient = True
         
-        loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='none')
-        loss_cls = paddle.mean(loss_cls, axis=-1)
-        loss_cls = paddle.sum(loss_cls * mask)
+        # print(pcls.shape, tcls.shape, mask.shape)
+        
+        # TODO
+        # mask = mask.unsqueeze(-1)
+        index = (mask > 0).nonzero()
+        tcls = tcls.gather_nd(index)
+        pcls = pcls.gather_nd(index)
+        print(tcls.shape, pcls.shape)
+        
+        loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
+
+        # loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='none')
+        # loss_cls = paddle.mean(loss_cls, axis=-1)
+        # loss_cls = paddle.sum(loss_cls * mask)
         
         return loss_cls
 
@@ -292,7 +302,6 @@ class YOLOv5Loss(nn.Layer):
         mask = t[:, :, :, :, :, 4]
         tcls = t[:, :, :, :, :, 5:]
         
-        nm = paddle.sum(mask) + eps
 
         loss = dict()
 
@@ -301,17 +310,38 @@ class YOLOv5Loss(nn.Layer):
 
         pbox = xywh2xyxy([x, y, w, h])
         tbox = xywh2xyxy([tx, ty, tw, th])
-
-        giou = bbox_iou(pbox, tbox, ciou=True)
-        loss_box = paddle.sum((1 - giou) * mask)
-        loss['loss_box'] = loss_box / nm * 0.05
-
-        loss_obj = self.obj_loss(pobj, giou, mask)
-        loss_cls = self.cls_loss(pcls, tcls, mask)
         
+        nm = paddle.sum(mask)
+        
+        giou = bbox_iou(pbox, tbox, ciou=True)
+        
+        loss_obj = self.obj_loss(pobj, giou, mask)
         loss['loss_obj'] = loss_obj * 1.0 * balance
-        loss['loss_cls'] = loss_cls / nm * 0.5
 
+        if nm.item():
+            index = (mask > 0).nonzero()
+            tcls = tcls.gather_nd(index)
+            pcls = pcls.gather_nd(index)
+            
+            loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
+            loss['loss_cls'] = loss_cls * 0.5
+        
+#             tbox = tbox.gather_nd(index)
+#             pbox = tbox.gather_nd(index)
+#             print(tcls.shape, pcls.shape, tbox.shape, pbox.shape)
+
+            loss_box = paddle.sum((1 - giou) * mask)
+            loss['loss_box'] =  loss_box / nm * 0.05
+
+#         nm = paddle.sum(mask) + eps
+
+#         giou = bbox_iou(pbox, tbox, ciou=True)
+#         loss_box = paddle.sum((1 - giou) * mask)
+#         loss['loss_box'] = loss_box / nm * 0.05
+
+#         loss_cls = self.cls_loss(pcls, tcls, mask)
+#         loss['loss_cls'] = loss_cls / nm * 0.5
+        
         return loss
 
     def forward(self, inputs, targets, anchors):

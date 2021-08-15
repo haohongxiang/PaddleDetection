@@ -8,8 +8,8 @@ LearningRate:
       max_epochs: 300
       use_warmup: True
     - !LinearWarmup
-      start_factor: 0.0
-      steps: 2896 # 3 epochs, for minicoco 1.5 epochs
+      start_factor: 0.1
+      steps: 10000 # 3 epochs, for minicoco 1.5 epochs # 3664
 
 OptimizerBuilder:
   optimizer:
