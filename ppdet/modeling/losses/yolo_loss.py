@@ -247,7 +247,8 @@ class YOLOv5Loss(nn.Layer):
         # pobj = paddle.reshape(pobj, (-1)
         # tobj = ((1 - self.giou_ratio) + self.giou_ratio * giou_mask) * mask
         tobj = (1 - self.giou_ratio) + self.giou_ratio * giou_mask
-
+        # print(pobj.shape, tobj.shape) # [6, 26, 3, 20, 20] [6, 3, 20, 20]
+        
         loss_obj = F.binary_cross_entropy_with_logits(pobj[:, 0, :, :, :], tobj, reduction='mean')
         
         return loss_obj
@@ -285,17 +286,15 @@ class YOLOv5Loss(nn.Layer):
 #         anchor_h = paddle.to_tensor(anchor_h)
         
         anchor = anchor.reshape((1, 1, 3, 1, 1, 2)) / downsample
-        anchor = paddle.expand(anchor, [1, self.nt_max, 3, 1, 1, 2])
-        # anchor_w = anchor[:, :, :, :, :, 0]
-        # anchor_h = anchor[:, :, :, :, :, 1]
+        anchor = anchor.expand([1, self.nt_max, 3, 1, 1, 2])
+        anchor_w = anchor[:, :, :, :, :, 0]
+        anchor_h = anchor[:, :, :, :, :, 1]
 
         x = F.sigmoid(p[:, :, :, :, :, 0]) * 2 - 0.5
         y = F.sigmoid(p[:, :, :, :, :, 1]) * 2 - 0.5
 
-        # w = (F.sigmoid(p[:, :, :, :, :, 2]) * 2) ** 2 * anchor_w
-        # h = (F.sigmoid(p[:, :, :, :, :, 3]) * 2) ** 2 * anchor_h
-        w = (F.sigmoid(p[:, :, :, :, :, 2]) * 2) ** 2 * anchor[:, :, :, :, :, 0]
-        h = (F.sigmoid(p[:, :, :, :, :, 3]) * 2) ** 2 * anchor[:, :, :, :, :, 1]
+        w = (F.sigmoid(p[:, :, :, :, :, 2]) * 2) ** 2 * anchor_w
+        h = (F.sigmoid(p[:, :, :, :, :, 3]) * 2) ** 2 * anchor_h
 
         pobj, pcls = p[:, :, :, :, :, 4], p[:, :, :, :, :, 5:]
 

@@ -2170,10 +2170,12 @@ class RandomPerspective(BaseOperator):
 
         # matmul
         # M = T @ S @ R @ P @ C
-        M = np.eye(3)
-        for cM in [T, S, R, P, C]:
-            M = np.matmul(M, cM)
-
+#         M = np.eye(3)
+#         for cM in [T, S, R, P, C]:
+#             M = np.matmul(M, cM)
+            
+        M = T @ S @ R @ P @ C
+        
         if (self.border[0] != 0) or (self.border[1] != 0) or (
                 M != np.eye(3)).any():
             if self.perspective:
@@ -2195,7 +2197,19 @@ class RandomPerspective(BaseOperator):
                 height,
                 area_thr=self.area_thr,
                 perspective=self.perspective)
-
+        
+        
+#         from PIL import Image, ImageDraw
+#         _im = Image.fromarray(sample['image'])
+#         _draw = ImageDraw.Draw(_im)
+#         for bbx in sample['gt_bbox']:
+#             x, y, w, h = bbx
+#             # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
+#             _draw.rectangle((x, y, w, h), outline='red')
+#         _im.save(str(random.randint(0, 10)) + '.jpg')
+        
+#         c += 1
+        
         return sample    
 
     
@@ -2346,6 +2360,17 @@ class Mosaic(BaseOperator):
         if 'difficult' in sample:
             sample['difficult'] = difficult
 
+            
+#         from PIL import Image, ImageDraw
+#         _im = Image.fromarray(sample['image'])
+#         _draw = ImageDraw.Draw(_im)
+#         for bbx in sample['gt_bbox']:
+#             x, y, w, h = bbx
+#             # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
+#             _draw.rectangle((x, y, w, h), outline='red')
+#         _im.save(str(random.randint(0, 10)) + '.jpg')
+#         c += 1
+        
         return sample
 
 
