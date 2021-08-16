@@ -1,4 +1,4 @@
-worker_num: 4
+worker_num: 2
 TrainReader:
   inputs_def:
     num_max_boxes: 50
@@ -20,7 +20,7 @@ TrainReader:
     - Permute: {}
     - Gt2Yolov5Target: {anchor_masks: [[0, 1, 2], [3, 4, 5], [6, 7, 8]], anchors: [[10, 13], [16, 30], [33, 23], [30, 61], [62, 45], [59, 119], [116, 90], [156, 198], [373, 326]], downsample_ratios: [8, 16, 32]}
   mosaic_epoch: 10000
-  batch_size: 6
+  batch_size: 4
   shuffle: true
   drop_last: true
   use_shared_memory: true

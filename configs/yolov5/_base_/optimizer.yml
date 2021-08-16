@@ -1,15 +1,15 @@
 # epoch: 150
-epoch: 300
+epoch: 150
 
 LearningRate:
   base_lr: 0.01
   schedulers:
     - !OneCycle
-      max_epochs: 300
+      max_epochs: 150
       use_warmup: True
     - !LinearWarmup
       start_factor: 0.1
-      steps: 5000 # 3 epochs, for minicoco 1.5 epochs # 3664
+      steps: 2000 # 3 epochs, for minicoco 1.5 epochs # 3664
 
 OptimizerBuilder:
   optimizer:
