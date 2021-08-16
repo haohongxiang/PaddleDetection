@@ -39,3 +39,4 @@ from .senet import *
 from .res2net import *
 from .dla import *
 from .shufflenet_v2 import *
+from .swin import *

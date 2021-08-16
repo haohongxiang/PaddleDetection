@@ -17,7 +17,6 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-import sys
 import copy
 import time
 
@@ -106,8 +105,16 @@ class Trainer(object):
         if self.mode == 'train':
             steps_per_epoch = len(self.loader)
             self.lr = create('LearningRate')(steps_per_epoch)
-            self.optimizer = create('OptimizerBuilder')(self.lr,
-                                                        self.model.parameters())
+            
+            custom_param_names = ['absolute_pos_embed','relative_position_bias_table','norm']
+            parameters=[
+                {'params': [p for name, p in self.model.named_parameters() if custom_param_names[0] not in name and custom_param_names[1] not in name and custom_param_names[2] not in name], 'weight_decay': 0.05 }, 
+                {'params': [p for name, p in self.model.named_parameters() if custom_param_names[0] in name or custom_param_names[1] in name or custom_param_names[2] in name], 'weight_decay': 0.,}]
+
+            #parameters=[ {'params':[p for name, p in self.model.named_parameters()]}]
+            self.optimizer = create('OptimizerBuilder')(self.lr, parameters)
+            
+            #self.optimizer = create('OptimizerBuilder')(self.lr,self.model.parameters())
 
         self._nranks = dist.get_world_size()
         self._local_rank = dist.get_rank()
@@ -228,27 +235,19 @@ class Trainer(object):
             eval_dataset = self.cfg['EvalDataset']
             eval_dataset.check_or_download_dataset()
             anno_file = eval_dataset.get_anno()
-            save_prediction_only = self.cfg.get('save_prediction_only', False)
             self._metrics = [
-                KeyPointTopDownCOCOEval(
-                    anno_file,
-                    len(eval_dataset),
-                    self.cfg.num_joints,
-                    self.cfg.save_dir,
-                    save_prediction_only=save_prediction_only)
+                KeyPointTopDownCOCOEval(anno_file,
+                                        len(eval_dataset), self.cfg.num_joints,
+                                        self.cfg.save_dir)
             ]
         elif self.cfg.metric == 'KeyPointTopDownMPIIEval':
             eval_dataset = self.cfg['EvalDataset']
             eval_dataset.check_or_download_dataset()
             anno_file = eval_dataset.get_anno()
-            save_prediction_only = self.cfg.get('save_prediction_only', False)
             self._metrics = [
-                KeyPointTopDownMPIIEval(
-                    anno_file,
-                    len(eval_dataset),
-                    self.cfg.num_joints,
-                    self.cfg.save_dir,
-                    save_prediction_only=save_prediction_only)
+                KeyPointTopDownMPIIEval(anno_file,
+                                        len(eval_dataset), self.cfg.num_joints,
+                                        self.cfg.save_dir)
             ]
         elif self.cfg.metric == 'MOTDet':
             self._metrics = [JDEDetMetric(), ]
@@ -301,7 +300,11 @@ class Trainer(object):
 
     def train(self, validate=False):
         assert self.mode == 'train', "Model not in 'train' mode"
-        Init_mark = False
+
+        # if validation in training is enabled, metrics should be re-init
+        if validate:
+            self._init_metrics(validate=validate)
+            self._reset_metrics()
 
         model = self.model
         if self.cfg.get('fleet', False):
@@ -399,12 +402,6 @@ class Trainer(object):
                         self._eval_dataset,
                         self.cfg.worker_num,
                         batch_sampler=self._eval_batch_sampler)
-                # if validation in training is enabled, metrics should be re-init
-                # Init_mark makes sure this code will only execute once
-                if validate and Init_mark == False:
-                    Init_mark = True
-                    self._init_metrics(validate=validate)
-                    self._reset_metrics()
                 with paddle.no_grad():
                     self.status['save_best_model'] = True
                     self._eval_with_loader(self._eval_loader)
@@ -569,12 +566,14 @@ class Trainer(object):
                     shape=[None, 3, 192, 64], name='crops')
             })
 
-        static_model = paddle.jit.to_static(self.model, input_spec=input_spec)
+
+        static_model = paddle.jit.to_static(
+                self.model, input_spec=input_spec)
         # NOTE: dy2st do not pruned program, but jit.save will prune program
         # input spec, prune input spec here and save with pruned input spec
         pruned_input_spec = self._prune_input_spec(
-            input_spec, static_model.forward.main_program,
-            static_model.forward.outputs)
+                input_spec, static_model.forward.main_program,
+                static_model.forward.outputs)
 
         # dy2st and save model
         if 'slim' not in self.cfg or self.cfg['slim_type'] != 'QAT':
