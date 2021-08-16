@@ -6,13 +6,13 @@ TrainReader:
     - Decode: {}
     # - Mixup: {alpha: 1.5, beta: 1.5}
     - Mosaic: {target_size: 640}
-    # - RandomResize: {target_size: [640], random_size: True, random_interp: True, keep_ratio: False}
-    - RandomPerspective: {degree: 0, translate: 0.1, scale: 0.5, shear: 0.0, perspective: 0.0}
+    - RandomResize: {target_size: [640], random_size: True, random_interp: True, keep_ratio: False}
+    # - RandomPerspective: {degree: 0, translate: 0.1, scale: 0.5, shear: 0.0, perspective: 0.0}
     - RandomFlip: {prob: 0.5}
     - RandomHSV: {hgain: 0.015, sgain: 0.7, vgain: 0.4}
     
   batch_transforms:
-    - BatchRandomResize: {target_size: [640], random_size: True, random_interp: True, keep_ratio: False}
+    # - BatchRandomResize: {target_size: [640], random_size: True, random_interp: True, keep_ratio: False}
     - PadBox: {num_max_boxes: 50}
     - BboxXYXY2XYWH: {}
     # - NormalizeImage: {mean: [0.0, 0.0, 0.0], std: [1.0, 1.0, 1.0], is_scale: True}
