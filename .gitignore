@@ -84,4 +84,4 @@ ppdet/version.py
 
 output/*
 *workerlog.*
-
+*.jpg
