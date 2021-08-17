@@ -19,18 +19,28 @@ YOLOv5FPN:
   width_multiple: 1.25
   feature_maps: [17, 20, 23]
 
-# CSPDarknet:
-#   depth_multiple: 1.0
-#   width_multiple: 1.0
 
-# YOLOv5FPN:
-#   depth_multiple: 1.0
-#   width_multiple: 1.0
-#   feature_maps: [17, 20, 23]
+# YOLOv3Head:
+#   anchors:
+#     [
+#       [10, 13],
+#       [16, 30],
+#       [33, 23],
+#       [30, 61],
+#       [62, 45],
+#       [59, 119],
+#       [116, 90],
+#       [156, 198],
+#       [373, 326],
+#     ]
+#   anchor_masks: [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+#   loss: YOLOv5Loss
+# YOLOv5Loss:
+#   downsample: [8, 16, 32]
 
 
 YOLOv3Head:
-  anchors:
+  anchors: 
     [
       [10, 13],
       [16, 30],
@@ -43,10 +53,14 @@ YOLOv3Head:
       [373, 326],
     ]
   anchor_masks: [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-  loss: YOLOv5Loss
-
-YOLOv5Loss:
+  loss: YOLOv3Loss
+  
+YOLOv3Loss:
+  ignore_thresh: 0.7
   downsample: [8, 16, 32]
+  label_smooth: false
+
+
 
 BBoxPostProcess:
   decode:
