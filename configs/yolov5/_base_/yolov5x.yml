@@ -20,27 +20,8 @@ YOLOv5FPN:
   feature_maps: [17, 20, 23]
 
 
-# YOLOv3Head:
-#   anchors:
-#     [
-#       [10, 13],
-#       [16, 30],
-#       [33, 23],
-#       [30, 61],
-#       [62, 45],
-#       [59, 119],
-#       [116, 90],
-#       [156, 198],
-#       [373, 326],
-#     ]
-#   anchor_masks: [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-#   loss: YOLOv5Loss
-# YOLOv5Loss:
-#   downsample: [8, 16, 32]
-
-
 YOLOv3Head:
-  anchors: 
+  anchors:
     [
       [10, 13],
       [16, 30],
@@ -53,20 +34,40 @@ YOLOv3Head:
       [373, 326],
     ]
   anchor_masks: [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-  loss: YOLOv3Loss
+  loss: YOLOv5Loss
   
-YOLOv3Loss:
-  ignore_thresh: 0.7
+YOLOv5Loss:
   downsample: [8, 16, 32]
-  label_smooth: false
 
+
+# YOLOv3Head:
+#   anchors: 
+#     [
+#       [10, 13],
+#       [16, 30],
+#       [33, 23],
+#       [30, 61],
+#       [62, 45],
+#       [59, 119],
+#       [116, 90],
+#       [156, 198],
+#       [373, 326],
+#     ]
+#   anchor_masks: [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+#   loss: YOLOv3Loss
+  
+# YOLOv3Loss:
+#   ignore_thresh: 0.7
+#   downsample: [8, 16, 32]
+#   label_smooth: false
 
 
 BBoxPostProcess:
   decode:
-    name: YOLOBox
+    # name: YOLOBox
+    name: YOLOv5Box
+    downsample: [8, 16, 32]
     conf_thresh: 0.005
-    downsample_ratio: 32
     clip_bbox: true
   nms:
     name: MultiClassNMS

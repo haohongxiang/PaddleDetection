@@ -183,30 +183,15 @@ class YOLOv5(BaseArch):
 
         if self.training:
             yolo_losses = self.yolo_head(neck_feats, self.inputs)
-
-            if self.for_mot:
-                return {'det_losses': yolo_losses, 'emb_feats': emb_feats}
-            else:
-                return yolo_losses
+            return yolo_losses
 
         else:
             yolo_head_outs = self.yolo_head(neck_feats)
 
-            if self.for_mot:
-                boxes_idx, bbox, bbox_num, nms_keep_idx = self.post_process(
-                    yolo_head_outs, self.yolo_head.mask_anchors)
-                output = {
-                    'bbox': bbox,
-                    'bbox_num': bbox_num,
-                    'boxes_idx': boxes_idx,
-                    'nms_keep_idx': nms_keep_idx,
-                    'emb_feats': emb_feats,
-                }
-            else:
-                bbox, bbox_num = self.post_process(
-                    yolo_head_outs, self.yolo_head.mask_anchors,
-                    self.inputs['im_shape'], self.inputs['scale_factor'])
-                output = {'bbox': bbox, 'bbox_num': bbox_num}
+            bbox, bbox_num = self.post_process(
+                yolo_head_outs, self.yolo_head.mask_anchors,
+                self.inputs['im_shape'], self.inputs['scale_factor'])
+            output = {'bbox': bbox, 'bbox_num': bbox_num}
 
             return output
 

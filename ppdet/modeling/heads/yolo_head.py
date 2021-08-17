@@ -72,8 +72,9 @@ class YOLOv3Head(nn.Layer):
             yolo_output = self.add_sublayer(name, conv)
             self.yolo_outputs.append(yolo_output)
             
-            
-        self.anchors = [paddle.to_tensor(t, dtype='float32') for t in self.anchors]
+        
+        # [paddle.to_tensor(t, dtype='float32') for t in self.anchors]
+        self.anchors = paddle.to_tensor(self.anchors, dtype='float32') 
 
         
     def parse_anchor(self, anchors, anchor_masks):

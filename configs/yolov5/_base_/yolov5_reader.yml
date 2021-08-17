@@ -22,8 +22,8 @@ TrainReader:
     # - NormalizeImage: {mean: [0.0, 0.0, 0.0], std: [1.0, 1.0, 1.0], is_scale: True}
     - NormalizeImage: {mean: [0.485, 0.456, 0.406], std: [0.229, 0.224, 0.225], is_scale: True}
     - Permute: {}
-    # - Gt2Yolov5Target: {anchor_masks: [[0, 1, 2], [3, 4, 5], [6, 7, 8]], anchors: [[10, 13], [16, 30], [33, 23], [30, 61], [62, 45], [59, 119], [116, 90], [156, 198], [373, 326]], downsample_ratios: [8, 16, 32]}
-    - Gt2YoloTarget: {anchor_masks: [[0, 1, 2],[3, 4, 5], [6, 7, 8]], anchors: [[10, 13], [16, 30], [33, 23], [30, 61], [62, 45], [59, 119], [116, 90], [156, 198], [373, 326]], downsample_ratios: [8, 16, 32]}
+    - Gt2Yolov5Target: {anchor_masks: [[0, 1, 2], [3, 4, 5], [6, 7, 8]], anchors: [[10, 13], [16, 30], [33, 23], [30, 61], [62, 45], [59, 119], [116, 90], [156, 198], [373, 326]], downsample_ratios: [8, 16, 32]}
+    # - Gt2YoloTarget: {anchor_masks: [[0, 1, 2],[3, 4, 5], [6, 7, 8]], anchors: [[10, 13], [16, 30], [33, 23], [30, 61], [62, 45], [59, 119], [116, 90], [156, 198], [373, 326]], downsample_ratios: [8, 16, 32]}
 
   mosaic_epoch: 10000
   batch_size: 8

@@ -9,7 +9,7 @@ LearningRate:
       use_warmup: True
     - !LinearWarmup
       start_factor: 0.1
-      steps: 2000 # 3 epochs, for minicoco 1.5 epochs # 3664
+      steps: 500 # 3 epochs, for minicoco 1.5 epochs # 3664
 
 OptimizerBuilder:
   optimizer:
