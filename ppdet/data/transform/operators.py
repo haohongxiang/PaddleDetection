@@ -2198,7 +2198,6 @@ class RandomPerspective(BaseOperator):
                 area_thr=self.area_thr,
                 perspective=self.perspective)
         
-        
 #         from PIL import Image, ImageDraw
 #         _im = Image.fromarray(sample['image'])
 #         _draw = ImageDraw.Draw(_im)
@@ -2206,9 +2205,8 @@ class RandomPerspective(BaseOperator):
 #             x, y, w, h = bbx
 #             # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
 #             _draw.rectangle((x, y, w, h), outline='red')
-#         _im.save(str(random.randint(0, 10)) + '.jpg')
-        
-#         c += 1
+#         _im.save('perspective_'+str(random.randint(0, 10)) + '.jpg')
+#         print('perspective: ', _im.size)
         
         return sample    
 
@@ -2360,7 +2358,7 @@ class Mosaic(BaseOperator):
         if 'difficult' in sample:
             sample['difficult'] = difficult
 
-            
+
 #         from PIL import Image, ImageDraw
 #         _im = Image.fromarray(sample['image'])
 #         _draw = ImageDraw.Draw(_im)
@@ -2368,9 +2366,11 @@ class Mosaic(BaseOperator):
 #             x, y, w, h = bbx
 #             # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
 #             _draw.rectangle((x, y, w, h), outline='red')
-#         _im.save(str(random.randint(0, 10)) + '.jpg')
+#         _im.save('mosaic_'+str(random.randint(0, 10)) + '.jpg')
+#         print(_im.size)
 #         c += 1
         
+    
         return sample
 
 

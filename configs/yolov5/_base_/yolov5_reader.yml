@@ -5,9 +5,9 @@ TrainReader:
   sample_transforms:
     - Decode: {}
     # - Mixup: {alpha: 1.5, beta: 1.5}
-    - Mosaic: {target_size: 640}
-    - RandomResize: {target_size: [640], random_size: True, random_interp: True, keep_ratio: False}
-    # - RandomPerspective: {degree: 0, translate: 0.1, scale: 0.5, shear: 0.0, perspective: 0.0}
+    - RandomResize: {target_size: [640], random_interp: True, keep_ratio: True}
+    - Mosaic: {target_size: 640, mosaic_border: [-320, -320]}
+    - RandomPerspective: {degree: 0, translate: 0.1, scale: 0.5, shear: 0.0, perspective: 0.0, border: [-320, -320]}
     - RandomFlip: {prob: 0.5}
     - RandomHSV: {hgain: 0.015, sgain: 0.7, vgain: 0.4}
     
