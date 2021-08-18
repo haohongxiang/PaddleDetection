@@ -376,10 +376,10 @@ class Gt2Yolov5Target(BaseOperator):
 
                 gt_index = t[:, -2].astype(np.int32)
 
-                sample['target{}'.format(i)][gt_index, a, 0:2, gj, gi] = gxy - gij
-                sample['target{}'.format(i)][gt_index, a, 2:4, gj, gi] = t[:, 2:4]
-                sample['target{}'.format(i)][gt_index, a, 4, gj, gi] = 1.
-                sample['target{}'.format(i)][gt_index, a, 5 + c, gj, gi] = 1.
+                sample['target{}'.format(i)][gt_index, a, 0:2, gj, gi] = gxy - gij #xy
+                sample['target{}'.format(i)][gt_index, a, 2:4, gj, gi] = t[:, 2:4] # wh
+                sample['target{}'.format(i)][gt_index, a, 4, gj, gi] = 1. # obj
+                sample['target{}'.format(i)][gt_index, a, 5 + c, gj, gi] = 1. # cls
 
                                 
 #         for img_id, sample in enumerate(samples):
