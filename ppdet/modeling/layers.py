@@ -612,7 +612,6 @@ class YOLOv5Box(object):
             boxes = boxes.reshape([bs, -1, 4])
             scores = scores.reshape([bs, -1, self.num_classes])
             
-            
             # [1, 1200, 4] [1, 1200, 80]
 #             xmim = boxes[:, :, 0] / scale_factor[:, 0].reshape([1, -1])
 #             ymin = boxes[:, :, 1] / scale_factor[:, 0].reshape([1, -1])
@@ -634,7 +633,7 @@ class YOLOv5Box(object):
                 indx = mask.nonzero()
                 boxes = paddle.gather_nd(boxes, indx).unsqueeze(0)
                 scores = paddle.gather_nd(scores, indx).unsqueeze(0)
-
+                obj_scores = paddle.gather_nd(obj_scores, indx).unsqueeze(-1)
                 # print(boxes.shape, scores.shape)
             
                 boxes_list.append( boxes )
