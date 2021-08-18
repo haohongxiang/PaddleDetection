@@ -25,7 +25,7 @@ from ppdet.core.workspace import register
 
 from ..bbox_utils import decode_yolo, xywh2xyxy, iou_similarity, bbox_iou
 
-__all__ = ['YOLOv3Loss', 'YOLOv5Loss']
+__all__ = ['YOLOv3Loss', 'YOLOv5Loss', 'YOLOv5LossV1']
 
 
 def bbox_transform(pbox, anchor, downsample):
@@ -294,7 +294,8 @@ class YOLOv5Loss(nn.Layer):
         tbox = xywh2xyxy([tx, ty, tw, th])
         
         nm = mask.sum()
-        
+        # print('nm.item(): ', nm.item(), mask.sum())
+
         giou = bbox_iou(pbox, tbox, ciou=True)
         # giou = bbox_iou(pbox, tbox, ciou=True).detach()
         # giou.stop_gradient = True
@@ -303,7 +304,7 @@ class YOLOv5Loss(nn.Layer):
         loss['loss_obj'] = loss_obj * 1.0 * balance
 
         if nm.item():
-            # index = (mask > 0).nonzero()
+            index = (mask > 0).nonzero()
             tcls = tcls.gather_nd(index)
             pcls = pcls.gather_nd(index)
             loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
@@ -311,12 +312,11 @@ class YOLOv5Loss(nn.Layer):
             
             # loss_cls = self.cls_loss(pcls, tcls, mask)
             # loss['loss_cls'] = loss_cls / nm * 0.5
-            print('loss_cls: ', loss['loss_cls'], self.cls_loss(pcls, tcls, mask) / nm * 0.5)
             
             loss_box = paddle.sum((1 - giou) * mask)
             loss['loss_box'] = loss_box / nm * 0.05
             
-            print('loss_box: ', loss['loss_box'], ((1 - giou).gather_nd(index)).mean() * 0.05)
+            # print('loss_box: ', loss['loss_box'], ((1 - giou).gather_nd(index)).mean() * 0.05)
             
             # loss['loss_box'] = ((1 - giou).gather_nd(index)).mean() * 0.05
             
@@ -377,7 +377,7 @@ class YOLOv5LossV1(nn.Layer):
                  iou_loss=None,
                  iou_aware_loss=None):
 
-        super(YOLOv5Loss, self).__init__()
+        super(YOLOv5LossV1, self).__init__()
         self.giou_ratio = giou_ratio
         self.num_classes = num_classes
         self.balance = balance
@@ -436,7 +436,9 @@ class YOLOv5LossV1(nn.Layer):
         mask = t[:, :, :, :, :, 4]
         tcls = t[:, :, :, :, :, 5:]
         nm = paddle.sum(mask) + eps
-
+        
+        print(nm)
+        
         loss = dict()
 
         pbox = [x, y, w, h]

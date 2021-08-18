@@ -1714,6 +1714,9 @@ class PadBox(BaseOperator):
         bbox = sample['gt_bbox']
         gt_num = min(self.num_max_boxes, len(bbox))
         num_max = self.num_max_boxes
+        
+        sample['gt_num'] = gt_num
+
         # fields = context['fields'] if context else []
         pad_bbox = np.zeros((num_max, 4), dtype=np.float32)
         if gt_num > 0:

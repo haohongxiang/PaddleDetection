@@ -288,21 +288,7 @@ class Gt2Yolov5Target(BaseOperator):
         self.num_classes = num_classes
         self.bias = bias
         self.anchor_t = anchor_t
-
-    def __call__(self, samples, context=None):
-
-        _, h, w = samples[0]['image'].shape
-        nt_max = 0
-        for sample in samples:
-            gt_bbox = sample['gt_bbox']
-            compare = np.zeros((1,4), dtype="float32")
-            nt = 0
-            for box in gt_bbox:
-                if (box.all() == compare).all():
-                    break
-                nt += 1
-            if nt_max < nt:
-                nt_max = nt
+        self.compare = np.zeros((1,4), dtype="float32")
 
         off = np.array(
             [
@@ -311,54 +297,64 @@ class Gt2Yolov5Target(BaseOperator):
                 [0, 1],
                 [-1, 0],
                 [0, -1],  # j,k,l,m
-            ],
-            dtype=np.float32) * self.bias
+            ], dtype=np.float32) * self.bias
+        
+        self.off = off
+        
+    def __call__(self, samples, context=None):
 
+        _, h, w = samples[0]['image'].shape
+        
+        nt_max = max([sam['gt_num'] for sam in samples]) 
+        
+        bias = self.bias
+        off = self.off
+        
         for sample in samples:
             for i, (anchor, downsample_ratio) in enumerate(zip(self.anchors, self.downsample_ratios)):
                 na = len(anchor)
                 grid_h = int(h / downsample_ratio)
                 grid_w = int(w / downsample_ratio)
-                sample['target{}'.format(i)] = np.zeros(
-                 (nt_max, na, 5 + self.num_classes, grid_h, grid_w),
-                 dtype=np.float32)
+                sample['target{}'.format(i)] = np.zeros((nt_max, na, 5 + self.num_classes, grid_h, grid_w), dtype=np.float32)
 
         for img_id, sample in enumerate(samples):
             im = sample['image']
             gt_bbox = sample['gt_bbox']
             gt_class = sample['gt_class']
-            compare = np.zeros((1,4), dtype="float32")
-            nt = 0
-            for box in gt_bbox:
-                if (box.all() == compare).all():
-                    break
-                nt += 1
-
+            # compare = np.zeros((1,4), dtype="float32")
+            nt = sample['gt_num']
+                        
             for target_id in range(nt):
                 box = gt_bbox[target_id, :]
                 clas = gt_class[target_id]
                 gt_label = np.hstack((box, clas))
-                gt_label = gt_label[None, :]
+                gt_label = gt_label[None, :] # 1 x 5
+                
+                for i, (anchor, downsample_ratio) in enumerate(zip(self.anchors, self.downsample_ratios)):
 
-                for i, (anchor, downsample_ratio
-                        ) in enumerate(zip(self.anchors, self.downsample_ratios)):
-                # compute gt_label
                     grid_h = int(h / downsample_ratio)
                     grid_w = int(w / downsample_ratio)
+                    
                     label = gt_label.copy()
-                    label[:, 0:4] = gt_label[:, 0:4] / downsample_ratio
+                    # label[:, 0:4] = gt_label[:, 0:4] / downsample_ratio
+                    label[:, 0:4] *= [grid_w, grid_h, grid_w, grid_h]
+
                     anchor = np.array(anchor) / downsample_ratio
                     na = len(anchor)
-                    a = np.arange(
-                        na, dtype=np.float32)[:, None].repeat(
-                            1, axis=1)[:, :, None]
-                    label = np.concatenate(
-                        (label[None].repeat(
-                            na, axis=0), a), axis=-1)
+                    # print(anchor.shape) 3 2
+                    
+                    a = np.arange(na, dtype=np.float32)[:, None].repeat(1, axis=1)[:, :, None]
+                    label = np.concatenate( (label[None].repeat(na, axis=0), a), axis=-1)
+                    # print(label.shape) 3 1 6
+                    # print(label)
+                    # print(anchor)
+                    
                     if nt:
                         r = label[:, :, 2:4] / anchor[:, None]
                         j = np.maximum(r, 1. / r).max(2) < self.anchor_t
                         t = label[j]
+                        # print(j)
+                        
                         # Offsets
                         gxy = t[:, 0:2]  # grid xy
                         gxi = [[grid_w, grid_h]] - gxy  # inverse
@@ -379,11 +375,15 @@ class Gt2Yolov5Target(BaseOperator):
                     gi = gi.clip(0, grid_w - 1)
                     gj = gj.clip(0, grid_h - 1)
 
+                    # print(target_id, a, 4, gj, gi)
+                    
                     sample['target{}'.format(i)][target_id, a, 0:2, gj, gi] = gxy - gij
                     sample['target{}'.format(i)][target_id, a, 2:4, gj, gi] = t[:, 2:4]
                     sample['target{}'.format(i)][target_id, a, 4, gj, gi] = 1.
                     sample['target{}'.format(i)][target_id, a, 5 + c, gj, gi] = 1.
                     
+#                     print('mask', sum(sample['target{}'.format(i)][target_id, a, 4, gj, gi]))
+                
         return samples
 
 @register_op
