@@ -284,6 +284,8 @@ class Gt2Yolov5Target(BaseOperator):
                  anchor_t=4.0):
         super(Gt2Yolov5Target, self).__init__()
         self.anchors = [[anchors[i] for i in row] for row in anchor_masks]
+        self.anchors = np.array(self.anchors)
+        
         self.downsample_ratios = downsample_ratios
         self.num_classes = num_classes
         self.bias = bias
@@ -339,7 +341,7 @@ class Gt2Yolov5Target(BaseOperator):
                     # label[:, 0:4] = gt_label[:, 0:4] / downsample_ratio
                     label[:, 0:4] *= [grid_w, grid_h, grid_w, grid_h]
 
-                    anchor = np.array(anchor) / downsample_ratio
+                    anchor = anchor / downsample_ratio
                     na = len(anchor)
                     # print(anchor.shape) 3 2
                     

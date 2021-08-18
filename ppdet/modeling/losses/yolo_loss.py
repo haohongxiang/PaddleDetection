@@ -304,22 +304,19 @@ class YOLOv5Loss(nn.Layer):
         loss['loss_obj'] = loss_obj * 1.0 * balance
 
         if nm.item():
-            # index = (mask > 0).nonzero()
-            # tcls = tcls.gather_nd(index)
-            # pcls = pcls.gather_nd(index)
-            # loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
-            # loss['loss_cls'] = loss_cls * 0.5
+            index = (mask > 0).nonzero()
+            tcls = tcls.gather_nd(index)
+            pcls = pcls.gather_nd(index)
+            loss_cls = F.binary_cross_entropy_with_logits(pcls, tcls, reduction='mean')
+            loss['loss_cls'] = loss_cls * 0.5
             
-            loss_cls = self.cls_loss(pcls, tcls, mask)
-            loss['loss_cls'] = loss_cls / nm * 0.5
+            # loss_cls = self.cls_loss(pcls, tcls, mask)
+            # loss['loss_cls'] = loss_cls / nm * 0.5
             # print(nm, pcls.shape, tcls.shape, mask.shape)
             
-            loss_box = paddle.sum((1 - giou) * mask)
-            loss['loss_box'] = loss_box / nm * 0.05
-            
-            # print('loss_box: ', loss['loss_box'], ((1 - giou).gather_nd(index)).mean() * 0.05)
-            
-            # loss['loss_box'] = ((1 - giou).gather_nd(index)).mean() * 0.05
+            # loss_box = paddle.sum((1 - giou) * mask)
+            # loss['loss_box'] = loss_box / nm * 0.05            
+            loss['loss_box'] = ((1 - giou).gather_nd(index)).mean() * 0.05
             
         return loss
     
