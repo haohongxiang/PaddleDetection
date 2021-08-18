@@ -382,7 +382,7 @@ class Gt2Yolov5Target(BaseOperator):
                     sample['target{}'.format(i)][target_id, a, 4, gj, gi] = 1.
                     sample['target{}'.format(i)][target_id, a, 5 + c, gj, gi] = 1.
                     
-#                     print('mask', sum(sample['target{}'.format(i)][target_id, a, 4, gj, gi]))
+                    # print('mask', sum(sample['target{}'.format(i)][target_id, a, 4, gj, gi]))
                 
         return samples
 
