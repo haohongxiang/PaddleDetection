@@ -1,4 +1,4 @@
-worker_num: 4
+worker_num: 6
 TrainReader:
   inputs_def:
     num_max_boxes: 100
@@ -12,7 +12,7 @@ TrainReader:
     # - RandomResize: {target_size: [640], random_interp: True, keep_ratio: False}
     
     - RandomFlip: {prob: 0.5}
-    # - RandomHSV: {hgain: 0.015, sgain: 0.7, vgain: 0.4}
+    - RandomHSV: {hgain: 0.015, sgain: 0.7, vgain: 0.4}
     - PadBox: {num_max_boxes: 100} # gt_num
 
   batch_transforms:
