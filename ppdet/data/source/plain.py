@@ -21,6 +21,9 @@ from ppdet.utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 
+import concurrent.futures as futures
+
+
 __all__ = ['PlainDetDataSet']
 
 
@@ -71,7 +74,12 @@ class PlainDetDataSet(DetDataset):
         self.allow_empty = allow_empty
         self.empty_ratio = empty_ratio
         
+        self.num_worker = 8
+        self.dataset_dir = dataset_dir
+        self.anno_path = anno_path
+        
         self.parse_dataset()
+        
         
     def _sample_empty(self, records, num):
         # if empty_ratio is out of [0. ,1.), do not sample the records
@@ -82,8 +90,33 @@ class PlainDetDataSet(DetDataset):
         records = random.sample(records, sample_num)
         return records
 
-    
-    
+
+    def parse_dataset(self):
+        '''parse pain txt
+        '''
+        if not isinstance(self.anno_path, (list, tuple)):
+            anno_paths = (self.anno_path, )
+        else:
+            anno_paths = self.anno_path
+            
+        print(self.dataset_dir)
+        
+        anno_paths = [os.path.join(self.dataset_dir, anno) for anno in anno_paths]
+
+        lines = []
+        for anno in anno_paths:
+            lines.extend(open(anno, 'r').readlines())
+            
+        lines = [lin for lin in lines if lin]
+                
+        with futures.ThreadPoolExecutor(self.num_worker) as executor:
+            roidbs = executor.map(self._parse_line, lines)
+        
+        self.roidbs = [t for t in roidbs if t]
+        
+        logger.warning('loading data done...')
+        
+
     def _parse_line(self, lin):
         '''
         im_file.jpg, class_id x1 y1 x2 y2, class_id x1 y1 x2 y2
@@ -91,7 +124,7 @@ class PlainDetDataSet(DetDataset):
         items = lin.strip(' ,\t').split(',')
         
         if not os.path.exists(items[0]):
-            logger.warning('not exist')
+            logger.warning(f'{items[0]} not exist...')
             return None
 
         if len(items[1:]) == 0:
@@ -111,27 +144,3 @@ class PlainDetDataSet(DetDataset):
         blob['gt_bbox'] = np.array(bboxes).astype(np.float32).reshape(-1, 4)
 
         return blob
-        
-        
-    def parse_dataset(self):
-        '''parse pain txt
-        '''
-        if not isinstance(self.anno_path, (list, tuple)):
-            anno_paths = [self.anno_path]
-        else:
-            anno_paths = self.anno_path
-            
-        print(anno_paths)
-        
-        anno_paths = [os.path.join(self.dataset_dir, anno) for anno in anno_paths]
-        
-        lines = []
-        for anno in anno_paths:
-            with open(anno, 'r') as f:
-                lines.extend(f.readlines())
-        lines = [lin for lin in lines if lin]
-        
-        blobs = [self._parse_line(lin) for lin in lines]
-        blobs = [blob for blob in blobs if blob]
- 
-        self.roidbs = blobs
