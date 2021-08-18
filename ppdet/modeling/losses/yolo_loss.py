@@ -327,7 +327,7 @@ class YOLOv5Loss(nn.Layer):
         
         yolo_losses = dict()
         for i, (x, t, anchor, downsample) in enumerate(zip(inputs, gt_targets, anchors, self.downsample)):
-                        
+
             na = len(anchor)
             b, c, h, w = x.shape
             self.nt_max = t.shape[1]
