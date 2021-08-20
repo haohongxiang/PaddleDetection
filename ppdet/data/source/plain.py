@@ -24,7 +24,8 @@ logger = setup_logger(__name__)
 import concurrent.futures as futures
 import time
 import pandas as pd
-
+import pickle
+import itertools
 
 __all__ = ['PlainDetDataSet']
 
@@ -67,7 +68,10 @@ class PlainDetDataSet(DetDataset):
                  sample_num=-1,
                  load_crowd=False,
                  allow_empty=False,
-                 empty_ratio=1.):
+                 empty_ratio=1.,
+                 use_cache=True,
+                 cache_file='/paddle/workspace/dataset/cache.pkl'):
+        
         super(PlainDetDataSet, self).__init__(dataset_dir, image_dir, anno_path,
                                           data_fields, sample_num)
         self.load_image_only = False
@@ -80,18 +84,27 @@ class PlainDetDataSet(DetDataset):
         self.dataset_dir = dataset_dir
         self.anno_path = anno_path
         
+        self.use_cache = use_cache
+        self.cache_file = cache_file
+        
         self.parse_dataset()
 
     
     def parse_dataset(self, ):
         tic = time.time()
-        self.parse_csv()
+        
+        self.parse_csv(self.use_cache, self.cache_file)
+        
         print(time.time() - tic )
     
     
-    def parse_csv(self, cache=False):
+    def parse_csv(self, use_cache, cache_path):
         '''parse csv
-        '''
+        '''        
+        if use_cache and os.path.exists(cache_path):
+            self.roidbs = pickle.load(open(cache_path, 'rb'))
+            return 
+        
         if not isinstance(self.anno_path, (list, tuple)):
             anno_paths = (self.anno_path, )
         else:
@@ -100,11 +113,11 @@ class PlainDetDataSet(DetDataset):
         anno_paths = [os.path.join(self.dataset_dir, anno) for anno in anno_paths]
         
         eps = 1e-5
-
         def _parse(path):
             def _format(group):
                 '''anno_format'''
-                gt_bbox = np.array( group[['XMin', 'YMin', 'XMax', 'YMax']] )
+                # gt_bbox = group[['XMin', 'YMin', 'XMax', 'YMax']].to_numpy()
+                gt_bbox = np.array([group[n].to_list() for n in ['XMin', 'YMin', 'XMax', 'YMax']]).T
                 gt_class = group.LabelName.to_list()
                 im_file = group.ImagePath.to_list()[0]
 
@@ -116,23 +129,29 @@ class PlainDetDataSet(DetDataset):
                 
                 return anno
         
-            data = pd.read_csv(path)            
+            data = pd.read_csv(path)
+            data = data.dropna()
             data = data[(data.XMax - data.XMin > eps) & (data.YMax - data.YMin > eps)]
-            print(data.shape)
             data = data.groupby('ImagePath').apply(_format).reset_index(name='anno')
-            
+            print(data.shape)
+
             return data.anno.to_list()
         
         roidbs = [_parse(path) for path in anno_paths]
             
-        # with futures.ThreadPoolExecutor(8) as executor:
-        #     roidbs = executor.map(self._parse_line, anno_paths)
+        # with futures.ThreadPoolExecutor(len(anno_paths)) as executor:
+        # with futures.ProcessPoolExecutor(len(anno_paths)) as executor:
+        #     roidbs = executor.map(_parse, anno_paths)
         
-        self.roidbs = [] 
-        for _d in roidbs:
-            self.roidbs.extend(_d)
+        self.roidbs = list(itertools.chain(*roidbs))
 
+        if use_cache and not os.path.exists(cache_path):
+            pickle.dump(self.roidbs, open(cache_path, 'wb'))
 
+        
+        
+        
+        
     def parse_txt(self):
         '''parse pain txt
         '''
