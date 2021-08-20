@@ -90,12 +90,15 @@ class PlainDetDataSet(DetDataset):
         self.parse_dataset()
 
     
+    def check_or_download_dataset(self, ):
+        pass
+    
+    
     def parse_dataset(self, ):
         tic = time.time()
-        
         self.parse_csv(self.use_cache, self.cache_file)
         
-        print(time.time() - tic )
+        print('loading done... ', time.time() - tic )
     
     
     def parse_csv(self, use_cache, cache_path):
@@ -119,6 +122,7 @@ class PlainDetDataSet(DetDataset):
                 # gt_bbox = group[['XMin', 'YMin', 'XMax', 'YMax']].to_numpy()
                 gt_bbox = np.array([group[n].to_list() for n in ['XMin', 'YMin', 'XMax', 'YMax']]).T
                 gt_class = group.LabelName.to_list()
+                # im_file = group.ImagePath.to_list()[0]
                 im_file = group.ImagePath.to_list()[0]
 
                 anno = {

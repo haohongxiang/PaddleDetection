@@ -116,6 +116,10 @@ class Decode(BaseOperator):
     def apply(self, sample, context=None):
         """ load image if 'im_file' field is not empty but 'image' is"""
         if 'image' not in sample:
+            
+            if 'dataset' not in sample['im_file']:
+                sample['im_file'] = os.path.join('dataset', sample['im_file'])
+                
             with open(sample['im_file'], 'rb') as f:
                 sample['image'] = f.read()
             sample.pop('im_file')
