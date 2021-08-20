@@ -10,7 +10,7 @@ dataset = cfg['TrainDataset']
 # dataset.set_kwargs()
 # dataset.set_epoch()
 
-print(dataset)
+# print(dataset)
 print(len(dataset))
 
 print(dataset.roidbs[0])

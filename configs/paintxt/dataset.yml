@@ -3,14 +3,17 @@ num_classes: 2
 
 TrainDataset:
   !PlainDetDataSet
-    dataset_dir: dataset/paintxt
-    # image_dir: train2017
-    anno_path: ['train_1.txt', 'train_2.txt']
+    dataset_dir: dataset
+    # image_dir: dataset
+    anno_path: ['coco/annotations/instances_train2017.json.csv',
+                'obj365/annos/zhiyuan_objv2_train.json.csv', 
+                'oid/annos/oidv6-train-annotations-bbox.csv-tmp.csv']
+
     data_fields: ['image', 'gt_bbox', 'gt_class',]
 
-# EvalDataset:
-#   !PlainDetDataSet
-#     dataset_dir: dataset/paintxt
-#     # image_dir: val2017
-#     anno_path: test_1.txt
-    
+
+EvalDataset:
+  !COCODataSet
+    image_dir: val2017
+    anno_path: annotations/instances_val2017.json
+    dataset_dir: dataset/coco

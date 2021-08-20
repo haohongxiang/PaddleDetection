@@ -22,6 +22,8 @@ logger = setup_logger(__name__)
 
 
 import concurrent.futures as futures
+import time
+import pandas as pd
 
 
 __all__ = ['PlainDetDataSet']
@@ -74,24 +76,38 @@ class PlainDetDataSet(DetDataset):
         self.allow_empty = allow_empty
         self.empty_ratio = empty_ratio
         
-        self.num_worker = 8
+        self.num_worker = 32
         self.dataset_dir = dataset_dir
         self.anno_path = anno_path
         
         self.parse_dataset()
         
+
+    
+    def parse_dataset(self, ):
         
-    def _sample_empty(self, records, num):
-        # if empty_ratio is out of [0. ,1.), do not sample the records
-        if self.empty_ratio < 0. or self.empty_ratio >= 1.:
-            return records
-        import random
-        sample_num = int(num * self.empty_ratio / (1 - self.empty_ratio))
-        records = random.sample(records, sample_num)
-        return records
+        self.parse_csv()
+    
+    
+    
+    
+    def parse_csv(self, ):
+        '''parse csv
+        '''
+        if not isinstance(self.anno_path, (list, tuple)):
+            anno_paths = (self.anno_path, )
+        else:
+            anno_paths = self.anno_path
+            
+        anno_paths = [os.path.join(self.dataset_dir, anno) for anno in anno_paths]
+        
+        for path in anno_paths:
+            data = pd.read_csv(path)
+            print(data.shape)
+        
 
-
-    def parse_dataset(self):
+    
+    def parse_txt(self):
         '''parse pain txt
         '''
         if not isinstance(self.anno_path, (list, tuple)):
@@ -108,12 +124,16 @@ class PlainDetDataSet(DetDataset):
             lines.extend(open(anno, 'r').readlines())
             
         lines = [lin for lin in lines if lin]
-                
+        
+        logger.warning('loading...')
+        tic = time.time()
+        
         with futures.ThreadPoolExecutor(self.num_worker) as executor:
             roidbs = executor.map(self._parse_line, lines)
         
         self.roidbs = [t for t in roidbs if t]
         
+        print('total time: ', time.time() - tic)
         logger.warning('loading data done...')
         
 
@@ -122,25 +142,37 @@ class PlainDetDataSet(DetDataset):
         im_file.jpg, class_id x1 y1 x2 y2, class_id x1 y1 x2 y2
         '''
         items = lin.strip(' ,\t').split(',')
-        
-        if not os.path.exists(items[0]):
-            logger.warning(f'{items[0]} not exist...')
+        im_path = os.path.join(self.dataset_dir, items[0].strip())
+                
+        if not os.path.exists(im_path):
+            logger.warning(f'{im_path} not exist...')
             return None
 
-        if len(items[1:]) == 0:
-            logger.warning('empty..')
+        if len(items) == 1:
+            logger.warning(f'{items} empty..')
             return None
 
-        annos = [_bbox.strip().split(' ') for _bbox in items[1:]]
+        annos = [_bbox.strip().split('\t') for _bbox in items[1:]]
         for _bbox in annos:
-            assert len(_bbox) == 5, 'invalid bbox'
+            assert len(_bbox) == 5, f'invalid bbox, {_bbox}'
 
         classes = [int(_bbox[0]) for _bbox in annos]
         bboxes = [list(map(float, _bbox[1:])) for _bbox in annos]
         
         blob = {}
-        blob['im_file'] = items[0]
+        blob['im_file'] = im_path
         blob['gt_class'] = np.array(classes).astype(np.int32).reshape(-1, 1)
         blob['gt_bbox'] = np.array(bboxes).astype(np.float32).reshape(-1, 4)
 
         return blob
+    
+    
+        
+    def _sample_empty(self, records, num):
+        # if empty_ratio is out of [0. ,1.), do not sample the records
+        if self.empty_ratio < 0. or self.empty_ratio >= 1.:
+            return records
+        import random
+        sample_num = int(num * self.empty_ratio / (1 - self.empty_ratio))
+        records = random.sample(records, sample_num)
+        return records
