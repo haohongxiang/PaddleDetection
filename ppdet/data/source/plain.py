@@ -81,17 +81,15 @@ class PlainDetDataSet(DetDataset):
         self.anno_path = anno_path
         
         self.parse_dataset()
-        
 
     
     def parse_dataset(self, ):
-        
+        tic = time.time()
         self.parse_csv()
+        print(time.time() - tic )
     
     
-    
-    
-    def parse_csv(self, ):
+    def parse_csv(self, cache=False):
         '''parse csv
         '''
         if not isinstance(self.anno_path, (list, tuple)):
@@ -101,12 +99,40 @@ class PlainDetDataSet(DetDataset):
             
         anno_paths = [os.path.join(self.dataset_dir, anno) for anno in anno_paths]
         
-        for path in anno_paths:
-            data = pd.read_csv(path)
-            print(data.shape)
-        
+        eps = 1e-5
 
-    
+        def _parse(path):
+            def _format(group):
+                '''anno_format'''
+                gt_bbox = np.array( group[['XMin', 'YMin', 'XMax', 'YMax']] )
+                gt_class = group.LabelName.to_list()
+                im_file = group.ImagePath.to_list()[0]
+
+                anno = {
+                    'im_file': im_file,
+                    'gt_bbox': gt_bbox,
+                    'gt_class': gt_class,
+                }
+                
+                return anno
+        
+            data = pd.read_csv(path)            
+            data = data[(data.XMax - data.XMin > eps) & (data.YMax - data.YMin > eps)]
+            print(data.shape)
+            data = data.groupby('ImagePath').apply(_format).reset_index(name='anno')
+            
+            return data.anno.to_list()
+        
+        roidbs = [_parse(path) for path in anno_paths]
+            
+        # with futures.ThreadPoolExecutor(8) as executor:
+        #     roidbs = executor.map(self._parse_line, anno_paths)
+        
+        self.roidbs = [] 
+        for _d in roidbs:
+            self.roidbs.extend(_d)
+
+
     def parse_txt(self):
         '''parse pain txt
         '''
