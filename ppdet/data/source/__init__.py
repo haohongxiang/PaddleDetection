@@ -25,3 +25,4 @@ from .widerface import *
 from .category import *
 from .keypoint_coco import *
 from .mot import *
+from .plain import *

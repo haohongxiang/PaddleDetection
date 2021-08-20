@@ -107,11 +107,12 @@ class BaseOperator(object):
 
 @register_op
 class Decode(BaseOperator):
-    def __init__(self):
+    def __init__(self, normalized=False):
         """ Transform the image data to numpy format following the rgb format
         """
         super(Decode, self).__init__()
-
+        self.normalized = normalized
+        
     def apply(self, sample, context=None):
         """ load image if 'im_file' field is not empty but 'image' is"""
         if 'image' not in sample:
@@ -146,6 +147,15 @@ class Decode(BaseOperator):
 
         sample['im_shape'] = np.array(im.shape[:2], dtype=np.float32)
         sample['scale_factor'] = np.array([1., 1.], dtype=np.float32)
+        
+        
+        if self.normalized and 'gt_bbox' in sample:
+            sample['gt_bbox'][:, [0, 2]] *= im.shape[1]
+            sample['gt_bbox'][:, [1, 3]] *= im.shape[0]
+            
+        if 'gt_class' in sample:
+            sample['gt_class'] = np.array([0 for i in sample['gt_class']])
+            
         return sample
 
 

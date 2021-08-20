@@ -3,7 +3,10 @@ TrainReader:
   inputs_def:
     num_max_boxes: 100
   sample_transforms:
-    - Decode: {}
+    
+    # TODO
+    - Decode: {normalized: True}
+    
     - Mixup: {alpha: 1.5, beta: 1.5}
     - RandomDistort: {}
     - RandomExpand: {fill_value: [123.675, 116.28, 103.53]}
