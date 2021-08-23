@@ -2,39 +2,28 @@ _BASE_: [
   '../runtime.yml',
   './lst_dataset.yml',
   './_base_/ppyolov2_r50vd_dcn.yml',
-  './_base_/ppyolov2_reader.yml',
 ]
 
 
 
-num_classes: 80
-
-
-TrainDataset:
-  !PlainDetDataSet
-    dataset_dir: dataset
-    anno_path: ['coco/annotations/instances_train2017.json.csv',
-                'obj365/annos/zhiyuan_objv2_train.json.csv', 
-                'oid/annos/oidv6-train-annotations-bbox.csv-tmp.csv']     
-    data_fields: ['image', 'gt_bbox', 'gt_class',]
-    use_cache: True
-
+num_classes: 800
 
 snapshot_epoch: 2
 weights: output/lst_ppyolo_r50vd_dcn/model_final
 
 
-epoch: 36
+epoch: 24 # 24 # 36 53-day
 LearningRate:
-  base_lr: 0.005
+  # base_lr: 0.005 # 0.0075
+  base_lr: 0.0075 # 0.0075
   schedulers:
   - !PiecewiseDecay
     gamma: 0.1
     milestones:
-    - 24
+    - 16 # 16 # 24
   - !LinearWarmup
     start_factor: 0.
-    steps: 5000
+    steps: 10000
 
 OptimizerBuilder:
   clip_grad_by_norm: 35.

@@ -177,6 +177,7 @@ def decode_yolo(box, anchor, downsample_ratio):
 
     anchor = paddle.to_tensor(anchor)
     anchor = paddle.cast(anchor, x.dtype)
+    
     anchor = anchor.reshape((1, na, 1, 1, 2))
     w1 = paddle.exp(w) * anchor[:, :, :, :, 0:1] / (downsample_ratio * grid_w)
     h1 = paddle.exp(h) * anchor[:, :, :, :, 1:2] / (downsample_ratio * grid_h)

@@ -73,6 +73,7 @@ class YOLOv3Head(nn.Layer):
             yolo_output = self.add_sublayer(name, conv)
             self.yolo_outputs.append(yolo_output)
 
+        
     def parse_anchor(self, anchors, anchor_masks):
         self.anchors = [[anchors[i] for i in mask] for mask in anchor_masks]
         self.mask_anchors = []
@@ -82,7 +83,10 @@ class YOLOv3Head(nn.Layer):
             for mask in masks:
                 assert mask < anchor_num, "anchor mask index overflow"
                 self.mask_anchors[-1].extend(anchors[mask])
-
+        
+        # self.anchors = paddle.to_tensor(self.anchors, dtype='float32')
+        
+        
     def forward(self, feats, targets=None):
         assert len(feats) == len(self.anchors)
         yolo_outputs = []
