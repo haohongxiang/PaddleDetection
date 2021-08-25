@@ -24,6 +24,10 @@ PPYOLOPAN:
   keep_prob: 0.9
   spp: true
   
+  extra_stage: 2
+  has_extra_convs: true
+  use_c5: false
+  
 
 
 GFLHead:
