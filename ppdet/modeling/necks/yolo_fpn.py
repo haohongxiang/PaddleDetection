@@ -797,7 +797,13 @@ class PPYOLOPAN(nn.Layer):
                  drop_block=False,
                  block_size=3,
                  keep_prob=0.9,
-                 spp=False):
+                 spp=False,
+                
+                 extra_stage=1,
+                 has_extra_convs=False,
+                 use_c5=True,
+                 relu_before_extra_convs=True,
+                ):
         """
         PPYOLOPAN layer with SPP, DropBlock and CSP connection.
 
@@ -824,6 +830,13 @@ class PPYOLOPAN(nn.Layer):
         self.spp = spp
         self.conv_block_num = conv_block_num
         self.data_format = data_format
+        
+        self.has_extra_convs = has_extra_convs
+        self.extra_stage = extra_stage
+        self.use_c5 = use_c5
+        self.relu_before_extra_convs = relu_before_extra_convs
+
+        
         if self.drop_block:
             dropblock_cfg = [[
                 'dropblock', DropBlock, [self.block_size, self.keep_prob],
@@ -934,6 +947,45 @@ class PPYOLOPAN(nn.Layer):
 
         self._out_channels = self._out_channels[::-1]
 
+        
+        # TODO
+        # add extra conv levels for RetinaNet(use_c5)/FCOS(use_p5)
+        if self.has_extra_convs:
+            for i in range(self.extra_stage):
+                lvl = ed_stage + 1 + i
+                if i == 0 and self.use_c5:
+                    in_c = in_channels[-1]
+                else:
+                    in_c = out_channel
+                extra_fpn_name = 'fpn_{}'.format(lvl + 2)
+                if self.norm_type is not None:
+                    extra_fpn_conv = self.add_sublayer(
+                        extra_fpn_name,
+                        ConvNormLayer(
+                            ch_in=in_c,
+                            ch_out=out_channel,
+                            filter_size=3,
+                            stride=2,
+                            norm_type=self.norm_type,
+                            norm_decay=self.norm_decay,
+                            freeze_norm=self.freeze_norm,
+                            initializer=XavierUniform(fan_out=fan)))
+                else:
+                    extra_fpn_conv = self.add_sublayer(
+                        extra_fpn_name,
+                        nn.Conv2D(
+                            in_channels=in_c,
+                            out_channels=out_channel,
+                            kernel_size=3,
+                            stride=2,
+                            padding=1,
+                            weight_attr=ParamAttr(
+                                initializer=XavierUniform(fan_out=fan))))
+                self.fpn_convs.append(extra_fpn_conv)
+
+        
+        
+        
     def forward(self, blocks, for_mot=False):
         assert len(blocks) == self.num_blocks
         blocks = blocks[::-1]
@@ -973,6 +1025,33 @@ class PPYOLOPAN(nn.Layer):
 
             route, tip = self.pan_blocks[i](block)
             pan_feats.append(tip)
+
+            
+        num_levels = len(blocks)
+        
+        if self.extra_stage > 0:
+            # use max pool to get more levels on top of outputs (Faster R-CNN, Mask R-CNN)
+            if not self.has_extra_convs:
+                assert self.extra_stage == 1, 'extra_stage should be 1 if FPN has not extra convs'
+                fpn_output.append(F.max_pool2d(pan_feats[-1], 1, stride=2))
+            # add extra conv levels for RetinaNet(use_c5)/FCOS(use_p5)
+            
+            else:
+                if self.use_c5:
+                    # TODO
+                    extra_source = blocks[-1]
+                    
+                else:
+                    extra_source = pan_feats[-1]
+                    
+                pan_feats.append(self.fpn_convs[num_levels](extra_source))
+
+                for i in range(1, self.extra_stage):
+                    if self.relu_before_extra_convs:
+                        pan_feats.append(self.fpn_convs[num_levels + i](F.relu(pan_feats[-1])))
+                    else:
+                        pan_feats.append(self.fpn_convs[num_levels + i](pan_feats[-1]))
+    
 
         if for_mot:
             return {'yolo_feats': pan_feats[::-1], 'emb_feats': emb_feats}
