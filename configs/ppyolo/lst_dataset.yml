@@ -10,7 +10,9 @@ TrainDataset:
                 'oid/annos/oidv6-train-annotations-bbox.csv-tmp.csv']
 
     data_fields: ['image', 'gt_bbox', 'gt_class',]
+
     use_cache: True
+    cache_file: '/paddle/dataset/cache.pkl'
 
 
 EvalDataset:
