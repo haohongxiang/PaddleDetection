@@ -974,7 +974,10 @@ class PPYOLOPAN(nn.Layer):
                     in_c = out_channel
                     
                 extra_fpn_name = 'fpn_{}'.format(lvl + 2)
+                
+                # TODO
                 if self.norm_type is not None:
+                # if None:
                     extra_fpn_conv = self.add_sublayer(
                         extra_fpn_name,
                         ConvNormLayer(
@@ -998,10 +1001,11 @@ class PPYOLOPAN(nn.Layer):
                             weight_attr=ParamAttr(initializer=XavierUniform(fan_out=fan))))
                 self.fpn_convs.append(extra_fpn_conv)
 
-        print(self.fpn_convs)
+        # print(self.fpn_convs)
         
         out_channels = [256, 512, 1024, 1024, 1024]
         fan = 256 * 3 * 3
+        
         self.format_convs = []
         for i in range(5):
             num_filters = 256
@@ -1019,7 +1023,7 @@ class PPYOLOPAN(nn.Layer):
             format_output = self.add_sublayer(name, conv)
             self.format_convs.append(format_output)
         
-        print(self.format_convs)
+        # print(self.format_convs)
         
             
     def forward(self, blocks, for_mot=False):
@@ -1027,7 +1031,7 @@ class PPYOLOPAN(nn.Layer):
         blocks = blocks[::-1]
         fpn_feats = []
         
-        print([p.shape for p in blocks])
+        # print([p.shape for p in blocks])
 
         # add embedding features output for multi-object tracking model
         if for_mot:
@@ -1091,13 +1095,13 @@ class PPYOLOPAN(nn.Layer):
                         pan_feats.append(self.fpn_convs[num_levels + i](pan_feats[-1]))
     
         
-        print([p.shape for p in pan_feats])
+        # print([p.shape for p in pan_feats])
         
         format_feats = []
         for i, m in enumerate(self.format_convs):
             format_feats.append( m(pan_feats[i]) )
             
-        print([p.shape for p in format_feats])
+        # print([p.shape for p in format_feats])
         
         return format_feats
         
