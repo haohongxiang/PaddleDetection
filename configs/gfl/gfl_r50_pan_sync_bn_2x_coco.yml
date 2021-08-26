@@ -1,0 +1,28 @@
+_BASE_: [
+  '../datasets/coco_detection.yml',
+  '../runtime.yml',
+  '_base_/gfl_r50_pan.yml',
+  '_base_/optimizer_1x.yml',
+  '_base_/gfl_reader.yml',
+]
+
+norm_type: sync_bn
+
+
+weights: output/gfl_r50_pan_sync_bn_1x_coco/model_final
+find_unused_parameters: True
+
+
+
+epoch: 24
+
+LearningRate:
+  base_lr: 0.01
+  schedulers:
+  - !PiecewiseDecay
+    gamma: 0.1
+    milestones: [16, 22]
+  - !LinearWarmup
+    start_factor: 0.1
+    steps: 1000
+
