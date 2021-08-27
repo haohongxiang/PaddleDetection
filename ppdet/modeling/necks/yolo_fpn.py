@@ -806,7 +806,7 @@ class PPYOLOPAN(nn.Layer):
                  extra_stage=1,
                  has_extra_convs=False,
                  use_c5=True,
-                 relu_before_extra_convs=True,
+                 relu_before_extra_convs=False,
                  
                  norm_decay=0,
                  freeze_norm=False,
@@ -957,7 +957,10 @@ class PPYOLOPAN(nn.Layer):
 
         self._out_channels = self._out_channels[::-1]
 
+        
+        
         # TODO
+        # conv bn act
         # add extra conv levels for RetinaNet(use_c5)/FCOS(use_p5)
         self.fpn_convs = []
         out_channel = 1024
@@ -977,18 +980,31 @@ class PPYOLOPAN(nn.Layer):
                 
                 # TODO
                 if self.norm_type is not None:
-                # if None:
+                    
+#                     extra_fpn_conv = self.add_sublayer(
+#                         extra_fpn_name,
+#                         ConvNormLayer(
+#                             ch_in=in_c,
+#                             ch_out=out_channel,
+#                             filter_size=3,
+#                             stride=2,
+#                             norm_type=self.norm_type,
+#                             norm_decay=self.norm_decay,
+#                             freeze_norm=self.freeze_norm,
+#                             initializer=XavierUniform(fan_out=fan)))
+
                     extra_fpn_conv = self.add_sublayer(
                         extra_fpn_name,
-                        ConvNormLayer(
+                        ConvBNLayer(
                             ch_in=in_c,
                             ch_out=out_channel,
                             filter_size=3,
                             stride=2,
-                            norm_type=self.norm_type,
-                            norm_decay=self.norm_decay,
-                            freeze_norm=self.freeze_norm,
-                            initializer=XavierUniform(fan_out=fan)))
+                            padding=0,
+                            act=act,
+                            norm_type=norm_type,
+                            name=extra_fpn_name))
+                    
                 else:
                     extra_fpn_conv = self.add_sublayer(
                         extra_fpn_name,
@@ -999,25 +1015,41 @@ class PPYOLOPAN(nn.Layer):
                             stride=2,
                             padding=1,
                             weight_attr=ParamAttr(initializer=XavierUniform(fan_out=fan))))
+                    
                 self.fpn_convs.append(extra_fpn_conv)
 
         # print(self.fpn_convs)
         
+        
+        
         out_channels = [256, 512, 1024, 1024, 1024]
-        fan = 256 * 3 * 3
+        fan = 256 * 1 * 1
         
         self.format_convs = []
         for i in range(5):
             num_filters = 256
             name = 'format_output.{}'.format(i)
-
-            conv = nn.Conv2D(
-                in_channels=out_channels[i],
-                out_channels=num_filters,
-                kernel_size=1,
-                stride=1,
-                padding=0,
-                weight_attr=ParamAttr(initializer=XavierUniform(fan_out=fan)) )
+            
+#             conv = nn.Conv2D(
+#                 in_channels=out_channels[i],
+#                 out_channels=num_filters,
+#                 kernel_size=1,
+#                 stride=1,
+#                 padding=0,
+#                 weight_attr=ParamAttr(initializer=XavierUniform(fan_out=fan)) )
+            
+            conv = self.add_sublayer(
+                name,
+                ConvBNLayer(
+                    ch_in=out_channels[i],
+                    ch_out=num_filters,
+                    filter_size=1,
+                    stride=1,
+                    padding=0,
+                    act=act,
+                    norm_type=norm_type,
+                    name=name))
+            
             conv.skip_quant = True
             
             format_output = self.add_sublayer(name, conv)

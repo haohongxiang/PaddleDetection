@@ -8,21 +8,32 @@ GFL:
   neck: PPYOLOPAN
   head: GFLHead
 
+
+# ResNet:
+#   depth: 50
+#   variant: d
+#   return_idx: [1, 2, 3]
+#   dcn_v2_stages: [3]
+#   # freeze_at: -1
+#   # freeze_norm: true
+#   # norm_decay: 0.
+
+
 ResNet:
   depth: 50
   variant: d
-  return_idx: [1, 2, 3]
-  dcn_v2_stages: [3]
-  # freeze_at: -1
-  # freeze_norm: false
-  # norm_decay: 0.
+  norm_type: bn
+  freeze_at: 0
+  return_idx: [1,2,3]
+  num_stages: 4
 
-
+  
 PPYOLOPAN:
   drop_block: true
   block_size: 3
   keep_prob: 0.9
   spp: true
+  act: "relu"
   
   norm_type: "gn"
   extra_stage: 2
