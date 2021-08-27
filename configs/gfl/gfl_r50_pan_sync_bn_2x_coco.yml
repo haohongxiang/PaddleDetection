@@ -6,10 +6,10 @@ _BASE_: [
   '_base_/gfl_reader.yml',
 ]
 
-norm_type: sync_bn
+# norm_type: sync_bn
 
 
-weights: output/gfl_r50_pan_sync_bn_1x_coco/model_final
+weights: output/gfl_r50_pan_sync_bn_2x_coco/model_final
 find_unused_parameters: True
 
 
