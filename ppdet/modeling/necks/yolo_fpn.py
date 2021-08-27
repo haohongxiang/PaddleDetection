@@ -1000,7 +1000,7 @@ class PPYOLOPAN(nn.Layer):
                             ch_out=out_channel,
                             filter_size=3,
                             stride=2,
-                            padding=0,
+                            padding=1,
                             act=act,
                             norm_type=norm_type,
                             name=extra_fpn_name))
@@ -1019,7 +1019,6 @@ class PPYOLOPAN(nn.Layer):
                 self.fpn_convs.append(extra_fpn_conv)
 
         # print(self.fpn_convs)
-        
         
         
         out_channels = [256, 512, 1024, 1024, 1024]

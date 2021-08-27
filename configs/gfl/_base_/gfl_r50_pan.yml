@@ -50,6 +50,7 @@ GFLHead:
     num_convs: 4
     norm_type: "gn"
     use_dcn: false
+    
   fpn_stride: [8, 16, 32, 64, 128]
   prior_prob: 0.01
   reg_max: 16
