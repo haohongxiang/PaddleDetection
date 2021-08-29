@@ -19,6 +19,10 @@ from ppdet.core.workspace import register, serializable
 from ppdet.modeling.layers import DropBlock
 from ..backbones.darknet import ConvBNLayer
 from ..shape_spec import ShapeSpec
+from ppdet.modeling.layers import ConvNormLayer
+from paddle.nn.initializer import XavierUniform
+from paddle import ParamAttr
+
 
 __all__ = ['YOLOv3FPN', 'PPYOLOFPN', 'PPYOLOTinyFPN', 'PPYOLOPAN']
 
@@ -797,7 +801,16 @@ class PPYOLOPAN(nn.Layer):
                  drop_block=False,
                  block_size=3,
                  keep_prob=0.9,
-                 spp=False):
+                 spp=False,
+                
+                 extra_stage=1,
+                 has_extra_convs=False,
+                 use_c5=True,
+                 relu_before_extra_convs=False,
+                 
+                 norm_decay=0,
+                 freeze_norm=False,
+                ):
         """
         PPYOLOPAN layer with SPP, DropBlock and CSP connection.
 
@@ -824,6 +837,16 @@ class PPYOLOPAN(nn.Layer):
         self.spp = spp
         self.conv_block_num = conv_block_num
         self.data_format = data_format
+        
+        self.has_extra_convs = has_extra_convs
+        self.extra_stage = extra_stage
+        self.use_c5 = use_c5
+        self.relu_before_extra_convs = relu_before_extra_convs
+        
+        self.norm_type = norm_type
+        self.norm_decay = norm_decay
+        self.freeze_norm = freeze_norm
+
         if self.drop_block:
             dropblock_cfg = [[
                 'dropblock', DropBlock, [self.block_size, self.keep_prob],
@@ -934,10 +957,112 @@ class PPYOLOPAN(nn.Layer):
 
         self._out_channels = self._out_channels[::-1]
 
+        
+        
+        # TODO
+        # conv bn act
+        # add extra conv levels for RetinaNet(use_c5)/FCOS(use_p5)
+        self.fpn_convs = []
+        out_channel = 1024
+        fan = out_channel * 3 * 3
+
+        if self.has_extra_convs:
+            for i in range(self.extra_stage):
+                # lvl = ed_stage + 1 + i
+                lvl = i
+                
+                if i == 0 and self.use_c5:
+                    in_c = in_channels[-1]
+                else:
+                    in_c = out_channel
+                    
+                extra_fpn_name = 'fpn_{}'.format(lvl + 2)
+                
+                # TODO
+                if self.norm_type is not None:
+                    
+#                     extra_fpn_conv = self.add_sublayer(
+#                         extra_fpn_name,
+#                         ConvNormLayer(
+#                             ch_in=in_c,
+#                             ch_out=out_channel,
+#                             filter_size=3,
+#                             stride=2,
+#                             norm_type=self.norm_type,
+#                             norm_decay=self.norm_decay,
+#                             freeze_norm=self.freeze_norm,
+#                             initializer=XavierUniform(fan_out=fan)))
+
+                    extra_fpn_conv = self.add_sublayer(
+                        extra_fpn_name,
+                        ConvBNLayer(
+                            ch_in=in_c,
+                            ch_out=out_channel,
+                            filter_size=3,
+                            stride=2,
+                            padding=1,
+                            act=act,
+                            norm_type=norm_type,
+                            name=extra_fpn_name))
+                    
+                else:
+                    extra_fpn_conv = self.add_sublayer(
+                        extra_fpn_name,
+                        nn.Conv2D(
+                            in_channels=in_c,
+                            out_channels=out_channel,
+                            kernel_size=3,
+                            stride=2,
+                            padding=1,
+                            weight_attr=ParamAttr(initializer=XavierUniform(fan_out=fan))))
+                    
+                self.fpn_convs.append(extra_fpn_conv)
+
+        # print(self.fpn_convs)
+        
+        
+        out_channels = [256, 512, 1024, 1024, 1024]
+        fan = 256 * 1 * 1
+        
+        self.format_convs = []
+        for i in range(5):
+            num_filters = 256
+            name = 'format_output.{}'.format(i)
+            
+#             conv = nn.Conv2D(
+#                 in_channels=out_channels[i],
+#                 out_channels=num_filters,
+#                 kernel_size=1,
+#                 stride=1,
+#                 padding=0,
+#                 weight_attr=ParamAttr(initializer=XavierUniform(fan_out=fan)) )
+            
+            conv = self.add_sublayer(
+                name,
+                ConvBNLayer(
+                    ch_in=out_channels[i],
+                    ch_out=num_filters,
+                    filter_size=1,
+                    stride=1,
+                    padding=0,
+                    act=act,
+                    norm_type=norm_type,
+                    name=name))
+            
+            conv.skip_quant = True
+            
+            format_output = self.add_sublayer(name, conv)
+            self.format_convs.append(format_output)
+        
+        # print(self.format_convs)
+        
+            
     def forward(self, blocks, for_mot=False):
         assert len(blocks) == self.num_blocks
         blocks = blocks[::-1]
         fpn_feats = []
+        
+        # print([p.shape for p in blocks])
 
         # add embedding features output for multi-object tracking model
         if for_mot:
@@ -974,10 +1099,52 @@ class PPYOLOPAN(nn.Layer):
             route, tip = self.pan_blocks[i](block)
             pan_feats.append(tip)
 
-        if for_mot:
-            return {'yolo_feats': pan_feats[::-1], 'emb_feats': emb_feats}
-        else:
-            return pan_feats[::-1]
+
+        # num_levels = len(blocks)
+        num_levels = 0
+        if self.extra_stage > 0:
+            # use max pool to get more levels on top of outputs (Faster R-CNN, Mask R-CNN)
+            if not self.has_extra_convs:
+                assert self.extra_stage == 1, 'extra_stage should be 1 if FPN has not extra convs'
+                fpn_output.append(F.max_pool2d(pan_feats[-1], 1, stride=2))
+            # add extra conv levels for RetinaNet(use_c5)/FCOS(use_p5)
+            
+            else:
+                if self.use_c5:
+                    # TODO
+                    extra_source = blocks[-1]
+                    
+                else:
+                    extra_source = pan_feats[-1]
+                    
+                pan_feats.append(self.fpn_convs[num_levels](extra_source))
+
+                for i in range(1, self.extra_stage):
+                    if self.relu_before_extra_convs:
+                        pan_feats.append(self.fpn_convs[num_levels + i](F.relu(pan_feats[-1])))
+                    else:
+                        pan_feats.append(self.fpn_convs[num_levels + i](pan_feats[-1]))
+    
+        
+        # print([p.shape for p in pan_feats])
+        
+        format_feats = []
+        for i, m in enumerate(self.format_convs):
+            format_feats.append( m(pan_feats[i]) )
+            
+        # print([p.shape for p in format_feats])
+        
+        return format_feats
+        
+#         if for_mot:
+#             return {'yolo_feats': pan_feats[::-1], 'emb_feats': emb_feats}
+#         else:
+#             return pan_feats[::-1]
+
+# [[2, 2048, 34, 34], [2, 1024, 68, 68], [2, 512, 136, 136]]
+# [[2, 256, 136, 136], [2, 512, 68, 68], [2, 1024, 34, 34], [2, 1024, 17, 17], [2, 1024, 9, 9]]
+# [[2, 256, 136, 136], [2, 256, 68, 68], [2, 256, 34, 34], [2, 256, 17, 17], [2, 256, 9, 9]]
+
 
     @classmethod
     def from_config(cls, cfg, input_shape):
