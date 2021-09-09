@@ -2451,6 +2451,9 @@ class RandomPerspective(BaseOperator):
                 height,
                 area_thr=self.area_thr,
                 perspective=self.perspective)
+        
+        sample['gt_bbox'][:, [0, 1]] = sample['gt_bbox'][:, [0, 1]] - sample['gt_bbox'][:, [2, 3]] / 2
+        sample['gt_bbox'][:, [2, 3]] = sample['gt_bbox'][:, [0, 1]] + sample['gt_bbox'][:, [2, 3]]
 
         return sample
 
