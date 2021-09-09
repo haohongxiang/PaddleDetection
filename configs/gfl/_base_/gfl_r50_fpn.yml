@@ -20,7 +20,25 @@ FPN:
   extra_stage: 2
   has_extra_convs: true
   use_c5: false
+  
+# GFL:
+#   backbone: ResNet
+#   neck: BiFPN
+#   head: GFLHead
 
+# ResNet:
+#   depth: 50
+#   variant: d
+#   norm_type: bn
+#   freeze_at: 0
+#   return_idx: [1, 2, 3]
+#   num_stages: 4
+
+# BiFPN:
+#   out_channel: 256
+#   num_extra_levels: 2
+  
+  
 GFLHead:
   conv_feat:
     name: FCOSFeat
