@@ -3,7 +3,7 @@ pretrain_weights: https://paddledet.bj.bcebos.com/models/pretrained/ResNet50_cos
 
 GFL:
   backbone: ResNet
-  neck: PPYOLOPAN
+  neck: FPN
   head: GFLHead
 
 ResNet:
