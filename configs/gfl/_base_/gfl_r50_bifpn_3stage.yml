@@ -35,7 +35,7 @@ ResNet:
   return_idx: [1, 2, 3]
   num_stages: 4
   # freeze_norm: false
-  # dcn_v2_stages: [3]
+  dcn_v2_stages: [3]
 
   
 BiFPN:
