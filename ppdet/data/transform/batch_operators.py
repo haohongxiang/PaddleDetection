@@ -496,7 +496,11 @@ class Gt2GFLTarget(BaseOperator):
         return:
             Grid_cells xyxy position. Size should be [feat_w * feat_h, 4]
         """
+        # TODO
+        # scale = 6 if featmap_size[0] * stride > 640 else 5
+        
         cell_size = stride * scale
+        
         h, w = featmap_size
         x_range = (np.arange(w, dtype=np.float32) + offset) * stride
         y_range = (np.arange(h, dtype=np.float32) + offset) * stride
@@ -530,13 +534,18 @@ class Gt2GFLTarget(BaseOperator):
         assert len(samples) > 0
         batch_size = len(samples)
         # get grid cells of image
+        
         h, w = samples[0]['image'].shape[1:3]
+        # grid_cell_scale = self.grid_cell_scale if h < 640 else self.grid_cell_scale + 1
+        grid_cell_scale = self.grid_cell_scale
+        
         multi_level_grid_cells = []
         for stride in self.downsample_ratios:
             featmap_size = (int(math.ceil(h / stride)),
                             int(math.ceil(w / stride)))
+            
             multi_level_grid_cells.append(
-                self.get_grid_cells(featmap_size, self.grid_cell_scale, stride,
+                self.get_grid_cells(featmap_size, grid_cell_scale, stride,
                                     self.cell_offset))
         mlvl_grid_cells_list = [
             multi_level_grid_cells for i in range(batch_size)
@@ -579,8 +588,10 @@ class Gt2GFLTarget(BaseOperator):
                     labels[pos_inds] = gt_labels[pos_assigned_gt_inds]
 
                 label_weights[pos_inds] = 1.0
+                
             if len(neg_inds) > 0:
                 label_weights[neg_inds] = 1.0
+                
             sample['grid_cells'] = grid_cells
             sample['labels'] = labels
             sample['label_weights'] = label_weights

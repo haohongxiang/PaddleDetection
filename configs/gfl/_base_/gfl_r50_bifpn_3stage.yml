@@ -31,15 +31,22 @@ ResNet:
   depth: 50
   variant: d
   norm_type: bn
-  freeze_at: 0
+  freeze_at: -1
   return_idx: [1, 2, 3]
   num_stages: 4
+  # freeze_norm: false
+  # dcn_v2_stages: [3]
 
+  
 BiFPN:
   out_channel: 256
   num_extra_levels: 0
   fpn_strides: [8, 16, 32]
-  norm_type: "gn"
+  # norm_type: "gn"
+  # norm_type: bn
+  norm_type: gn
+
+
 
 GFLHead:
   conv_feat:
@@ -47,11 +54,19 @@ GFLHead:
     feat_in: 256
     feat_out: 256
     num_convs: 4
-    norm_type: "gn"
+    norm_type: gn
     use_dcn: false
 
-  # fpn_stride: [8, 16, 32, 64, 128]
-  
+#   conv_feat:
+#     name: GFLHeadPre
+#     feat_in: 256
+#     feat_out: 256
+#     num_cls_convs: 3
+#     num_reg_convs: 3
+#     lr_scale: 1.0
+#     norm_type: gn
+#     use_dcn: false
+
   fpn_stride: [8, 16, 32]
   prior_prob: 0.01
   reg_max: 16

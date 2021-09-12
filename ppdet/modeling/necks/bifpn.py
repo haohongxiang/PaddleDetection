@@ -299,4 +299,5 @@ class BiFPN(nn.Layer):
 
         for bifpn_cell in self.bifpn_cells:
             fpn_feats = bifpn_cell(fpn_feats)
+            
         return fpn_feats

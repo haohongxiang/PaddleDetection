@@ -140,6 +140,95 @@ class DGQP(nn.Layer):
         y = F.sigmoid(self.reg_conv2(y))
         return y
 
+    
+@register
+class GFLHeadPre(nn.Layer):
+    """
+    FCOSFeat of FCOS
+
+    Args:
+        feat_in (int): The channel number of input Tensor.
+        feat_out (int): The channel number of output Tensor.
+        num_convs (int): The convolution number of the FCOSFeat.
+        norm_type (str): Normalization type, 'bn'/'sync_bn'/'gn'.
+        use_dcn (bool): Whether to use dcn in tower or not.
+    """
+
+    def __init__(self,
+                 feat_in=256,
+                 feat_out=256,
+                 num_cls_convs=4,
+                 num_reg_convs=4,
+                 norm_type='bn',
+                 lr_scale=2.0,
+                 bias_on=True,
+                 use_dcn=False):
+        super(GFLHeadPre, self).__init__()
+        
+        self.num_cls_convs = num_cls_convs
+        self.num_reg_convs = num_reg_convs
+        
+        self.norm_type = norm_type
+        self.cls_subnet_convs = []
+        self.reg_subnet_convs = []
+        
+        for i in range(self.num_cls_convs):
+            in_c = feat_in if i == 0 else feat_out
+
+            cls_conv_name = 'fcos_head_cls_tower_conv_{}'.format(i)
+            cls_conv = self.add_sublayer(
+                cls_conv_name,
+                ConvNormLayer(
+                    ch_in=in_c,
+                    ch_out=feat_out,
+                    filter_size=3,
+                    stride=1,
+                    norm_type=norm_type,
+                    use_dcn=use_dcn,
+                    bias_on=bias_on,
+                    lr_scale=lr_scale))
+            self.cls_subnet_convs.append(cls_conv)
+
+            
+        for i in range(self.num_cls_convs):
+            in_c = feat_in if i == 0 else feat_out
+
+            reg_conv_name = 'fcos_head_reg_tower_conv_{}'.format(i)
+            reg_conv = self.add_sublayer(
+                reg_conv_name,
+                ConvNormLayer(
+                    ch_in=in_c,
+                    ch_out=feat_out,
+                    filter_size=3,
+                    stride=1,
+                    norm_type=norm_type,
+                    use_dcn=use_dcn,
+                    bias_on=bias_on,
+                    lr_scale=lr_scale))
+            self.reg_subnet_convs.append(reg_conv)
+
+    def forward(self, fpn_feat):
+        cls_feat = fpn_feat
+        reg_feat = fpn_feat
+        
+#         for i in range(self.num_cls_convs):
+#             if i == self.num_cls_convs - 1:
+#                 cls_feat = self.cls_subnet_convs[i](cls_feat)
+#             else:
+#                 cls_feat = F.relu(self.cls_subnet_convs[i](cls_feat))
+
+        for i in range(self.num_cls_convs):
+            cls_feat = F.relu(self.reg_subnet_convs[i](cls_feat))
+
+        cls_feat = cls_feat + fpn_feat
+        
+        
+        for i in range(self.num_reg_convs):
+            reg_feat = F.relu(self.reg_subnet_convs[i](reg_feat))
+            
+        return cls_feat, reg_feat
+
+
 
 @register
 class GFLHead(nn.Layer):
@@ -239,15 +328,19 @@ class GFLHead(nn.Layer):
         cls_logits_list = []
         bboxes_reg_list = []
         for scale_reg, fpn_feat in zip(self.scales_regs, fpn_feats):
+            
             conv_cls_feat, conv_reg_feat = self.conv_feat(fpn_feat)
+            
             cls_logits = self.gfl_head_cls(conv_cls_feat)
             bbox_reg = scale_reg(self.gfl_head_reg(conv_reg_feat))
+            
             if self.dgqp_module:
                 quality_score = self.dgqp_module(bbox_reg)
                 cls_logits = F.sigmoid(cls_logits) * quality_score
             if not self.training:
                 cls_logits = F.sigmoid(cls_logits.transpose([0, 2, 3, 1]))
                 bbox_reg = bbox_reg.transpose([0, 2, 3, 1])
+                
             cls_logits_list.append(cls_logits)
             bboxes_reg_list.append(bbox_reg)
 

@@ -8,7 +8,6 @@ TrainReader:
     - Mosaic: {target_size: 640, mosaic_border: [-320, -320]} #  # x y w h 
     - RandomPerspective: {degree: 0, translate: 0.1, scale: 0.5, shear: 0.0, perspective: 0.0, border: [-320, -320]} # x y w h 
     # - Resize: {target_size: [640, 640], keep_ratio: False, interp: 2}
-
     # - RandomResize: {target_size: [640], random_interp: True, keep_ratio: False}
     # - RandomHSV: {hgain: 0.015, sgain: 0.7, vgain: 0.4}
     

@@ -611,8 +611,11 @@ class Resize(BaseOperator):
                 format(type(target_size)))
         if isinstance(target_size, Integral):
             target_size = [target_size, target_size]
+            
         self.target_size = target_size
-
+        # print(self.target_size)
+        
+        
     def apply_image(self, image, scale):
         im_scale_x, im_scale_y = scale
 
@@ -703,8 +706,11 @@ class Resize(BaseOperator):
             resize_h, resize_w = self.target_size
             im_scale_y = resize_h / im_shape[0]
             im_scale_x = resize_w / im_shape[1]
-
+            
+#         print(sample['image'].shape, resize_w, resize_h, im_scale_x, im_scale_y)
+        
         im = self.apply_image(sample['image'], [im_scale_x, im_scale_y])
+        
         sample['image'] = im
         sample['im_shape'] = np.asarray([resize_h, resize_w], dtype=np.float32)
         if 'scale_factor' in sample:
@@ -1629,6 +1635,7 @@ class Mixup(BaseOperator):
             gt_score = np.concatenate(
                 (gt_score1 * factor, gt_score2 * (1. - factor)), axis=0)
             result['gt_score'] = gt_score
+            
         if 'is_crowd' in sample[0]:
             is_crowd1 = sample[0]['is_crowd']
             is_crowd2 = sample[1]['is_crowd']
@@ -2452,12 +2459,43 @@ class RandomPerspective(BaseOperator):
                 area_thr=self.area_thr,
                 perspective=self.perspective)
         
-        sample['gt_bbox'][:, [0, 1]] = sample['gt_bbox'][:, [0, 1]] - sample['gt_bbox'][:, [2, 3]] / 2
-        sample['gt_bbox'][:, [2, 3]] = sample['gt_bbox'][:, [0, 1]] + sample['gt_bbox'][:, [2, 3]]
-
+        # sample['gt_bbox'][:, [0, 1]] = sample['gt_bbox'][:, [0, 1]] - sample['gt_bbox'][:, [2, 3]] / 2
+        # sample['gt_bbox'][:, [2, 3]] = sample['gt_bbox'][:, [0, 1]] + sample['gt_bbox'][:, [2, 3]]
+        
+#         from PIL import Image, ImageDraw
+#         _im = Image.fromarray(sample['image'])
+#         _draw = ImageDraw.Draw(_im)
+#         for bbx in sample['gt_bbox']:
+#             x, y, w, h = bbx
+#             # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
+#             _draw.rectangle((x, y, w, h), outline='red')
+#         _im.save('perspective_'+str(random.randint(0, 10)) + '.jpg')
+#         print('perspective: ', _im.size)
+#         print('perspective: ', im.shape, )
+    
         return sample
 
+    
+@register_op
+class RandomHSV(BaseOperator):
+    def __init__(self, hgain=0.5, sgain=0.5, vgain=0.5):
+        super(RandomHSV, self).__init__()
+        self.gains = [hgain, sgain, vgain]
 
+    def __call__(self, sample, context=None):
+        im = sample['image']
+        r = np.random.uniform(-1, 1, 3) * self.gains + 1
+        hue, sat, val = cv2.split(cv2.cvtColor(im, cv2.COLOR_BGR2HSV))
+        x = np.arange(0, 256, dtype=np.int16)
+        lut_hue = ((x * r[0]) % 180).astype(np.uint8)
+        lut_sat = np.clip(x * r[1], 0, 255).astype(np.uint8)
+        lut_val = np.clip(x * r[2], 0, 255).astype(np.uint8)
+        im_hsv = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat),
+                            cv2.LUT(val, lut_val))).astype(np.uint8)
+        im = cv2.cvtColor(im_hsv, cv2.COLOR_HSV2BGR)
+        sample['image'] = im
+        return sample
+    
 @register_op
 class Mosaic(BaseOperator):
     """

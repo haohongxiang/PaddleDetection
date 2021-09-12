@@ -1,21 +1,30 @@
-worker_num: 6
+worker_num: 12
 TrainReader:
   sample_transforms:
   - Decode: {}
-  - RandomCrop: {}
+  # - RandomCrop: {}
+  # - RandomDistort: {}
   - RandomFlip: {prob: 0.5}
-  - RandomDistort: {}
+    
+  - RandomResize: {target_size: [416], random_interp: True, keep_ratio: True}
+  - Mosaic: {target_size: 416, mosaic_border: [-208, -208]} #  # x y w h 
+  - RandomPerspective: {degree: 0, translate: 0.1, scale: 0.5, shear: 0.0, perspective: 0.0, border: [-208, -208]} # x y w h 
+  # - Resize: {target_size: [416, 416], keep_ratio: False}
+
   batch_transforms:
-  - BatchRandomResize: {target_size: [352, 384, 416, 448, 480], random_size: True, random_interp: True, keep_ratio: False}
+  # - BatchRandomResize: {target_size: [352, 384, 416, 448, 480], random_size: True, random_interp: True, keep_ratio: False}
   - NormalizeImage: {is_scale: true, mean: [0.485,0.456,0.406], std: [0.229, 0.224,0.225]}
   - Permute: {}
   - Gt2GFLTarget:
       downsample_ratios: [8, 16, 32]
       grid_cell_scale: 5
       cell_offset: 0.5
+      
   batch_size: 80
   shuffle: true
   drop_last: true
+  mosaic_epoch: 10000
+  use_shared_memory: true
 
 
 EvalReader:

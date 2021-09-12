@@ -560,7 +560,7 @@ class ResNet(nn.Layer):
             self.res_layers.append(res_layer)
             self.ch_in = self._out_channels[i]
 
-        if freeze_at >= 0:
+        if freeze_at >= -1:
             self._freeze_parameters(self.conv1)
             for i in range(min(freeze_at + 1, num_stages)):
                 self._freeze_parameters(self.res_layers[i])

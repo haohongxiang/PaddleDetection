@@ -8,33 +8,27 @@ _BASE_: [
   '_base_/yolov5_reader.yml',
 ]
 
-weights: output/fgl_bifpn_3stage_mosaic_3x_coco/model_final
+weights: output/fgl_bifpn_3stage_mosaic_ms_3x_coco/model_final
 find_unused_parameters: True
 snapshot_epoch: 3
-
-# norm_type: sync_bn
-
 
 worker_num: 4
 TrainReader:    
   sample_transforms:
     - Decode: {}
     - RandomFlip: {prob: 0.5}
-    # - Mixup: {alpha: 1.5, beta: 1.5}
-    
     - RandomResize: {target_size: [640], random_interp: True, keep_ratio: True}
     - Mosaic: {target_size: 640, mosaic_border: [-320, -320]} #  # x y w h 
     - RandomPerspective: {degree: 0, translate: 0.1, scale: 0.5, shear: 0.0, perspective: 0.0, border: [-320, -320]} # x y x y
-    # - RandomHSV: {hgain: 0.015, sgain: 0.7, vgain: 0.4}
+    
     - NormalizeImage: {is_scale: true, mean: [0.485,0.456,0.406], std: [0.229, 0.224,0.225]}
-
+    
   batch_transforms:
   # 320 -> 960
   # [320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800, 832, 864, 896, 928, 960]
-  # - BatchRandomResize: {target_size: [416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800], random_size: True, random_interp: True, keep_ratio: False}
+  - BatchRandomResize: {target_size: [416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800], random_size: True, random_interp: True, keep_ratio: False}
   
   - Permute: {}
-
   - PadBatch: {pad_to_stride: 32}
   - Gt2GFLTarget:
       downsample_ratios: [8, 16, 32]
@@ -42,7 +36,6 @@ TrainReader:
 
   batch_size: 8
   mosaic_epoch: 10000
-  # mixup_epoch: 10000
   shuffle: true
   drop_last: true
   use_shared_memory: true
@@ -62,6 +55,7 @@ EvalReader:
   
 
 epoch: 36
+
 LearningRate:
   base_lr: 0.01
   schedulers:
@@ -71,6 +65,7 @@ LearningRate:
   - !LinearWarmup
     start_factor: 0.1
     steps: 500
+
 OptimizerBuilder:
   optimizer:
     momentum: 0.9
@@ -78,43 +73,3 @@ OptimizerBuilder:
   regularizer:
     factor: 0.0001
     type: L2
-
-
-# epoch: 60
-# LearningRate:
-#   base_lr: 0.01
-#   schedulers:
-#   - !PiecewiseDecay
-#     gamma: 0.1
-#     milestones: [40, 55]
-#   - !LinearWarmup
-#     start_factor: 0.1
-#     steps: 1500
-
-# OptimizerBuilder:
-#   optimizer:
-#     momentum: 0.9
-#     type: Momentum
-#   regularizer:
-#     factor: 0.0001
-#     type: L2
-
-
-# epoch: 120
-# LearningRate:
-#   base_lr: 0.01
-#   schedulers:
-#   - !PiecewiseDecay
-#     gamma: 0.1
-#     milestones: [80, 110]
-#   - !LinearWarmup
-#     start_factor: 0.1
-#     steps: 1500
-
-# OptimizerBuilder:
-#   optimizer:
-#     momentum: 0.9
-#     type: Momentum
-#   regularizer:
-#     factor: 0.0001
-#     type: L2
