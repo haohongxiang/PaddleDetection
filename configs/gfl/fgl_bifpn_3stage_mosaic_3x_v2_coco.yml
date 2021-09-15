@@ -1,0 +1,212 @@
+
+
+
+
+_BASE_: [
+  '../datasets/coco_detection.yml',
+  '../runtime.yml',
+  '_base_/gfl_r50_bifpn_3stage.yml',
+  '_base_/optimizer_1x.yml',
+  '_base_/yolov5_reader.yml',
+]
+
+weights: output/fgl_bifpn_3stage_mosaic_3x_v2_coco/model_final
+find_unused_parameters: True
+snapshot_epoch: 3
+
+
+architecture: GFL
+pretrain_weights: https://paddledet.bj.bcebos.com/models/pretrained/ResNet50_vd_ssld_pretrained.pdparams
+
+GFL:
+  backbone: ResNet
+  neck: BiFPN
+#   neck: FPN
+  head: GFLHead
+
+
+ResNet:
+  depth: 50
+  variant: d
+  norm_type: bn
+  freeze_at: 0
+  return_idx: [1, 2, 3]
+  num_stages: 4
+  freeze_norm: true
+  # norm_decay: 0.
+  # dcn_v2_stages: [3]
+  # norm_type: bn
+
+
+BiFPN:
+  out_channel: 256
+  num_extra_levels: 0
+  fpn_strides: [8, 16, 32]
+  norm_type: gn
+  # norm_type: sync_bn
+
+
+# FPN:
+#   out_channel: 256
+#   spatial_scales: [0.125, 0.0625, 0.03125]
+#   norm_type: gn
+#   extra_stage: 0
+#   # has_extra_convs: false
+#   # use_c5: false
+
+
+GFLHead:
+  conv_feat:
+    name: FCOSFeat
+    feat_in: 256
+    feat_out: 256
+    num_convs: 4
+    
+    # norm_type: sync_bn
+    norm_type: gn
+    use_dcn: true
+    
+  fpn_stride: [8, 16, 32]
+  prior_prob: 0.01
+  reg_max: 16
+  loss_qfl:
+    name: QualityFocalLoss
+    use_sigmoid: True
+    beta: 2.0
+    loss_weight: 1.0
+  loss_dfl:
+    name: DistributionFocalLoss
+    loss_weight: 0.25
+  loss_bbox:
+    name: GIoULoss
+    loss_weight: 2.0
+  nms:
+    name: MultiClassNMS
+    nms_top_k: 1000
+    keep_top_k: 100
+    score_threshold: 0.025
+    nms_threshold: 0.6
+
+
+worker_num: 4
+TrainReader:    
+  sample_transforms:
+    - Decode: {}
+    - RandomFlip: {prob: 0.5}
+    # - Mixup: {alpha: 1.5, beta: 1.5}
+    
+    - RandomResize: {target_size: [640], random_interp: True, keep_ratio: True}
+    - Mosaic: {target_size: 640, mosaic_border: [-320, -320]} #  # x y w h 
+    - RandomPerspective: {degree: 0, translate: 0.1, scale: 0.5, shear: 0.0, perspective: 0.0, border: [-320, -320]} # x y x y
+    # - RandomHSV: {hgain: 0.015, sgain: 0.7, vgain: 0.4}
+    - NormalizeImage: {is_scale: true, mean: [0.485,0.456,0.406], std: [0.229, 0.224,0.225]}
+
+  batch_transforms:
+  # 320 -> 960
+  # [320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800, 832, 864, 896, 928, 960]
+  # - BatchRandomResize: {target_size: [416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800], random_size: True, random_interp: True, keep_ratio: False}
+  
+  - Permute: {}
+
+  - PadBatch: {pad_to_stride: 32}
+  - Gt2GFLTarget:
+      downsample_ratios: [8, 16, 32]
+      grid_cell_scale: 5 # 4 5 6 7 8 10 12 
+
+  batch_size: 8
+  mosaic_epoch: 10000
+  # mixup_epoch: 10000
+  shuffle: true
+  drop_last: true
+  use_shared_memory: true
+
+
+EvalReader:
+  sample_transforms:
+    - Decode: {}
+    # - Resize: {target_size: [640, 640], keep_ratio: False, interp: 2}
+    - Resize: {target_size: [640], keep_ratio: True, interp: 2}
+    # - Resize: {target_size: [512], keep_ratio: True, interp: 2}
+    - NormalizeImage: {mean: [0.485, 0.456, 0.406], std: [0.229, 0.224, 0.225], is_scale: True}
+    - Permute: {}
+  batch_transforms:
+    - PadBatch: {pad_to_stride: 32}
+  batch_size: 8
+  shuffle: false
+  
+
+TestReader:
+  inputs_def:
+    image_shape: [3, 640, 640]
+  sample_transforms:
+    - Decode: {}
+    - Resize: {target_size: [640], keep_ratio: True, interp: 2}
+    - NormalizeImage: {mean: [0.485, 0.456, 0.406], std: [0.229, 0.224, 0.225], is_scale: True}
+    - Permute: {}
+  batch_transforms:
+    - PadBatch: {pad_to_stride: 32}
+  batch_size: 1
+  shuffle: false
+  drop_last: false
+  
+  
+# use_ema: true
+# cycle_epoch: 24
+
+epoch: 36
+LearningRate:
+  base_lr: 0.01
+  schedulers:
+  - !PiecewiseDecay
+    gamma: 0.1
+    milestones: [24, 33]
+  - !LinearWarmup
+    start_factor: 0.1
+    steps: 500
+OptimizerBuilder:
+  optimizer:
+    momentum: 0.9
+    type: Momentum
+  regularizer:
+    factor: 0.0001
+    type: L2
+
+
+# epoch: 60
+# LearningRate:
+#   base_lr: 0.01
+#   schedulers:
+#   - !PiecewiseDecay
+#     gamma: 0.1
+#     milestones: [40, 55]
+#   - !LinearWarmup
+#     start_factor: 0.1
+#     steps: 1000
+
+# OptimizerBuilder:
+#   optimizer:
+#     momentum: 0.9
+#     type: Momentum
+#   regularizer:
+#     factor: 0.0001
+#     type: L2
+
+
+# epoch: 120
+# LearningRate:
+#   base_lr: 0.01
+#   schedulers:
+#   - !PiecewiseDecay
+#     gamma: 0.1
+#     milestones: [80, 110]
+#   - !LinearWarmup
+#     start_factor: 0.1
+#     steps: 1500
+
+# OptimizerBuilder:
+#   optimizer:
+#     momentum: 0.9
+#     type: Momentum
+#   regularizer:
+#     factor: 0.0001
+#     type: L2

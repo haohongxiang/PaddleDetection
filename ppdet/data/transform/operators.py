@@ -2506,17 +2506,27 @@ class Mosaic(BaseOperator):
     def __init__(self,
                  target_size,
                  mosaic_border=None,
-                 fill_value=(114, 114, 114)):
+                 fill_value=(114, 114, 114), 
+                 prob=1.0):
+        
         super(Mosaic, self).__init__()
         self.target_size = target_size
         if mosaic_border is None:
             mosaic_border = (-target_size // 2, -target_size // 2)
         self.mosaic_border = mosaic_border
         self.fill_value = fill_value
+        self.prob = prob
+        
+        s = target_size
+        self.image = np.ones((s * 2, s * 2, 3), dtype=np.uint8) * fill_value
 
+        
     def __call__(self, sample, context=None):
         if not isinstance(sample, Sequence):
             return sample
+    
+#         if random.random() < self.prob:
+#             return sample[0]
 
         s = self.target_size
         yc, xc = [
@@ -2529,8 +2539,10 @@ class Mosaic(BaseOperator):
             h, w, c = im.shape
 
             if i == 0:  # top left
-                image = np.ones(
-                    (s * 2, s * 2, c), dtype=np.uint8) * self.fill_value
+#                 image = np.ones(
+#                     (s * 2, s * 2, c), dtype=np.uint8) * self.fill_value
+                image = copy.deepcopy(self.image)
+                
                 # xmin, ymin, xmax, ymax (dst image)
                 x1a, y1a, x2a, y2a = max(xc - w, 0), max(yc - h, 0), xc, yc
                 # xmin, ymin, xmax, ymax (src image)

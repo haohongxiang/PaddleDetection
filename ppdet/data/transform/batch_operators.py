@@ -566,9 +566,11 @@ class Gt2GFLTarget(BaseOperator):
             if gt_labels.size == 1:
                 gt_labels = np.array([gt_labels]).astype(np.int32)
             gt_bboxes_ignore = None
-            assign_gt_inds, _ = self.assigner(grid_cells, num_level_cells,
+            assign_gt_inds, assign_gt_ious = self.assigner(grid_cells, num_level_cells,
                                               gt_bboxes, gt_bboxes_ignore,
                                               gt_labels)
+            
+            
             pos_inds, neg_inds, pos_gt_bboxes, pos_assigned_gt_inds = self.get_sample(
                 assign_gt_inds, gt_bboxes)
 
@@ -579,6 +581,9 @@ class Gt2GFLTarget(BaseOperator):
             label_weights = np.zeros([num_cells], dtype=np.float32)
 
             if len(pos_inds) > 0:
+            
+                # print(assign_gt_ious.shape, gt_labels.shape)
+                
                 pos_bbox_targets = pos_gt_bboxes
                 bbox_targets[pos_inds, :] = pos_bbox_targets
                 bbox_weights[pos_inds, :] = 1.0

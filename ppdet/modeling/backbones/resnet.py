@@ -511,6 +511,7 @@ class ResNet(nn.Layer):
             ]
         else:
             conv_def = [[3, ch_in, 7, 2, conv1_name]]
+            
         self.conv1 = nn.Sequential()
         for (c_in, c_out, k, s, _name) in conv_def:
             self.conv1.add_sublayer(
@@ -524,7 +525,7 @@ class ResNet(nn.Layer):
                     act='relu',
                     norm_type=norm_type,
                     norm_decay=norm_decay,
-                    freeze_norm=freeze_norm,
+                    freeze_norm=freeze_norm or -1 <= freeze_at,
                     lr=1.0))
 
         self.ch_in = ch_in
@@ -554,9 +555,10 @@ class ResNet(nn.Layer):
                     lr=lr_mult,
                     norm_type=norm_type,
                     norm_decay=norm_decay,
-                    freeze_norm=freeze_norm,
+                    freeze_norm=freeze_norm or i <= freeze_at,
                     dcn_v2=(i in self.dcn_v2_stages),
                     std_senet=std_senet))
+            
             self.res_layers.append(res_layer)
             self.ch_in = self._out_channels[i]
 
