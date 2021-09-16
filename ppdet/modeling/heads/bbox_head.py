@@ -169,7 +169,7 @@ def points_sampler(features, boxes, idx=-1, size=None):
     else:
         h, w = 1., 1.
     
-    print(h, w)
+    # print(h, w)
     
     x = ((boxes[:, :, 0] + boxes[:, :, 2]) / 2) / w
     y = ((boxes[:, :, 1] + boxes[:, :, 3]) / 2) / h
