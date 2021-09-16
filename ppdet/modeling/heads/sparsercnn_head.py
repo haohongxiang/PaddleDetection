@@ -145,19 +145,25 @@ class RCNNHead(nn.Layer):
         self.bbox_weights = bbox_weights
 
     
-    def sampler(self, features, proposal_boxes):
+    def sampler(self, features, boxes):
         '''box [x1, y1, x2, y2]
         '''
         feat = features[2] # len == 5
         
-        centers = []
-        for boxes in proposal_boxes:
-            x = (boxes[:, 0] + boxes[:, 2]) / 2
-            y = (boxes[:, 1] + boxes[:, 3]) / 2
-            centers += [paddle.concat([x.unsqueeze(-1), y.unsqueeze(-1)], axis=-1), ]
-            
-        centers = paddle.concat([c.unsqueeze(0) for c in centers], axis=0)
+        print(boxes[0])
+        
+        x = (boxes[:, :, 0] + boxes[:, :, 2]) / 2
+        y = (boxes[:, :, 1] + boxes[:, :, 3]) / 2
+        centers = paddle.concat([x.unsqueeze(-1), y.unsqueeze(-1)], axis=-1)
         centers = centers.unsqueeze(2)
+        
+#         centers = []
+#         for boxes in proposal_boxes:
+#             x = (boxes[:, 0] + boxes[:, 2]) / 2
+#             y = (boxes[:, 1] + boxes[:, 3]) / 2
+#             centers += [paddle.concat([x.unsqueeze(-1), y.unsqueeze(-1)], axis=-1), ]
+#         centers = paddle.concat([c.unsqueeze(0) for c in centers], axis=0)
+#         centers = centers.unsqueeze(2)
         
         # print('centers ', centers.shape)
 
@@ -168,18 +174,18 @@ class RCNNHead(nn.Layer):
         return points_feats
     
     
-    def forward(self, features, bboxes, pro_features, pooler):
+    def forward(self, features, bboxes, pro_features, pooler, input_whwh=None):
         """
         :param bboxes: (N, nr_boxes, 4)
         :param pro_features: (N, nr_boxes, d_model)
-        """
-
+        """        
+        
         N, nr_boxes = bboxes.shape[:2]
 
-        proposal_boxes = list()
-        for b in range(N):
-            proposal_boxes.append(bboxes[b])
-        roi_num = paddle.full([N], nr_boxes).astype("int32")
+        # proposal_boxes = list()
+        # for b in range(N):
+        #     proposal_boxes.append(bboxes[b])  
+        # roi_num = paddle.full([N], nr_boxes).astype("int32")
 
         # print(len(features), [v.shape for v in features])
         # print(len(proposal_boxes), [v.shape for v in proposal_boxes])
@@ -187,8 +193,12 @@ class RCNNHead(nn.Layer):
         
         # roi_features = pooler(features, proposal_boxes, roi_num)
         # print(roi_features.shape)
-        roi_features = self.sampler(features, proposal_boxes)
         
+        proposal_boxes = bboxes / input_whwh.unsqueeze(-2) # 4 1 4 <0 - 1>
+        proposal_boxes = 2 * (proposal_boxes - 0.5) # 0, 1 -> -1, -1
+        
+        roi_features = self.sampler(features, proposal_boxes) # 4x4
+
         roi_features = roi_features.reshape(
             [N * nr_boxes, self.d_model, -1]).transpose(perm=[2, 0, 1])
         
@@ -229,13 +239,13 @@ class RCNNHead(nn.Layer):
             cls_feature = cls_layer(cls_feature)
         for reg_layer in self.reg_module:
             reg_feature = reg_layer(reg_feature)
+            
         class_logits = self.class_logits(cls_feature)
         bboxes_deltas = self.bboxes_delta(reg_feature)
-        pred_bboxes = delta2bbox(bboxes_deltas,
-                                 bboxes.reshape([-1, 4]), self.bbox_weights)
+        
+        pred_bboxes = delta2bbox(bboxes_deltas, bboxes.reshape([-1, 4]), self.bbox_weights)
 
-        return class_logits.reshape([N, nr_boxes, -1]), pred_bboxes.reshape(
-            [N, nr_boxes, -1]), obj_features
+        return class_logits.reshape([N, nr_boxes, -1]), pred_bboxes.reshape([N, nr_boxes, -1]), obj_features
 
 
 @register
@@ -360,8 +370,7 @@ class SparseRCNNHead(nn.Layer):
     def forward(self, features, input_whwh):
 
         bs = len(features[0])
-        bboxes = box_cxcywh_to_xyxy(self.init_proposal_boxes.weight.clone(
-        )).unsqueeze(0)
+        bboxes = box_cxcywh_to_xyxy(self.init_proposal_boxes.weight.clone()).unsqueeze(0)
         bboxes = bboxes * input_whwh.unsqueeze(-2)
 
         init_features = self.init_proposal_features.weight.unsqueeze(0).tile(
@@ -373,7 +382,7 @@ class SparseRCNNHead(nn.Layer):
 
         for rcnn_head in self.head_series:
             class_logits, pred_bboxes, proposal_features = rcnn_head(
-                features, bboxes, proposal_features, self.box_pooler)
+                features, bboxes, proposal_features, self.box_pooler, input_whwh)
 
             if self.return_intermediate:
                 inter_class_logits.append(class_logits)
