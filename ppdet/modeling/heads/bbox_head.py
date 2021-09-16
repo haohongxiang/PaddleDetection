@@ -172,7 +172,7 @@ def points_sampler(features, boxes, idx=-1):
 
     points_feats = F.grid_sample(feat, centers, mode='bilinear', padding_mode='border', align_corners=True)
 
-    # print('points_feats ', points_feats.shape)
+    print('points_feats ', points_feats.shape)
 
     return points_feats
 
@@ -204,8 +204,7 @@ class BBoxHead(nn.Layer):
                  with_pool=False,
                  num_classes=80,
                  bbox_weight=[10., 10., 5., 5.],
-                 bbox_loss=None,
-                 input_shape=None):
+                 bbox_loss=None):
         super(BBoxHead, self).__init__()
         self.head = head
         self.roi_extractor = roi_extractor
@@ -233,7 +232,6 @@ class BBoxHead(nn.Layer):
         self.bbox_delta.skip_quant = True
         self.assigned_label = None
         self.assigned_rois = None
-        self.input_shape = input_shape
         
     @classmethod
     def from_config(cls, cfg, input_shape):
@@ -267,7 +265,11 @@ class BBoxHead(nn.Layer):
         # rois_feat = self.roi_extractor(body_feats, rois, rois_num)
         # print('rois_feat ', rois_feat.shape) #  [512, 1024, 14, 14]
         # 
-        print(self.input_shape)
+        
+        print(inputs['image'].shape)
+        
+        
+        
         
         rois_feat = points_sampler(body_feats, rois)
         
