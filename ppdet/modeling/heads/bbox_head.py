@@ -159,8 +159,8 @@ class XConvNormHead(nn.Layer):
 
     
     
-def sampler(features, boxes, idx=-1):
-    '''box [x1, y1, x2, y2]
+def points_sampler(features, boxes, idx=-1):
+    '''box nx4 [x1, y1, x2, y2] 
     '''
     feat = features[idx] # len == 4
 
@@ -172,7 +172,7 @@ def sampler(features, boxes, idx=-1):
 
     points_feats = F.grid_sample(feat, centers, mode='bilinear', padding_mode='border', align_corners=True)
 
-    print('points_feats ', points_feats.shape)
+    # print('points_feats ', points_feats.shape)
 
     return points_feats
 
@@ -204,7 +204,8 @@ class BBoxHead(nn.Layer):
                  with_pool=False,
                  num_classes=80,
                  bbox_weight=[10., 10., 5., 5.],
-                 bbox_loss=None):
+                 bbox_loss=None,
+                 input_shape=None):
         super(BBoxHead, self).__init__()
         self.head = head
         self.roi_extractor = roi_extractor
@@ -232,7 +233,8 @@ class BBoxHead(nn.Layer):
         self.bbox_delta.skip_quant = True
         self.assigned_label = None
         self.assigned_rois = None
-
+        self.input_shape = input_shape
+        
     @classmethod
     def from_config(cls, cfg, input_shape):
         roi_pooler = cfg['roi_extractor']
@@ -259,14 +261,18 @@ class BBoxHead(nn.Layer):
             self.assigned_rois = (rois, rois_num)
             self.assigned_targets = targets
         
-        print(rois)
-        print(len(body_feats))
+        # print(rois) # [512, 4]
+        # print(len(body_feats)) # 1
 
-        rois_feat = self.roi_extractor(body_feats, rois, rois_num)
-        print('rois_feat ', rois_feat.shape)
+        # rois_feat = self.roi_extractor(body_feats, rois, rois_num)
+        # print('rois_feat ', rois_feat.shape) #  [512, 1024, 14, 14]
+        # 
+        print(self.input_shape)
+        
+        rois_feat = points_sampler(body_feats, rois)
         
         bbox_feat = self.head(rois_feat)
-        print('bbox_feat', bbox_feat.shape)
+        # print('bbox_feat', bbox_feat.shape) # [512, 2048, 7, 7] 
 
         if self.with_pool:
             feat = F.adaptive_avg_pool2d(bbox_feat, output_size=1)
