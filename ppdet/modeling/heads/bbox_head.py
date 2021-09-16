@@ -159,13 +159,19 @@ class XConvNormHead(nn.Layer):
 
     
     
-def points_sampler(features, boxes, idx=-1):
+def points_sampler(features, boxes, idx=-1, size=None):
     '''box nx4 [x1, y1, x2, y2] 
     '''
     feat = features[idx] # len == 4
 
-    x = (boxes[:, :, 0] + boxes[:, :, 2]) / 2
-    y = (boxes[:, :, 1] + boxes[:, :, 3]) / 2
+    if size is not None:
+        h, w = size
+    else:
+        h, w = 1., 1.
+        
+    x = ((boxes[:, :, 0] + boxes[:, :, 2]) / 2) / w
+    y = ((boxes[:, :, 1] + boxes[:, :, 3]) / 2) / h
+    
     centers = paddle.concat([x.unsqueeze(-1), y.unsqueeze(-1)], axis=-1)
     centers = centers.unsqueeze(2)
     centers = 2 * (centers - 0.5) # 0, 1 -> -1, -1
@@ -233,6 +239,8 @@ class BBoxHead(nn.Layer):
         self.assigned_label = None
         self.assigned_rois = None
         
+        self.ffn = None
+        
     @classmethod
     def from_config(cls, cfg, input_shape):
         roi_pooler = cfg['roi_extractor']
@@ -266,12 +274,9 @@ class BBoxHead(nn.Layer):
         # print('rois_feat ', rois_feat.shape) #  [512, 1024, 14, 14]
         # 
         
-        print(inputs['image'].shape)
+        # print(inputs['image'].shape) # [1, 3, 768, 1157]
         
-        
-        
-        
-        rois_feat = points_sampler(body_feats, rois)
+        rois_feat = points_sampler(body_feats, rois, size=inputs['image'].shape[2:] )
         
         bbox_feat = self.head(rois_feat)
         # print('bbox_feat', bbox_feat.shape) # [512, 2048, 7, 7] 
