@@ -17,6 +17,8 @@ ResNet:
 
 FPN:
   out_channel: 256
+  extra_stage: 0
+  spatial_scales: [0.125, 0.0625, 0.03125]
 
 SparseRCNNHead:
   head_hidden_dim: 256

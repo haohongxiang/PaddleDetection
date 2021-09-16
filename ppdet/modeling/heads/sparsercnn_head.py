@@ -148,15 +148,21 @@ class RCNNHead(nn.Layer):
     def sampler(self, features, boxes):
         '''box [x1, y1, x2, y2]
         '''
-        feat = features[2] # len == 5
+        feat = features[-1] # len == 4
         
         print(boxes[0])
         
+        # boxes = 2 * (boxes - 0.5) # 0, 1 -> -1, -1
+
         x = (boxes[:, :, 0] + boxes[:, :, 2]) / 2
         y = (boxes[:, :, 1] + boxes[:, :, 3]) / 2
         centers = paddle.concat([x.unsqueeze(-1), y.unsqueeze(-1)], axis=-1)
         centers = centers.unsqueeze(2)
+        centers = 2 * (centers - 0.5) # 0, 1 -> -1, -1
         
+        # print(centers)
+        
+# 
 #         centers = []
 #         for boxes in proposal_boxes:
 #             x = (boxes[:, 0] + boxes[:, 2]) / 2
@@ -169,7 +175,7 @@ class RCNNHead(nn.Layer):
 
         points_feats = F.grid_sample(feat, centers, mode='bilinear', padding_mode='border', align_corners=True)
 
-        # print('points_feats ', points_feats.shape)
+        print('points_feats ', points_feats.shape)
         
         return points_feats
     
@@ -195,7 +201,6 @@ class RCNNHead(nn.Layer):
         # print(roi_features.shape)
         
         proposal_boxes = bboxes / input_whwh.unsqueeze(-2) # 4 1 4 <0 - 1>
-        proposal_boxes = 2 * (proposal_boxes - 0.5) # 0, 1 -> -1, -1
         
         roi_features = self.sampler(features, proposal_boxes) # 4x4
 
