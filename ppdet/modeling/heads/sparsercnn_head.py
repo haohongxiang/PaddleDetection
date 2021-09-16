@@ -20,6 +20,7 @@ import math
 import copy
 import paddle
 import paddle.nn as nn
+import paddle.nn.functional as F
 
 from ppdet.core.workspace import register
 from ppdet.modeling.heads.roi_extractor import RoIAlign
@@ -49,8 +50,8 @@ class DynamicConv(nn.Layer):
 
         self.activation = nn.ReLU()
 
-        pooler_resolution = 7
-        num_output = self.hidden_dim * pooler_resolution**2
+        pooler_resolution = 1
+        num_output = self.hidden_dim * pooler_resolution ** 2
         self.out_layer = nn.Linear(num_output, self.hidden_dim)
         self.norm3 = nn.LayerNorm(self.hidden_dim)
 
@@ -143,6 +144,30 @@ class RCNNHead(nn.Layer):
         self.scale_clamp = scale_clamp
         self.bbox_weights = bbox_weights
 
+    
+    def sampler(self, features, proposal_boxes):
+        '''box [x1, y1, x2, y2]
+        '''
+        feat = features[2] # len == 5
+        
+        centers = []
+        for boxes in proposal_boxes:
+            x = (boxes[:, 0] + boxes[:, 2]) / 2
+            y = (boxes[:, 1] + boxes[:, 3]) / 2
+            centers += [paddle.concat([x.unsqueeze(-1), y.unsqueeze(-1)], axis=-1), ]
+            
+        centers = paddle.concat([c.unsqueeze(0) for c in centers], axis=0)
+        centers = centers.unsqueeze(2)
+        
+        # print('centers ', centers.shape)
+
+        points_feats = F.grid_sample(feat, centers, mode='bilinear', padding_mode='border', align_corners=True)
+
+        # print('points_feats ', points_feats.shape)
+        
+        return points_feats
+    
+    
     def forward(self, features, bboxes, pro_features, pooler):
         """
         :param bboxes: (N, nr_boxes, 4)
@@ -156,9 +181,18 @@ class RCNNHead(nn.Layer):
             proposal_boxes.append(bboxes[b])
         roi_num = paddle.full([N], nr_boxes).astype("int32")
 
-        roi_features = pooler(features, proposal_boxes, roi_num)
+        # print(len(features), [v.shape for v in features])
+        # print(len(proposal_boxes), [v.shape for v in proposal_boxes])
+        # print(len(roi_num), [v.shape for v in roi_num])
+        
+        # roi_features = pooler(features, proposal_boxes, roi_num)
+        # print(roi_features.shape)
+        roi_features = self.sampler(features, proposal_boxes)
+        
         roi_features = roi_features.reshape(
             [N * nr_boxes, self.d_model, -1]).transpose(perm=[2, 0, 1])
+        
+        # print('roi_features ', roi_features.shape)
 
         # self_att.
         pro_features = pro_features.reshape([N, nr_boxes, self.d_model])
@@ -167,11 +201,16 @@ class RCNNHead(nn.Layer):
         pro_features = pro_features.transpose(perm=[1, 0, 2]) + self.dropout1(
             pro_features2.transpose(perm=[1, 0, 2]))
         pro_features = self.norm1(pro_features)
-
+        
+        # print('pro_features ', pro_features.shape) # 100 4 256
+        
         # inst_interact.
         pro_features = pro_features.reshape(
             [nr_boxes, N, self.d_model]).transpose(perm=[1, 0, 2]).reshape(
                 [1, N * nr_boxes, self.d_model])
+        
+        # print('pro_features ', pro_features.shape) # 100 4 256
+
         pro_features2 = self.inst_interact(pro_features, roi_features)
         pro_features = pro_features + self.dropout2(pro_features2)
         obj_features = self.norm2(pro_features)
