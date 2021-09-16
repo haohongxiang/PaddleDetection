@@ -291,7 +291,7 @@ class BBoxHead(nn.Layer):
         # points_feats  [1, 1024, 512, 1]          
         
         
-        bbox_feat = rois_feat.reshape([1024, 512]).transpose([1, 0])
+        bbox_feat = rois_feat.reshape([1024, -1]).transpose([1, 0])
         bbox_feat = self.ffn(bbox_feat)
         
         # bbox_feat = self.head(rois_feat)
