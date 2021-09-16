@@ -242,13 +242,12 @@ class BBoxHead(nn.Layer):
         self.assigned_rois = None
         
         dropout = 0.1
-        self.ffn = nn.Sequential([
+        self.ffn = nn.Sequential(
             nn.Linear(1024, 1024 * 2),
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(1024 * 2, 1024 * 2),
-            nn.Dropout(dropout),
-        ])
+            nn.Dropout(dropout), )
         
         
     @classmethod
