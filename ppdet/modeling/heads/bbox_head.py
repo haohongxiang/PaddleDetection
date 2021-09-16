@@ -180,7 +180,7 @@ def points_sampler(features, boxes, idx=-1, size=None):
 
     points_feats = F.grid_sample(feat, centers, mode='bilinear', padding_mode='border', align_corners=True)
 
-    print('points_feats ', points_feats.shape)
+    # print('points_feats ', points_feats.shape)
 
     return points_feats
 
@@ -291,7 +291,7 @@ class BBoxHead(nn.Layer):
         
         
         feat = rois_feat.reshape([1024, 512]).transpose([1, 0])
-        feat = self.ffn(feat) + feat
+        # feat = self.ffn(feat) + feat
         
         # bbox_feat = self.head(rois_feat)
         # print('bbox_feat', bbox_feat.shape) # [512, 2048, 7, 7] 
