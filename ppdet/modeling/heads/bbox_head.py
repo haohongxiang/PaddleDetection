@@ -247,7 +247,7 @@ class BBoxHead(nn.Layer):
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(1024 * 2, 1024 * 2),
-            nn.nn.Dropout(dropout),
+            nn.Dropout(dropout),
         ])
         
         
