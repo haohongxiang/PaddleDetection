@@ -157,6 +157,27 @@ class XConvNormHead(nn.Layer):
         return fc6
 
 
+    
+    
+def sampler(features, boxes, idx=-1):
+    '''box [x1, y1, x2, y2]
+    '''
+    feat = features[idx] # len == 4
+
+    x = (boxes[:, :, 0] + boxes[:, :, 2]) / 2
+    y = (boxes[:, :, 1] + boxes[:, :, 3]) / 2
+    centers = paddle.concat([x.unsqueeze(-1), y.unsqueeze(-1)], axis=-1)
+    centers = centers.unsqueeze(2)
+    centers = 2 * (centers - 0.5) # 0, 1 -> -1, -1
+
+    points_feats = F.grid_sample(feat, centers, mode='bilinear', padding_mode='border', align_corners=True)
+
+    print('points_feats ', points_feats.shape)
+
+    return points_feats
+
+
+    
 @register
 class BBoxHead(nn.Layer):
     __shared__ = ['num_classes']
@@ -237,9 +258,16 @@ class BBoxHead(nn.Layer):
             rois, rois_num, targets = self.bbox_assigner(rois, rois_num, inputs)
             self.assigned_rois = (rois, rois_num)
             self.assigned_targets = targets
+        
+        print(rois)
+        print(len(body_feats))
 
         rois_feat = self.roi_extractor(body_feats, rois, rois_num)
+        print('rois_feat ', rois_feat.shape)
+        
         bbox_feat = self.head(rois_feat)
+        print('bbox_feat', bbox_feat.shape)
+
         if self.with_pool:
             feat = F.adaptive_avg_pool2d(bbox_feat, output_size=1)
             feat = paddle.squeeze(feat, axis=[2, 3])
