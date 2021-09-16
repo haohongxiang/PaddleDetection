@@ -241,7 +241,15 @@ class BBoxHead(nn.Layer):
         self.assigned_label = None
         self.assigned_rois = None
         
-        self.ffn = None
+        dropout = 0.1
+        self.ffn = nn.Sequential([
+            nn.Linear(1024, 1024 * 2),
+            nn.ReLU(),
+            nn.Dropout(dropout)
+            nn.Linear(1024 * 2, 1024 * 2),
+            nn.nn.Dropout(dropout),
+        ])
+        
         
     @classmethod
     def from_config(cls, cfg, input_shape):
@@ -280,8 +288,13 @@ class BBoxHead(nn.Layer):
         # print(inputs['image'].shape) # [1, 3, 768, 1157]
         
         rois_feat = points_sampler(body_feats, rois, size=inputs['image'].shape[2:])
+        # points_feats  [1, 1024, 512, 1]          
         
-        bbox_feat = self.head(rois_feat)
+        
+        feat = rois_feat.reshape([1024, 512]).transpose([1, 0])
+        feat = self.ffn(feat) + feat
+        
+        # bbox_feat = self.head(rois_feat)
         # print('bbox_feat', bbox_feat.shape) # [512, 2048, 7, 7] 
 
         if self.with_pool:

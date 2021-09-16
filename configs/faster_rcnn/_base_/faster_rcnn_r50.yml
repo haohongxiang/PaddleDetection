@@ -48,7 +48,7 @@ BBoxHead:
     sampling_ratio: 0
     aligned: True
   bbox_assigner: BBoxAssigner
-  with_pool: true
+  with_pool: false
 
 BBoxAssigner:
   batch_size_per_im: 512
