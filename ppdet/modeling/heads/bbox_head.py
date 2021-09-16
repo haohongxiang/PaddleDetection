@@ -247,6 +247,7 @@ class BBoxHead(nn.Layer):
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(1024 * 2, 1024 * 2),
+            nn.ReLU(),
             nn.Dropout(dropout), )
         
         
@@ -290,8 +291,8 @@ class BBoxHead(nn.Layer):
         # points_feats  [1, 1024, 512, 1]          
         
         
-        feat = rois_feat.reshape([1024, 512]).transpose([1, 0])
-        # feat = self.ffn(feat) + feat
+        bbox_feat = rois_feat.reshape([1024, 512]).transpose([1, 0])
+        bbox_feat = self.ffn(bbox_feat)
         
         # bbox_feat = self.head(rois_feat)
         # print('bbox_feat', bbox_feat.shape) # [512, 2048, 7, 7] 
@@ -301,6 +302,7 @@ class BBoxHead(nn.Layer):
             feat = paddle.squeeze(feat, axis=[2, 3])
         else:
             feat = bbox_feat
+            
         scores = self.bbox_score(feat)
         deltas = self.bbox_delta(feat)
 
