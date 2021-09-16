@@ -171,8 +171,8 @@ def points_sampler(features, boxes, idx=-1, size=None):
     
     print(h, w)
     
-    x = ((boxes[:, 0] + boxes[:, 2]) / 2) / w
-    y = ((boxes[:, 1] + boxes[:, 3]) / 2) / h
+    x = ((boxes[:, :, 0] + boxes[:, :, 2]) / 2) / w
+    y = ((boxes[:, :, 1] + boxes[:, :, 3]) / 2) / h
     
     centers = paddle.concat([x.unsqueeze(-1), y.unsqueeze(-1)], axis=-1)
     centers = centers.unsqueeze(2)
@@ -268,14 +268,15 @@ class BBoxHead(nn.Layer):
             rois, rois_num, targets = self.bbox_assigner(rois, rois_num, inputs)
             self.assigned_rois = (rois, rois_num)
             self.assigned_targets = targets
-        
+            
+            rois = paddle.concat([x.unsqueeze(0) for x in rois])
+
         # print(rois) # [512, 4]
         # print(len(body_feats)) # 1
 
         # rois_feat = self.roi_extractor(body_feats, rois, rois_num)
         # print('rois_feat ', rois_feat.shape) #  [512, 1024, 14, 14]
         # 
-        
         # print(inputs['image'].shape) # [1, 3, 768, 1157]
         
         rois_feat = points_sampler(body_feats, rois, size=inputs['image'].shape[2:])
