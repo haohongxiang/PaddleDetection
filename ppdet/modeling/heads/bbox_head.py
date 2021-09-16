@@ -279,7 +279,7 @@ class BBoxHead(nn.Layer):
             
             rois = paddle.concat([x.unsqueeze(0) for x in rois])
 
-        # print(rois) # [512, 4]
+        # print(rois) # 1 [512, 4]
         # print(len(body_feats)) # 1
 
         # rois_feat = self.roi_extractor(body_feats, rois, rois_num)
@@ -290,8 +290,7 @@ class BBoxHead(nn.Layer):
         rois_feat = points_sampler(body_feats, rois, size=inputs['image'].shape[2:])
         # points_feats  [1, 1024, 512, 1]          
         
-        
-        bbox_feat = rois_feat.reshape([1024, -1]).transpose([1, 0])
+        bbox_feat = rois_feat.transpose([0, 2, 3, 1]).reshape([-1, 1024])
         bbox_feat = self.ffn(bbox_feat)
         
         # bbox_feat = self.head(rois_feat)
