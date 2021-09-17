@@ -79,7 +79,7 @@ class FasterRCNN(BaseArch):
             return rpn_loss, bbox_loss
         else:
             rois, rois_num, _ = self.rpn_head(body_feats, self.inputs)
-            preds, _ = self.bbox_head(body_feats, rois, rois_num, None)
+            preds, _ = self.bbox_head(body_feats, rois, rois_num, self.inputs)
 
             im_shape = self.inputs['im_shape']
             scale_factor = self.inputs['scale_factor']
