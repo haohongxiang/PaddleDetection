@@ -97,8 +97,8 @@ class BaseOperator(object):
         """
         if isinstance(sample, Sequence):
             for i in range(len(sample)):
-                context = {'idx': i} if context is None else context
-                context.update({'idx': i})
+                # context = {'idx': i} if context is None else context
+                # context.update({'idx': i})
                 
                 sample[i] = self.apply(sample[i], context)
         else:
@@ -147,10 +147,11 @@ class Decode(BaseOperator):
     def apply(self, sample, context=None):
         """ load image if 'im_file' field is not empty but 'image' is"""
         
-        path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + '.npy') 
-        
-        if os.path.exists(path):
-            im = np.load(path)
+        if self.cache_root is not None:
+            path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + '.npy') 
+
+            if os.path.exists(path):
+                im = np.load(path)
             
         else:
             if 'image' not in sample:
@@ -725,14 +726,15 @@ class Resize(BaseOperator):
         """
         # idx = 0 if context is None else context['idx']
         # path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + f'_{idx}.pkl')
-        path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + '.pkl')
 
-        if self.cache_root is not None and os.path.exists(path):
-            with open(path, 'rb') as f:
-                sample = pickle.load(f)
-                
-            return sample
-        
+        if self.cache_root is not None:
+            
+            path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + '.pkl')
+
+            if os.path.exists(path):
+                with open(path, 'rb') as f:
+                    sample = pickle.load(f)
+                return sample
         
         im = sample['image']
         if not isinstance(im, np.ndarray):
@@ -824,9 +826,11 @@ class Resize(BaseOperator):
             ]
             sample['gt_segm'] = np.asarray(masks).astype(np.uint8)
         
-        if self.cache_root is not None and not os.path.exists(path):
-            with open(path, 'wb') as f:
-                pickle.dump(sample, f)
+        if self.cache_root is not None:
+            path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + '.pkl')
+            if not os.path.exists(path):
+                with open(path, 'wb') as f:
+                    pickle.dump(sample, f)
         
         return sample
 
