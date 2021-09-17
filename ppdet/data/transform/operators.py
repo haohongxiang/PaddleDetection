@@ -723,9 +723,10 @@ class Resize(BaseOperator):
     def apply(self, sample, context=None):
         """ Resize the image numpy.
         """
-        idx = 0 if context is None else context['idx']
-        path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + f'_{idx}.pkl')
-        
+        # idx = 0 if context is None else context['idx']
+        # path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + f'_{idx}.pkl')
+        path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + '.pkl')
+
         if self.cache_root is not None and os.path.exists(path):
             with open(path, 'rb') as f:
                 sample = pickle.load(f)
