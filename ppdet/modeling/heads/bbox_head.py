@@ -172,20 +172,31 @@ def points_sampler(features, boxes, idx=-1, size=None):
         h, w = 1., 1.
     
     # print(h, w)
-    if isinstance(boxes, (list, tuple)):
-        boxes = paddle.concat([x.unsqueeze(0) for x in boxes])
+#     if isinstance(boxes, (list, tuple)):
+#         boxes = paddle.concat([x.unsqueeze(0) for x in boxes])
     
-    x = ((boxes[:, :, 0] + boxes[:, :, 2]) / 2) / w
-    y = ((boxes[:, :, 1] + boxes[:, :, 3]) / 2) / h
+#     x = ((boxes[:, :, 0] + boxes[:, :, 2]) / 2) / w
+#     y = ((boxes[:, :, 1] + boxes[:, :, 3]) / 2) / h
     
-    centers = paddle.concat([x.unsqueeze(-1), y.unsqueeze(-1)], axis=-1)
-    centers = centers.unsqueeze(2)
-    centers = 2 * (centers - 0.5) # 0, 1 -> -1, -1
+#     centers = paddle.concat([x.unsqueeze(-1), y.unsqueeze(-1)], axis=-1)
+#     centers = centers.unsqueeze(2)
+#     centers = 2 * (centers - 0.5) # 0, 1 -> -1, -1
 
-    points_feats = F.grid_sample(feat, centers, mode='bilinear', padding_mode='border', align_corners=True)
-
+#     points_feats = F.grid_sample(feat, centers, mode='bilinear', padding_mode='border', align_corners=True)
+        
     # print('points_feats ', points_feats.shape)
 
+    points_feats = []
+    for i, box in enumerate(boxes):
+        x = ((box[:, 0] + box[:, 2]) / 2) / w
+        y = ((box[:, 1] + box[:, 3]) / 2) / h
+        center = paddle.concat([x.unsqueeze(-1), y.unsqueeze(-1)], axis=-1).unsqueeze(0).unsqueeze(0)
+        _feats = F.grid_sample(feat[i: i+1], center, mode='bilinear', padding_mode='border', align_corners=True)
+    
+        points_feats.append(_feats)
+        
+    points_feats = paddle.concat(points_feats, axis=-2)
+    
     return points_feats
 
 
@@ -298,6 +309,7 @@ class BBoxHead(nn.Layer):
         
         rois_feat = points_sampler(body_feats, rois, size=inputs['image'].shape[2:])
         # points_feats  [1, 1024, 512, 1]          
+        # [n, 1, ]
         
         bbox_feat = rois_feat.transpose([0, 2, 3, 1]).reshape([-1, self.in_channel])
         bbox_feat = self.ffn(bbox_feat)
