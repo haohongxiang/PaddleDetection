@@ -104,29 +104,55 @@ class BaseOperator(object):
     def __str__(self):
         return str(self._id)
 
+    
+def _make_dirs(dirname):
+    try:
+        from pathlib import Path
+    except ImportError:
+        from pathlib2 import Path
+    Path(dirname).mkdir(exist_ok=True)
 
+    
 @register_op
 class Decode(BaseOperator):
-    def __init__(self):
+    def __init__(self, buffer_root=None):
         """ Transform the image data to numpy format following the rgb format
         """
         super(Decode, self).__init__()
+        
+        self.buffer_root = buffer_root
 
+        if buffer_root is not None:
+            _make_dirs(buffer_root)
+            self.use_buffer = True
+            
+        
+            
     def apply(self, sample, context=None):
         """ load image if 'im_file' field is not empty but 'image' is"""
-        if 'image' not in sample:
-            with open(sample['im_file'], 'rb') as f:
-                sample['image'] = f.read()
-            sample.pop('im_file')
+        path = os.path.join(self.buffer_root, os.path.basename(sample['im_file']) + '.npy') 
+        
+        if os.path.exists(path):
+            im = np.load(path)
+        else:
+            if 'image' not in sample:
+                with open(sample['im_file'], 'rb') as f:
+                    sample['image'] = f.read()
+                sample.pop('im_file')
 
-        im = sample['image']
-        data = np.frombuffer(im, dtype='uint8')
-        im = cv2.imdecode(data, 1)  # BGR mode, but need RGB mode
-        if 'keep_ori_im' in sample and sample['keep_ori_im']:
-            sample['ori_image'] = im
-        im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+            im = sample['image']
+            data = np.frombuffer(im, dtype='uint8')
+            im = cv2.imdecode(data, 1)  # BGR mode, but need RGB mode
 
+            if 'keep_ori_im' in sample and sample['keep_ori_im']:
+                sample['ori_image'] = im
+            im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+            
+            if self.use_buffer:
+                np.save(path, im)
+            
         sample['image'] = im
+        
         if 'h' not in sample:
             sample['h'] = im.shape[0]
         elif sample['h'] != im.shape[0]:
@@ -146,6 +172,8 @@ class Decode(BaseOperator):
 
         sample['im_shape'] = np.array(im.shape[:2], dtype=np.float32)
         sample['scale_factor'] = np.array([1., 1.], dtype=np.float32)
+        
+        
         return sample
 
 
@@ -2474,7 +2502,9 @@ class Mosaic(BaseOperator):
                  use_random_perspective=True,
                  prob=0.5, ):
         super(Mosaic, self).__init__()
-        self.target_size = target_size
+        
+        self.target_size = target_size 
+        
         if mosaic_border is None:
             mosaic_border = (-target_size // 2, -target_size // 2)
         self.mosaic_border = mosaic_border
