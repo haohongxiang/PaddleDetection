@@ -195,7 +195,7 @@ def points_sampler(features, boxes, idx=-1, size=None):
     
         points_feats.append(_feats)
         
-    points_feats = paddle.concat(points_feats, axis=-2)
+    points_feats = paddle.concat(points_feats, axis=-1)
     
     return points_feats
 
