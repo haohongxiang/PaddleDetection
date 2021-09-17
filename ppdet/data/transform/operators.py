@@ -2499,11 +2499,20 @@ class Mosaic(BaseOperator):
     def __call__(self, sample, context=None):
         if not isinstance(sample, Sequence):
             return sample
-        
-        if random.random() > self.prob:
-            return sample
-        
+    
         s = self.target_size
+
+        if random.random() > self.prob:
+            _im = sample[0]['image']
+            h, w, c = im.shape
+            
+            image = np.ones((s, s, c), dtype=np.uint8) * self.fill_value
+            image[:h, :w, :] = _im
+            sample[0]['image'] = image
+            
+            return sample[0]
+        
+        
         yc, xc = [
             int(random.uniform(-x, 2 * s + x)) for x in self.mosaic_border
         ]
