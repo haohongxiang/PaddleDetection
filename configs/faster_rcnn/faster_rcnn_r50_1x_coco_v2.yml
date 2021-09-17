@@ -6,7 +6,7 @@ _BASE_: [
   '_base_/faster_reader.yml',
 ]
 weights: output/faster_rcnn_r50_1x_coco_v1/model_final
-
+find_unused_parameters: True
 
 FasterRCNN:
   backbone: ResNet
