@@ -277,7 +277,7 @@ class BBoxHead(nn.Layer):
             self.assigned_rois = (rois, rois_num)
             self.assigned_targets = targets
             
-            rois = paddle.concat([x.unsqueeze(0) for x in rois])
+        rois = paddle.concat([x.unsqueeze(0) for x in rois])
 
         # print(rois) # 1 [512, 4]
         # print(len(body_feats)) # 1
@@ -306,8 +306,7 @@ class BBoxHead(nn.Layer):
         deltas = self.bbox_delta(feat)
 
         if self.training:
-            loss = self.get_loss(scores, deltas, targets, rois,
-                                 self.bbox_weight)
+            loss = self.get_loss(scores, deltas, targets, rois, self.bbox_weight)
             return loss, bbox_feat
         else:
             pred = self.get_prediction(scores, deltas)
