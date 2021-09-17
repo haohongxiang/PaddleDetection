@@ -137,12 +137,13 @@ class Decode(BaseOperator):
 
         if cache_root is not None:
             # _make_dirs(buffer_root)
-            self.cache_root = True
-            
+            # self.cache_root = True
+            pass
         
             
     def apply(self, sample, context=None):
         """ load image if 'im_file' field is not empty but 'image' is"""
+        
         path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + '.npy') 
         
         if os.path.exists(path):
