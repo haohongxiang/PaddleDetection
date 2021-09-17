@@ -2471,6 +2471,7 @@ class Mosaic(BaseOperator):
                  scale=0.5,
                  shear=0.0,
                  perspective=0.0, 
+                 use_random_perspective=True,
                  prob=0.5, ):
         super(Mosaic, self).__init__()
         self.target_size = target_size
@@ -2485,6 +2486,8 @@ class Mosaic(BaseOperator):
         self.shear = shear
         self.perspective = perspective
         self.prob = prob
+        
+        self.use_random_perspective = use_random_perspective
         
         self.random_perspecive = RandomPerspective(degree=degree, 
                                                    translate=translate,
