@@ -28,7 +28,7 @@ RPNHead:
     aspect_ratios: [0.5, 1.0, 2.0]
     anchor_sizes: [32, 64, 128, 256, 512]
     # strides: [16]
-    strides: 32
+    strides: [32]
     
   rpn_target_assign:
     batch_size_per_im: 256
