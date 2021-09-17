@@ -136,10 +136,10 @@ class Decode(BaseOperator):
         super(Decode, self).__init__()
         
         self.cache_root = cache_root
-        assert os.path.exists(cache_root), ''
+        # assert os.path.exists(cache_root), ''
 
         if cache_root is not None:
-            # _make_dirs(buffer_root)
+            _make_dirs(buffer_root)
             # self.cache_root = True
             pass
         
@@ -660,7 +660,7 @@ class Resize(BaseOperator):
         self.target_size = target_size
         
         self.cache_root = cache_root
-        
+        # _make_dirs(cache_root)
         
     def apply_image(self, image, scale):
         im_scale_x, im_scale_y = scale
