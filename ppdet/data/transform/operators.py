@@ -825,7 +825,7 @@ class Resize(BaseOperator):
         
         if self.cache_root is not None and not os.path.exists(path):
             with open(path, 'wb') as f:
-                sample = pickle.dump(sample, f)
+                pickle.dump(sample, f)
         
         return sample
 
