@@ -35,9 +35,11 @@ TrainReader:
       downsample_ratios: [8, 16, 32]
       grid_cell_scale: 5
       cell_offset: 0.5
+      
   batch_size: 80
   shuffle: true
   drop_last: true
+  mosaic_epoch: 10000
 
 
 EvalReader:
