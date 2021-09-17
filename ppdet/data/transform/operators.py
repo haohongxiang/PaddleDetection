@@ -115,14 +115,14 @@ def _make_dirs(dirname):
 
 
     
-@register_op
-class DecodeResize(Resize):
-    def __init__(self, target_size, random_interp, keep_ratio, buffer_root=None, ):
-        self.buffer_root = buffer_root
-        assert os.path.exists(buffer_root), ''
+# @register_op
+# class DecodeResize(Resize):
+#     def __init__(self, target_size, random_interp, keep_ratio, buffer_root=None, ):
+#         self.buffer_root = buffer_root
+#         assert os.path.exists(buffer_root), ''
     
-    def apply(self, sample, context=None):
-        pass
+#     def apply(self, sample, context=None):
+#         pass
 
 
 @register_op
