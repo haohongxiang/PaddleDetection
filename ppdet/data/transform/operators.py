@@ -112,7 +112,7 @@ def _make_dirs(dirname):
         from pathlib2 import Path
     Path(dirname).mkdir(exist_ok=True)
 
-    
+
 @register_op
 class Decode(BaseOperator):
     def __init__(self, buffer_root=None):
@@ -121,9 +121,10 @@ class Decode(BaseOperator):
         super(Decode, self).__init__()
         
         self.buffer_root = buffer_root
+        assert os.path.exists(buffer_root), ''
 
         if buffer_root is not None:
-            _make_dirs(buffer_root)
+            # _make_dirs(buffer_root)
             self.use_buffer = True
             
         
@@ -134,6 +135,7 @@ class Decode(BaseOperator):
         
         if os.path.exists(path):
             im = np.load(path)
+            
         else:
             if 'image' not in sample:
                 with open(sample['im_file'], 'rb') as f:
@@ -148,9 +150,9 @@ class Decode(BaseOperator):
                 sample['ori_image'] = im
             im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
             
-            if self.use_buffer:
-                np.save(path, im)
-            
+            # if self.use_buffer:
+            #     np.save(path, im)
+        
         sample['image'] = im
         
         if 'h' not in sample:
