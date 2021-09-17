@@ -226,7 +226,8 @@ class BBoxHead(nn.Layer):
         self.num_classes = num_classes
         self.bbox_weight = bbox_weight
         self.bbox_loss = bbox_loss
-
+        self.in_channel = in_channel
+        
         self.bbox_score = nn.Linear(
             in_channel,
             self.num_classes + 1,
@@ -245,10 +246,10 @@ class BBoxHead(nn.Layer):
         
         dropout = 0.1
         self.ffn = nn.Sequential(
-            nn.Linear(2048, 2048),
+            nn.Linear(in_channel, in_channel),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(2048, 2048),
+            nn.Linear(in_channel, in_channel),
             nn.ReLU(),
             # nn.Dropout(dropout), 
         )
@@ -294,7 +295,7 @@ class BBoxHead(nn.Layer):
         rois_feat = points_sampler(body_feats, rois, size=inputs['image'].shape[2:])
         # points_feats  [1, 1024, 512, 1]          
         
-        bbox_feat = rois_feat.transpose([0, 2, 3, 1]).reshape([-1, 1024])
+        bbox_feat = rois_feat.transpose([0, 2, 3, 1]).reshape([-1, self.in_channel])
         bbox_feat = self.ffn(bbox_feat)
         
         # bbox_feat = self.head(rois_feat)
