@@ -2504,7 +2504,7 @@ class Mosaic(BaseOperator):
 
         if random.random() > self.prob:
             _im = sample[0]['image']
-            h, w, c = im.shape
+            h, w, c = _im.shape
             
             image = np.ones((s, s, c), dtype=np.uint8) * self.fill_value
             image[:h, :w, :] = _im
