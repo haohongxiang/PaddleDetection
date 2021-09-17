@@ -172,6 +172,8 @@ def points_sampler(features, boxes, idx=-1, size=None):
         h, w = 1., 1.
     
     # print(h, w)
+    if isinstance(boxes, (list, tuple)):
+        boxes = paddle.concat([x.unsqueeze(0) for x in boxes])
     
     x = ((boxes[:, :, 0] + boxes[:, :, 2]) / 2) / w
     y = ((boxes[:, :, 1] + boxes[:, :, 3]) / 2) / h
@@ -282,9 +284,9 @@ class BBoxHead(nn.Layer):
             self.assigned_rois = (rois, rois_num)
             self.assigned_targets = targets
             
-            assert rois[0].stop_gradient == False, ''
+            # assert rois[0].stop_gradient == False, ''
             
-        rois = paddle.concat([x.unsqueeze(0) for x in rois])
+        # rois = paddle.concat([x.unsqueeze(0) for x in rois])
 
         # print(rois) # 1 [512, 4]
         # print(len(body_feats)) # 1
@@ -373,7 +375,9 @@ class BBoxHead(nn.Layer):
 
             reg_delta = paddle.gather(deltas, fg_inds)
             reg_delta = paddle.gather_nd(reg_delta, reg_inds).reshape([-1, 4])
+        
         rois = paddle.concat(rois) if len(rois) > 1 else rois[0]
+        
         tgt_bboxes = paddle.concat(tgt_bboxes) if len(
             tgt_bboxes) > 1 else tgt_bboxes[0]
 
