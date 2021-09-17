@@ -26,6 +26,8 @@ from ..shape_spec import ShapeSpec
 from ..bbox_utils import bbox2delta
 from ppdet.modeling.layers import ConvNormLayer
 
+from .. import initializer as init
+
 __all__ = ['TwoFCHead', 'XConvNormHead', 'BBoxHead']
 
 
@@ -243,13 +245,15 @@ class BBoxHead(nn.Layer):
         
         dropout = 0.1
         self.ffn = nn.Sequential(
-            nn.Linear(1024, 1024 * 2),
+            nn.Linear(1024, 1024),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(1024 * 2, 1024 * 2),
+            nn.Linear(1024, 1024),
             nn.ReLU(),
-            nn.Dropout(dropout), )
+            # nn.Dropout(dropout), 
+        )
         
+        init.reset_initialized_parameter(self)
         
     @classmethod
     def from_config(cls, cfg, input_shape):
