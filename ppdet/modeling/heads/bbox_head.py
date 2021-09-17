@@ -261,9 +261,9 @@ class BBoxHead(nn.Layer):
         self.ffn = nn.Sequential(
             nn.Linear(in_channel, in_channel),
             nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(in_channel, in_channel),
-            nn.ReLU(),
+            # nn.Dropout(dropout),
+            # nn.Linear(in_channel, in_channel),
+            # nn.ReLU(),
             # nn.Dropout(dropout), 
         )
         

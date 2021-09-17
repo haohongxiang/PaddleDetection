@@ -95,7 +95,7 @@ OptimizerBuilder:
     type: L2
 
 
-worker_num: 2
+worker_num: 4
 TrainReader:
   sample_transforms:
   - Decode: {}
@@ -106,7 +106,7 @@ TrainReader:
   - Permute: {}
   batch_transforms:
   - PadBatch: {pad_to_stride: 32}
-  batch_size: 2
+  batch_size: 4
   shuffle: true
   drop_last: true
   collate_batch: false
