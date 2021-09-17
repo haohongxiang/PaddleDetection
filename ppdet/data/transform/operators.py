@@ -723,7 +723,7 @@ class Resize(BaseOperator):
         """
         path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + '.pkl')
 
-        if self.cache_root is not None:
+        if self.cache_root is not None and os.path.exists(path):
             with open(path, 'rb') as f:
                 sample = pickle.load(f)
                 
@@ -820,7 +820,7 @@ class Resize(BaseOperator):
             ]
             sample['gt_segm'] = np.asarray(masks).astype(np.uint8)
         
-        if self.cache_root is not None:
+        if self.cache_root is not None and not os.path.exists(path):
             with open(path, 'wb') as f:
                 sample = pickle.dump(sample, f)
         
