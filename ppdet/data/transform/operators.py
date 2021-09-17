@@ -52,6 +52,7 @@ logger = setup_logger(__name__)
 
 registered_ops = []
 
+import pickle
 
 def register_op(cls):
     registered_ops.append(cls.__name__)
@@ -113,25 +114,36 @@ def _make_dirs(dirname):
     Path(dirname).mkdir(exist_ok=True)
 
 
+    
+@register_op
+class DecodeResize(Resize):
+    def __init__(self, target_size, random_interp, keep_ratio, buffer_root=None, ):
+        self.buffer_root = buffer_root
+        assert os.path.exists(buffer_root), ''
+    
+    def apply(self, sample, context=None):
+        pass
+
+
 @register_op
 class Decode(BaseOperator):
-    def __init__(self, buffer_root=None):
+    def __init__(self, cache_root=None):
         """ Transform the image data to numpy format following the rgb format
         """
         super(Decode, self).__init__()
         
-        self.buffer_root = buffer_root
-        assert os.path.exists(buffer_root), ''
+        self.cache_root = cache_root
+        assert os.path.exists(cache_root), ''
 
-        if buffer_root is not None:
+        if cache_root is not None:
             # _make_dirs(buffer_root)
-            self.use_buffer = True
+            self.cache_root = True
             
         
             
     def apply(self, sample, context=None):
         """ load image if 'im_file' field is not empty but 'image' is"""
-        path = os.path.join(self.buffer_root, os.path.basename(sample['im_file']) + '.npy') 
+        path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + '.npy') 
         
         if os.path.exists(path):
             im = np.load(path)
@@ -622,7 +634,7 @@ class RandomFlip(BaseOperator):
 
 @register_op
 class Resize(BaseOperator):
-    def __init__(self, target_size, keep_ratio, interp=cv2.INTER_LINEAR):
+    def __init__(self, target_size, keep_ratio, interp=cv2.INTER_LINEAR, cache_root=None):
         """
         Resize image to target size. if keep_ratio is True, 
         resize the image's long side to the maximum of target_size
@@ -642,7 +654,10 @@ class Resize(BaseOperator):
         if isinstance(target_size, Integral):
             target_size = [target_size, target_size]
         self.target_size = target_size
-
+        
+        self.cache_root = cache_root
+        
+        
     def apply_image(self, image, scale):
         im_scale_x, im_scale_y = scale
 
@@ -705,6 +720,15 @@ class Resize(BaseOperator):
     def apply(self, sample, context=None):
         """ Resize the image numpy.
         """
+        path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + '.pkl')
+
+        if self.cache_root is not None:
+            with open(path, 'rb') as f:
+                sample = pickle.load(f)
+                
+            return sample
+        
+        
         im = sample['image']
         if not isinstance(im, np.ndarray):
             raise TypeError("{}: image type is not numpy.".format(self))
@@ -794,7 +818,11 @@ class Resize(BaseOperator):
                 for gt_segm in sample['gt_segm']
             ]
             sample['gt_segm'] = np.asarray(masks).astype(np.uint8)
-
+        
+        if self.cache_root is not None:
+            with open(path, 'wb') as f:
+                sample = pickle.dump(sample, f)
+        
         return sample
 
 
