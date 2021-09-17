@@ -97,6 +97,7 @@ class BaseOperator(object):
         """
         if isinstance(sample, Sequence):
             for i in range(len(sample)):
+                context = {'idx': i}
                 sample[i] = self.apply(sample[i], context)
         else:
             sample = self.apply(sample, context)
@@ -187,7 +188,6 @@ class Decode(BaseOperator):
 
         sample['im_shape'] = np.array(im.shape[:2], dtype=np.float32)
         sample['scale_factor'] = np.array([1., 1.], dtype=np.float32)
-        
         
         return sample
 
@@ -721,8 +721,9 @@ class Resize(BaseOperator):
     def apply(self, sample, context=None):
         """ Resize the image numpy.
         """
-        path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + '.pkl')
-
+        idx = 0 if context is None else context['idx']
+        path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + '_{idx}.pkl')
+        
         if self.cache_root is not None and os.path.exists(path):
             with open(path, 'rb') as f:
                 sample = pickle.load(f)
