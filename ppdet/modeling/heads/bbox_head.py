@@ -245,10 +245,10 @@ class BBoxHead(nn.Layer):
         
         dropout = 0.1
         self.ffn = nn.Sequential(
-            nn.Linear(1024, 1024),
+            nn.Linear(2048, 2048),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(1024, 1024),
+            nn.Linear(2048, 2048),
             nn.ReLU(),
             # nn.Dropout(dropout), 
         )
