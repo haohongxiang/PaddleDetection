@@ -73,18 +73,17 @@ class FasterRCNN(BaseArch):
         if self.neck is not None:
             body_feats = self.neck(body_feats)
         if self.training:
-            rois, rois_num, rpn_loss = self.rpn_head(body_feats, self.inputs)
-            bbox_loss, _ = self.bbox_head(body_feats, rois, rois_num,
-                                          self.inputs)
+            rois, rois_num, rpn_loss = self.rpn_head(body_feats[0:1], self.inputs)
+            bbox_loss, _ = self.bbox_head(body_feats, rois, rois_num, self.inputs)
             return rpn_loss, bbox_loss
+        
         else:
             rois, rois_num, _ = self.rpn_head(body_feats[0:1], self.inputs)
             preds, _ = self.bbox_head(body_feats, rois, rois_num, self.inputs)
 
             im_shape = self.inputs['im_shape']
             scale_factor = self.inputs['scale_factor']
-            bbox, bbox_num = self.bbox_post_process(preds, (rois, rois_num),
-                                                    im_shape, scale_factor)
+            bbox, bbox_num = self.bbox_post_process(preds, (rois, rois_num), im_shape, scale_factor)
 
             # rescale the prediction back to origin image
             bbox_pred = self.bbox_post_process.get_pred(bbox, bbox_num,

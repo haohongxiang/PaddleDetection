@@ -282,6 +282,8 @@ class BBoxHead(nn.Layer):
             self.assigned_rois = (rois, rois_num)
             self.assigned_targets = targets
             
+            assert rois[0].stop_gradient == False, ''
+            
         rois = paddle.concat([x.unsqueeze(0) for x in rois])
 
         # print(rois) # 1 [512, 4]
