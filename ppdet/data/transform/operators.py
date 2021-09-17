@@ -2465,18 +2465,41 @@ class Mosaic(BaseOperator):
     def __init__(self,
                  target_size,
                  mosaic_border=None,
-                 fill_value=(114, 114, 114)):
+                 fill_value=(114, 114, 114),
+                 degree=0, 
+                 translate=0.1,
+                 scale=0.5,
+                 shear=0.0,
+                 perspective=0.0, 
+                 prob=0.5, ):
         super(Mosaic, self).__init__()
         self.target_size = target_size
         if mosaic_border is None:
             mosaic_border = (-target_size // 2, -target_size // 2)
         self.mosaic_border = mosaic_border
         self.fill_value = fill_value
-
+        
+        self.degree = degree
+        self.translate = translate
+        self.scale = scale
+        self.shear = shear
+        self.perspective = perspective
+        self.prob = prob
+        
+        self.random_perspecive = RandomPerspective(degree=degree, 
+                                                   translate=translate,
+                                                   scale=scale,
+                                                   shear=shear,
+                                                   perspective=perspective, 
+                                                   border=mosaic_border)
+        
     def __call__(self, sample, context=None):
         if not isinstance(sample, Sequence):
             return sample
-
+        
+        if random.random() > self.prob:
+            return sample
+        
         s = self.target_size
         yc, xc = [
             int(random.uniform(-x, 2 * s + x)) for x in self.mosaic_border
@@ -2526,6 +2549,18 @@ class Mosaic(BaseOperator):
             sample['is_crowd'] = is_crowd
         if 'difficult' in sample:
             sample['difficult'] = difficult
+        
+        sample = self.random_perspecive(sample)
+        
+        from PIL import Image, ImageDraw
+        _im = Image.fromarray(sample['image'])
+        _draw = ImageDraw.Draw(_im)
+        for bbx in sample['gt_bbox']:
+            x, y, w, h = bbx
+            # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
+            _draw.rectangle((x, y, w, h), outline='red')
+        _im.save('perspective_'+str(random.randint(0, 10)) + '.jpg')
+        print('perspective: ', _im.size)
 
         return sample
 
