@@ -139,7 +139,7 @@ class Decode(BaseOperator):
         # assert os.path.exists(cache_root), ''
 
         if cache_root is not None:
-            _make_dirs(buffer_root)
+            _make_dirs(cache_root)
             # self.cache_root = True
             pass
         
@@ -734,6 +734,7 @@ class Resize(BaseOperator):
             if os.path.exists(path):
                 with open(path, 'rb') as f:
                     sample = pickle.load(f)
+                    
                 return sample
         
         im = sample['image']
