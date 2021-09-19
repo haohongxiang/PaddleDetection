@@ -32,6 +32,8 @@ from .shm_utils import _get_shared_memory_size_in_M
 from ppdet.utils.logger import setup_logger
 logger = setup_logger('reader')
 
+import time
+
 MAIN_PID = os.getpid()
 
 
@@ -51,7 +53,10 @@ class Compose(object):
     def __call__(self, data):
         for f in self.transforms_cls:
             try:
+                tic = time.time()
                 data = f(data)
+                print(f.__name__, ' ', time.time() - tic)
+                
             except Exception as e:
                 stack_info = traceback.format_exc()
                 logger.warning("fail to map sample transform [{}] "

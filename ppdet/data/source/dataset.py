@@ -73,10 +73,8 @@ class DetDataset(Dataset):
             roidb = [roidb, copy.deepcopy(self.roidbs[idx])]
         elif self.mosaic_epoch == 0 or self._epoch < self.mosaic_epoch:
             n = len(self.roidbs)
-            roidb = [roidb, ] + [
-                copy.deepcopy(self.roidbs[np.random.randint(n)])
-                for _ in range(3)
-            ]
+            roidb = [roidb, ] + [ copy.deepcopy(self.roidbs[np.random.randint(n)]) for _ in range(3) ]
+            
         if isinstance(roidb, Sequence):
             for r in roidb:
                 r['curr_iter'] = self._curr_iter

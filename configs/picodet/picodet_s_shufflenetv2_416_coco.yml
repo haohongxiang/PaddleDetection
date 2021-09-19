@@ -14,15 +14,17 @@ snapshot_epoch: 10
 
 
 
-worker_num: 6
+worker_num: 4
 TrainReader:
   sample_transforms:
-  - Decode: {}
+  # - Decode: { cache_root: /root/paddlejob/workspace/env_run/workspace/buffer }
   # - RandomCrop: {}
-  - RandomFlip: {prob: 0.5}
   
-  - RandomResize: {target_size: [416], random_interp: True, keep_ratio: True}
-  - Mosaic: {target_size: 416, mosaic_border: [-208, -208], prob: 0.5} #  # x y w h 
+  - Resize: {interp: 2, target_size: [416, 416], keep_ratio: True, cache_root: /root/paddlejob/workspace/env_run/workspace/resize_cache/ }
+  # - RandomResize: {target_size: [416], random_interp: True, keep_ratio: True}
+  - Mosaic: {target_size: 416, mosaic_border: [-208, -208], prob: 0.9} #  # x y w h 
+  - RandomFlip: {prob: 0.5}
+
   # - RandomPerspective: {degree: 0, translate: 0.1, scale: 0.5, shear: 0.0, perspective: 0.0, border: [-208, -208]} # x y w h 
   # - RandomResize: {target_size: [416], random_interp: True, keep_ratio: False}
   - RandomDistort: {}
@@ -40,6 +42,7 @@ TrainReader:
   shuffle: true
   drop_last: true
   mosaic_epoch: 10000
+  use_shared_memory: true
 
 
 EvalReader:
