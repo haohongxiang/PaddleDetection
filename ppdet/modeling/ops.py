@@ -1558,7 +1558,7 @@ def generate_proposals(scores,
                 'pixel_offset': pixel_offset
             },
             outputs=outputs)
-        rpn_rois.stop_gradient = True
+        # rpn_rois.stop_gradient = True
         rpn_roi_probs.stop_gradient = True
 
         return rpn_rois, rpn_roi_probs, rpn_rois_num

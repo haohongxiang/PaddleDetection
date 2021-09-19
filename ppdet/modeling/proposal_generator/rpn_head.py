@@ -187,10 +187,11 @@ class RPNHead(nn.Layer):
                 topk_prob = rpn_prob_list[0].flatten()
 
             bs_rois_collect.append(topk_rois)
-            bs_rois_num_collect.append(paddle.shape(topk_rois)[0])
+            bs_rois_num_collect.append(topk_rois.shape[0])
 
         bs_rois_num_collect = paddle.concat(bs_rois_num_collect)
-
+        bs_rois_num_collect.stop_gradient = True
+        
         return bs_rois_collect, bs_rois_num_collect
 
     def get_loss(self, pred_scores, pred_deltas, anchors, inputs):
