@@ -255,13 +255,15 @@ class FCOSFeatLastDCN(nn.Layer):
         self.norm_type = norm_type
         self.cls_subnet_convs = []
         self.reg_subnet_convs = []
+        self.use_dcn = use_dcn
+        
         for i in range(self.num_convs):
             in_c = feat_in if i == 0 else feat_out
             
             if i < self.num_convs - 1:
                 use_dcn = False
             else:
-                use_dcn = use_dcn
+                use_dcn = self.use_dcn
                 
             cls_conv_name = 'fcos_head_cls_tower_conv_{}'.format(i)
             cls_conv = self.add_sublayer(
