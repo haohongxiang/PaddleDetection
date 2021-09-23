@@ -22,7 +22,7 @@ GFL:
   backbone: ResNet
 #   neck: BiFPN
   neck: FPN
-  head: GFLHead
+  head: VFLHead
 
 
 ResNet:
@@ -70,12 +70,6 @@ VFLHead:
   prior_prob: 0.01
   reg_max: 16
   
-#   loss_qfl:
-#     name: QualityFocalLoss
-#     use_sigmoid: True
-#     beta: 2.0
-#     loss_weight: 1.0
-
   loss_vfl:
     name: VarifocalLoss
     use_sigmoid: True
