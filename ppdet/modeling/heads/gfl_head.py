@@ -681,7 +681,7 @@ class VFLHead(nn.Layer):
                  nms=None,
                  nms_pre=1000,
                  cell_offset=0):
-        super(GFLHead, self).__init__()
+        super(VFLHead, self).__init__()
         self.conv_feat = conv_feat
         self.dgqp_module = dgqp_module
         self.num_classes = num_classes
