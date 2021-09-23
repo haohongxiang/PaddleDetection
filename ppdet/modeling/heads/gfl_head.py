@@ -826,7 +826,7 @@ class VFLHead(nn.Layer):
                 as_tuple=False).squeeze(1)
             
             # score = np.zeros(labels.shape)
-            vfl_score = np.zeors(cls_score.shape)
+            vfl_score = np.zeros(cls_score.shape)
             
             if len(pos_inds) > 0:
                 pos_bbox_targets = paddle.gather(bbox_targets, pos_inds, axis=0)
