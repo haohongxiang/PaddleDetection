@@ -58,10 +58,10 @@ FPN:
 GFLHead:
   conv_feat:
     name: FCOSFeat
+    # name: FCOSFeatLastDCN
     feat_in: 256
     feat_out: 256
     num_convs: 4
-
     # norm_type: sync_bn
     norm_type: gn
     use_dcn: true
@@ -69,11 +69,19 @@ GFLHead:
   fpn_stride: [8, 16, 32]
   prior_prob: 0.01
   reg_max: 16
+  
   loss_qfl:
     name: QualityFocalLoss
     use_sigmoid: True
     beta: 2.0
     loss_weight: 1.0
+
+#   loss_vfl:
+#     name: VarifocalLoss
+#     use_sigmoid: True
+#     beta: 2.0
+#     loss_weight: 1.0
+
   loss_dfl:
     name: DistributionFocalLoss
     loss_weight: 0.25
