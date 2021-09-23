@@ -258,7 +258,7 @@ class FCOSFeatLastDCN(nn.Layer):
         for i in range(self.num_convs):
             in_c = feat_in if i == 0 else feat_out
             
-            if i < len(self.num_convs) - 1:
+            if i < self.num_convs - 1:
                 use_dcn = False
             else:
                 use_dcn = use_dcn
