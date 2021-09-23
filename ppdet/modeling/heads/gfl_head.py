@@ -250,7 +250,7 @@ class FCOSFeatLastDCN(nn.Layer):
                  num_convs=4,
                  norm_type='bn',
                  use_dcn=False):
-        super(FCOSFeat, self).__init__()
+        super(FCOSFeatLastDCN, self).__init__()
         self.num_convs = num_convs
         self.norm_type = norm_type
         self.cls_subnet_convs = []
