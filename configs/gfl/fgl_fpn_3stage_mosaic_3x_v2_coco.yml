@@ -33,6 +33,7 @@ ResNet:
   return_idx: [1, 2, 3]
   num_stages: 4
   freeze_norm: true
+  
   # norm_decay: 0.
   # dcn_v2_stages: [3]
   # norm_type: bn
@@ -50,6 +51,7 @@ FPN:
   out_channel: 256
   spatial_scales: [0.125, 0.0625, 0.03125]
   extra_stage: 0
+  use_scale_attention: false
   # norm_type: gn
   # has_extra_convs: false
   # use_c5: false
@@ -75,12 +77,6 @@ GFLHead:
     use_sigmoid: True
     beta: 2.0
     loss_weight: 1.0
-
-#   loss_vfl:
-#     name: VarifocalLoss
-#     use_sigmoid: True
-#     beta: 2.0
-#     loss_weight: 1.0
 
   loss_dfl:
     name: DistributionFocalLoss

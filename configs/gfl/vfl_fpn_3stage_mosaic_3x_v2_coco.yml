@@ -73,7 +73,7 @@ VFLHead:
   loss_vfl:
     name: VarifocalLoss
     use_sigmoid: True
-    beta: 2.0
+    gamma: 2.0
     loss_weight: 1.0
 
   loss_dfl:
