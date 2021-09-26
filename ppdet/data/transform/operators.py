@@ -2648,6 +2648,133 @@ class Mosaic(BaseOperator):
 
 
 @register_op
+class MosaicL(BaseOperator):
+    """
+    Mosaic Data Augmentation, refer to https://github.com/ultralytics/yolov5/blob/develop/utils/datasets.py
+
+    """
+
+    def __init__(self,
+                 target_size,
+                 mosaic_border=None,
+                 fill_value=(114, 114, 114),
+                 degree=0, 
+                 translate=0.1,
+                 scale=0.5,
+                 shear=0.0,
+                 perspective=0.0, 
+                 use_random_perspective=True,
+                 prob=0.5, ):
+        super(Mosaic, self).__init__()
+        
+        self.target_size = target_size 
+        
+        if mosaic_border is None:
+            mosaic_border = (-target_size // 2, -target_size // 2)
+        self.mosaic_border = mosaic_border
+        self.fill_value = fill_value
+        
+        self.degree = degree
+        self.translate = translate
+        self.scale = scale
+        self.shear = shear
+        self.perspective = perspective
+        self.prob = prob
+        
+        self.use_random_perspective = use_random_perspective
+        
+        self.random_perspecive = RandomPerspective(degree=degree, 
+                                                   translate=translate,
+                                                   scale=scale,
+                                                   shear=shear,
+                                                   perspective=perspective, 
+                                                   border=mosaic_border)
+        
+    def __call__(self, sample, context=None):
+        if not isinstance(sample, Sequence):
+            return sample
+    
+        s = self.target_size
+
+        if random.random() > self.prob:
+            _im = sample[0]['image']
+            h, w, c = _im.shape
+            s = max(h, w)
+            
+            if h == w:
+                return sample[0]
+            else:
+                image = np.ones((s, s, c), dtype=np.uint8) * self.fill_value
+                image[:h, :w, :] = _im
+                sample[0]['image'] = image
+                return sample[0]
+        
+        
+        yc, xc = [
+            int(random.uniform(-x, 2 * s + x)) for x in self.mosaic_border
+        ]
+        boxes = [x['gt_bbox'] for x in sample]
+        labels = [x['gt_class'] for x in sample]
+        for i in range(len(sample)):
+            im = sample[i]['image']
+            h, w, c = im.shape
+
+            if i == 0:  # top left
+                image = np.ones(
+                    (s * 2, s * 2, c), dtype=np.uint8) * self.fill_value
+                # xmin, ymin, xmax, ymax (dst image)
+                x1a, y1a, x2a, y2a = max(xc - w, 0), max(yc - h, 0), xc, yc
+                # xmin, ymin, xmax, ymax (src image)
+                x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (y2a - y1a), w, h
+            elif i == 1:  # top right
+                x1a, y1a, x2a, y2a = xc, max(yc - h, 0), min(xc + w, s * 2), yc
+                x1b, y1b, x2b, y2b = 0, h - (y2a - y1a), min(w, x2a - x1a), h
+            elif i == 2:  # bottom left
+                x1a, y1a, x2a, y2a = max(xc - w, 0), yc, xc, min(s * 2, yc + h)
+                x1b, y1b, x2b, y2b = w - (x2a - x1a), 0, max(xc, w), min(
+                    y2a - y1a, h)
+            elif i == 3:  # bottom right
+                x1a, y1a, x2a, y2a = xc, yc, min(xc + w,
+                                                 s * 2), min(s * 2, yc + h)
+                x1b, y1b, x2b, y2b = 0, 0, min(w, x2a - x1a), min(y2a - y1a, h)
+
+            image[y1a:y2a, x1a:x2a] = im[y1b:y2b, x1b:x2b]
+            padw = x1a - x1b
+            padh = y1a - y1b
+            boxes[i] = boxes[i] + (padw, padh, padw, padh)
+
+        boxes = np.concatenate(boxes, axis=0)
+        boxes = np.clip(boxes, 0, s * 2)
+        labels = np.concatenate(labels, axis=0)
+        if 'is_crowd' in sample[0]:
+            is_crowd = np.concatenate([x['is_crowd'] for x in sample], axis=0)
+        if 'difficult' in sample[0]:
+            difficult = np.concatenate([x['difficult'] for x in sample], axis=0)
+        sample = sample[0]
+        sample['image'] = image.astype(np.uint8)
+        sample['gt_bbox'] = boxes
+        sample['gt_class'] = labels
+        if 'is_crowd' in sample:
+            sample['is_crowd'] = is_crowd
+        if 'difficult' in sample:
+            sample['difficult'] = difficult
+        
+        sample = self.random_perspecive(sample)
+        
+        from PIL import Image, ImageDraw
+        _im = Image.fromarray(sample['image'])
+        _draw = ImageDraw.Draw(_im)
+        for bbx in sample['gt_bbox']:
+            x, y, w, h = bbx
+            # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
+            _draw.rectangle((x, y, w, h), outline='red')
+        _im.save('perspective_'+str(random.randint(0, 10)) + '.jpg')
+        print('perspective: ', _im.size)
+
+        return sample
+
+
+@register_op
 class RandomSelect(BaseOperator):
     """
     Randomly choose a transformation between transforms1 and transforms2,
