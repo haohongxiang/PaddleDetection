@@ -2665,7 +2665,7 @@ class MosaicL(BaseOperator):
                  perspective=0.0, 
                  use_random_perspective=True,
                  prob=0.5, ):
-        super(Mosaic, self).__init__()
+        super(MosaicL, self).__init__()
         
         self.target_size = target_size 
         
