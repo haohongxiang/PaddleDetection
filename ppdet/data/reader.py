@@ -53,9 +53,9 @@ class Compose(object):
     def __call__(self, data):
         for f in self.transforms_cls:
             try:
-                tic = time.time()
+                # tic = time.time()
                 data = f(data)
-                print(f.__name__, ' ', time.time() - tic)
+                # print(f.__name__, ' ', time.time() - tic)
                 
             except Exception as e:
                 stack_info = traceback.format_exc()

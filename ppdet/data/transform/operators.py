@@ -2838,6 +2838,8 @@ class MosaicL(BaseOperator):
         if 'difficult' in sample:
             sample['difficult'] = difficult
         
+        print('mosaic: ', image.shape)
+        
         sample = self.random_perspecive(sample)
         
         from PIL import Image, ImageDraw
