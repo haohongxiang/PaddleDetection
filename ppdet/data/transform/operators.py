@@ -2840,19 +2840,19 @@ class MosaicL(BaseOperator):
         if 'difficult' in sample:
             sample['difficult'] = difficult
         
-        print('mosaic: ', image.shape)
+#         print('mosaic: ', image.shape)
         
         sample = self.random_perspecive(sample)
         
-        from PIL import Image, ImageDraw
-        _im = Image.fromarray(sample['image'])
-        _draw = ImageDraw.Draw(_im)
-        for bbx in sample['gt_bbox']:
-            x, y, w, h = bbx
-            # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
-            _draw.rectangle((x, y, w, h), outline='red')
-        _im.save('perspective_'+str(random.randint(0, 10)) + '.jpg')
-        print('perspective: ', _im.size)
+#         from PIL import Image, ImageDraw
+#         _im = Image.fromarray(sample['image'])
+#         _draw = ImageDraw.Draw(_im)
+#         for bbx in sample['gt_bbox']:
+#             x, y, w, h = bbx
+#             # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
+#             _draw.rectangle((x, y, w, h), outline='red')
+#         _im.save('perspective_'+str(random.randint(0, 10)) + '.jpg')
+#         print('perspective: ', _im.size)
 
         return sample
 
