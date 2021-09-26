@@ -2533,7 +2533,7 @@ class RandomPerspective(BaseOperator):
         self.border = border
         self.area_thr = area_thr
         self.fill_value = fill_value
-
+        
     def apply(self, sample, context=None):
         im = sample['image']
         height = im.shape[0] + self.border[0] * 2
@@ -2736,6 +2736,7 @@ class MosaicL(BaseOperator):
     def __init__(self,
                  target_size,
                  mosaic_border=None,
+                 perspective_border=[0, 0]
                  fill_value=(114, 114, 114),
                  degree=0, 
                  translate=0.1,
@@ -2759,6 +2760,7 @@ class MosaicL(BaseOperator):
         self.shear = shear
         self.perspective = perspective
         self.prob = prob
+        self.perspective_border = perspective_border
         
         self.use_random_perspective = use_random_perspective
         
@@ -2767,7 +2769,7 @@ class MosaicL(BaseOperator):
                                                    scale=scale,
                                                    shear=shear,
                                                    perspective=perspective, 
-                                                   border=mosaic_border)
+                                                   border=perspective_border)
         
     def __call__(self, sample, context=None):
         if not isinstance(sample, Sequence):
