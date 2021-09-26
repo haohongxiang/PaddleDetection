@@ -2736,7 +2736,7 @@ class MosaicL(BaseOperator):
     def __init__(self,
                  target_size,
                  mosaic_border=None,
-                 perspective_border=[0, 0]
+                 perspective_border=[0, 0],
                  fill_value=(114, 114, 114),
                  degree=0, 
                  translate=0.1,
