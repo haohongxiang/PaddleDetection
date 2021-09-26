@@ -18,18 +18,18 @@ worker_num: 4
 TrainReader:
   sample_transforms:
   - DecodeCache: { cache_root: /root/paddlejob/workspace/env_run/workspace/buffer }
-  - RandomCrop: {}
   - RandomFlip: {prob: 0.5}
   # - Resize: {interp: 2, target_size: [416, 416], keep_ratio: True, cache_root: /root/paddlejob/workspace/env_run/workspace/resize_cache/ }
   - RandomResize: {target_size: [416], random_interp: True, keep_ratio: False}
   # - Mosaic: {target_size: 416, mosaic_border: [-208, -208], scale: 1., prob: 0.5} #  # x y w h 
   - MosaicL: {target_size: 208, scale: 0.0, translate: 0,  prob: 0.4} #  # x y w h 
-
+  
+  - RandomCrop: {}
   - RandomFlip: {prob: 0.5}
+  - RandomDistort: {}
 
   # - RandomPerspective: {degree: 0, translate: 0.1, scale: 0.5, shear: 0.0, perspective: 0.0, border: [-208, -208]} # x y w h 
   # - RandomResize: {target_size: [416], random_interp: True, keep_ratio: False}
-  - RandomDistort: {}
   
   batch_transforms:
   # - BatchRandomResize: {target_size: [352, 384, 416, 448, 480], random_size: True, random_interp: True, keep_ratio: False}
