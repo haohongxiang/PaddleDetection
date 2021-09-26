@@ -4,7 +4,8 @@ _BASE_: [
   './_base_/ppyolov2_r50vd_dcn.yml',
 ]
 
-
+use_ema: false
+# ema_decay: 0.9998
 
 num_classes: 800
 
@@ -12,7 +13,7 @@ snapshot_epoch: 1
 weights: output/lst_ppyolo_r50vd_dcn/model_final
 
 
-epoch: 18 # 24 # 36 53-day
+epoch: 36 # 24 # 36 53-day
 LearningRate:
   # base_lr: 0.005 # 0.0075
   base_lr: 0.00333 # 0.0075  8 vs 12 
@@ -20,7 +21,7 @@ LearningRate:
   - !PiecewiseDecay
     gamma: 0.1
     milestones:
-    - 12 # 16 # 24
+    - 24 # 16 # 24
   - !LinearWarmup
     start_factor: 0.
     steps: 10000

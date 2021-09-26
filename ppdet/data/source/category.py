@@ -21,6 +21,9 @@ import os
 from ppdet.data.source.voc import pascalvoc_label
 from ppdet.data.source.widerface import widerface_label
 from ppdet.utils.logger import setup_logger
+
+from .plain import names_map
+
 logger = setup_logger(__name__)
 
 __all__ = ['get_categories']
@@ -47,8 +50,11 @@ def get_categories(metric_type, anno_file=None, arch=None):
             coco = COCO(anno_file)
             cats = coco.loadCats(coco.getCatIds())
 
+            # clsid2catid = {i: cat['id'] for i, cat in enumerate(cats)}
+            # catid2name = {cat['id']: cat['name'] for cat in cats}
             clsid2catid = {i: cat['id'] for i, cat in enumerate(cats)}
-            catid2name = {cat['id']: cat['name'] for cat in cats}
+            catid2name = {cat['id']: cat['name'] for cat in cats}            
+            
             return clsid2catid, catid2name
 
         # anno file not exist, load default categories of COCO17

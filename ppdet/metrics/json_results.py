@@ -27,7 +27,13 @@ def get_det_res(bboxes, bbox_nums, image_id, label_to_cat_id_map, bias=0):
             num_id, score, xmin, ymin, xmax, ymax = dt.tolist()
             if int(num_id) < 0:
                 continue
-            category_id = label_to_cat_id_map[int(num_id)]
+            
+            # print(label_to_cat_id_map)
+            if int(num_id) in label_to_cat_id_map:
+                category_id = label_to_cat_id_map[int(num_id)]
+            else:
+                category_id = 0
+
             w = xmax - xmin + bias
             h = ymax - ymin + bias
             bbox = [xmin, ymin, w, h]
