@@ -2658,7 +2658,7 @@ class Mosaic(BaseOperator):
         
         
         yc, xc = [
-            int(random.uniform(-x // 2, (2 * s + x) // 2)) for x in self.mosaic_border
+            int(random.uniform(-x + x//2, 2 * s + x + x//2)) for x in self.mosaic_border
         ]
         
         boxes = [x['gt_bbox'] for x in sample]
