@@ -806,15 +806,12 @@ class Resize(BaseOperator):
         # idx = 0 if context is None else context['idx']
         # path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + f'_{idx}.pkl')
 
-        if self.cache_root is not None:
-            
-            path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + '.pkl')
-
-            if os.path.exists(path):
-                with open(path, 'rb') as f:
-                    sample = pickle.load(f)
-                    
-                return sample
+#         if self.cache_root is not None:
+#             path = os.path.join(self.cache_root, os.path.basename(sample['im_file']) + '.pkl')
+#             if os.path.exists(path):
+#                 with open(path, 'rb') as f:
+#                     sample = pickle.load(f)
+#                 return sample
         
         im = sample['image']
         if not isinstance(im, np.ndarray):
@@ -2652,19 +2649,18 @@ class Mosaic(BaseOperator):
         s = self.target_size
 
         if random.random() > self.prob:
-            _im = sample[0]['image']
-            h, w, c = _im.shape
-            
-            image = np.ones((s, s, c), dtype=np.uint8) * self.fill_value
-            image[:h, :w, :] = _im
-            sample[0]['image'] = image
-            
+#             _im = sample[0]['image']
+#             h, w, c = _im.shape
+#             image = np.ones((s, s, c), dtype=np.uint8) * self.fill_value
+#             image[:h, :w, :] = _im
+#             sample[0]['image'] = image
             return sample[0]
         
         
         yc, xc = [
             int(random.uniform(-x, 2 * s + x)) for x in self.mosaic_border
         ]
+        
         boxes = [x['gt_bbox'] for x in sample]
         labels = [x['gt_class'] for x in sample]
         for i in range(len(sample)):
@@ -2711,17 +2707,18 @@ class Mosaic(BaseOperator):
         if 'difficult' in sample:
             sample['difficult'] = difficult
         
-        sample = self.random_perspecive(sample)
+        if self.use_random_perspective:
+            sample = self.random_perspecive(sample)
         
-#         from PIL import Image, ImageDraw
-#         _im = Image.fromarray(sample['image'])
-#         _draw = ImageDraw.Draw(_im)
-#         for bbx in sample['gt_bbox']:
-#             x, y, w, h = bbx
-#             # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
-#             _draw.rectangle((x, y, w, h), outline='red')
-#         _im.save('perspective_'+str(random.randint(0, 10)) + '.jpg')
-#         print('perspective: ', _im.size)
+        from PIL import Image, ImageDraw
+        _im = Image.fromarray(sample['image'])
+        _draw = ImageDraw.Draw(_im)
+        for bbx in sample['gt_bbox']:
+            x, y, w, h = bbx
+            # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
+            _draw.rectangle((x, y, w, h), outline='red')
+        _im.save('perspective_'+str(random.randint(0, 10)) + '.jpg')
+        print('perspective: ', _im.size)
 
         return sample
 
