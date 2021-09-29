@@ -2658,7 +2658,7 @@ class Mosaic(BaseOperator):
         
         
         yc, xc = [
-            int(random.uniform(-x, 2 * s + x)) for x in self.mosaic_border
+            int(random.uniform(-x // 2, (2 * s + x) // 2)) for x in self.mosaic_border
         ]
         
         boxes = [x['gt_bbox'] for x in sample]
@@ -2710,15 +2710,15 @@ class Mosaic(BaseOperator):
         if self.use_random_perspective:
             sample = self.random_perspecive(sample)
         
-#         from PIL import Image, ImageDraw
-#         _im = Image.fromarray(sample['image'])
-#         _draw = ImageDraw.Draw(_im)
-#         for bbx in sample['gt_bbox']:
-#             x, y, w, h = bbx
-#             # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
-#             _draw.rectangle((x, y, w, h), outline='red')
-#         _im.save('perspective_'+str(random.randint(0, 10)) + '.jpg')
-#         print('perspective: ', _im.size)
+        from PIL import Image, ImageDraw
+        _im = Image.fromarray(sample['image'])
+        _draw = ImageDraw.Draw(_im)
+        for bbx in sample['gt_bbox']:
+            x, y, w, h = bbx
+            # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
+            _draw.rectangle((x, y, w, h), outline='red')
+        _im.save('perspective_'+str(random.randint(0, 10)) + '.jpg')
+        print('perspective: ', _im.size)
 
         return sample
 
