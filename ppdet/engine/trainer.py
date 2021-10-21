@@ -342,6 +342,14 @@ class Trainer(object):
             self._flops(self.loader)
         profiler_options = self.cfg.get('profiler_options', None)
 
+        def count_hard_swish(m, x, y):
+            num_elements = len(((y > 0) == (y < 3)).nonzero())
+            total_ops = 3 * num_elements
+            m.total_ops += int(total_ops)
+
+        # data = self.dataset[0]
+        # print(data['image'].shape)
+
         for epoch_id in range(self.start_epoch, self.cfg.epoch):
             self.status['mode'] = 'train'
             self.status['epoch_id'] = epoch_id
@@ -355,6 +363,19 @@ class Trainer(object):
                 profiler.add_profiler_step(profiler_options)
                 self._compose_callback.on_step_begin(self.status)
                 data['epoch_id'] = epoch_id
+
+                model = paddle.nn.Sequential(
+                    self.model.backbone,
+                    self.model.neck,
+                    self.model.head, )
+                info = paddle.flops(
+                    model,
+                    data=data,
+                    print_detail=True,
+                    custom_ops={paddle.nn.Hardswish: count_hard_swish})
+                print(data['image'].shape)
+
+                c += 1
 
                 if self.cfg.get('fp16', False):
                     with amp.auto_cast(enable=self.cfg.use_gpu):
