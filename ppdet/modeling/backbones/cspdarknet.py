@@ -392,8 +392,7 @@ class CSPDarkNet53(nn.Layer):
         self.stem = model.stem
         self.stages = model.stages
         self.num_stages = num_stages
-        self._out_channels = [128, 256, 512, 1024][len(self.stages) -
-                                                   self.num_stages:]
+        self._out_channels = [64, 128, 256, 512, 1024][-self.num_stages:]
 
     def forward(self, inputs):
         x = inputs['image']
@@ -404,7 +403,7 @@ class CSPDarkNet53(nn.Layer):
             x = stage(x)
             outputs.append(x)
 
-        return outputs[len(self.stages) - self.num_stages:]
+        return outputs[-self.num_stages:]
 
     @property
     def out_shape(self):
