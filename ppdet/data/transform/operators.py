@@ -2436,182 +2436,186 @@ class RandomResizeCrop(BaseOperator):
         return sample
 
 
-class RandomPerspective(BaseOperator):
-    """
-    Rotate, tranlate, scale, shear and perspect image and bboxes randomly,
-    refer to https://github.com/ultralytics/yolov5/blob/develop/utils/datasets.py
+# class RandomPerspective(BaseOperator):
+#     """
+#     Rotate, tranlate, scale, shear and perspect image and bboxes randomly,
+#     refer to https://github.com/ultralytics/yolov5/blob/develop/utils/datasets.py
 
-    Args:
-        degree (int): rotation degree, uniformly sampled in [-degree, degree]
-        translate (float): translate fraction, translate_x and translate_y are uniformly sampled
-            in [0.5 - translate, 0.5 + translate]
-        scale (float): scale factor, uniformly sampled in [1 - scale, 1 + scale]
-        shear (int): shear degree, shear_x and shear_y are uniformly sampled in [-shear, shear]
-        perspective (float): perspective_x and perspective_y are uniformly sampled in [-perspective, perspective]
-        area_thr (float): the area threshold of bbox to be kept after transformation, default 0.25
-        fill_value (tuple): value used in case of a constant border, default (114, 114, 114)
-    """
+#     Args:
+#         degree (int): rotation degree, uniformly sampled in [-degree, degree]
+#         translate (float): translate fraction, translate_x and translate_y are uniformly sampled
+#             in [0.5 - translate, 0.5 + translate]
+#         scale (float): scale factor, uniformly sampled in [1 - scale, 1 + scale]
+#         shear (int): shear degree, shear_x and shear_y are uniformly sampled in [-shear, shear]
+#         perspective (float): perspective_x and perspective_y are uniformly sampled in [-perspective, perspective]
+#         area_thr (float): the area threshold of bbox to be kept after transformation, default 0.25
+#         fill_value (tuple): value used in case of a constant border, default (114, 114, 114)
+#     """
 
-    def __init__(self,
-                 degree=10,
-                 translate=0.1,
-                 scale=0.1,
-                 shear=10,
-                 perspective=0.0,
-                 border=[0, 0],
-                 area_thr=0.25,
-                 fill_value=(114, 114, 114)):
-        super(RandomPerspective, self).__init__()
-        self.degree = degree
-        self.translate = translate
-        self.scale = scale
-        self.shear = shear
-        self.perspective = perspective
-        self.border = border
-        self.area_thr = area_thr
-        self.fill_value = fill_value
+#     def __init__(self,
+#                  degree=10,
+#                  translate=0.1,
+#                  scale=0.1,
+#                  shear=10,
+#                  perspective=0.0,
+#                  border=[0, 0],
+#                  area_thr=0.25,
+#                  fill_value=(114, 114, 114)):
+#         super(RandomPerspective, self).__init__()
+#         self.degree = degree
+#         self.translate = translate
+#         self.scale = scale
+#         self.shear = shear
+#         self.perspective = perspective
+#         self.border = border
+#         self.area_thr = area_thr
+#         self.fill_value = fill_value
 
-    def apply(self, sample, context=None):
-        im = sample['image']
-        height = im.shape[0] + self.border[0] * 2
-        width = im.shape[1] + self.border[1] * 2
+#     def apply(self, sample, context=None):
+#         im = sample['image']
+#         height = im.shape[0] + self.border[0] * 2
+#         width = im.shape[1] + self.border[1] * 2
 
-        # center
-        C = np.eye(3)
-        C[0, 2] = -im.shape[1] / 2
-        C[1, 2] = -im.shape[0] / 2
+#         # center
+#         C = np.eye(3)
+#         C[0, 2] = -im.shape[1] / 2
+#         C[1, 2] = -im.shape[0] / 2
 
-        # perspective
-        P = np.eye(3)
-        P[2, 0] = random.uniform(-self.perspective, self.perspective)
-        P[2, 1] = random.uniform(-self.perspective, self.perspective)
+#         # perspective
+#         P = np.eye(3)
+#         P[2, 0] = random.uniform(-self.perspective, self.perspective)
+#         P[2, 1] = random.uniform(-self.perspective, self.perspective)
 
-        # Rotation and scale
-        R = np.eye(3)
-        a = random.uniform(-self.degree, self.degree)
-        s = random.uniform(1 - self.scale, 1 + self.scale)
-        R[:2] = cv2.getRotationMatrix2D(angle=a, center=(0, 0), scale=s)
+#         # Rotation and scale
+#         R = np.eye(3)
+#         a = random.uniform(-self.degree, self.degree)
+#         s = random.uniform(1 - self.scale, 1 + self.scale)
+#         R[:2] = cv2.getRotationMatrix2D(angle=a, center=(0, 0), scale=s)
 
-        # Shear
-        S = np.eye(3)
-        # shear x (deg)
-        S[0, 1] = math.tan(
-            random.uniform(-self.shear, self.shear) * math.pi / 180)
-        # shear y (deg)
-        S[1, 0] = math.tan(
-            random.uniform(-self.shear, self.shear) * math.pi / 180)
+#         # Shear
+#         S = np.eye(3)
+#         # shear x (deg)
+#         S[0, 1] = math.tan(
+#             random.uniform(-self.shear, self.shear) * math.pi / 180)
+#         # shear y (deg)
+#         S[1, 0] = math.tan(
+#             random.uniform(-self.shear, self.shear) * math.pi / 180)
 
-        # Translation
-        T = np.eye(3)
-        T[0, 2] = random.uniform(0.5 - self.translate,
-                                 0.5 + self.translate) * width
-        T[1, 2] = random.uniform(0.5 - self.translate,
-                                 0.5 + self.translate) * height
+#         # Translation
+#         T = np.eye(3)
+#         T[0, 2] = random.uniform(0.5 - self.translate,
+#                                  0.5 + self.translate) * width
+#         T[1, 2] = random.uniform(0.5 - self.translate,
+#                                  0.5 + self.translate) * height
 
-        # matmul
-        # M = T @ S @ R @ P @ C
-        M = np.eye(3)
-        for cM in [T, S, R, P, C]:
-            M = np.matmul(M, cM)
+#         # matmul
+#         # M = T @ S @ R @ P @ C
+#         M = np.eye(3)
+#         for cM in [T, S, R, P, C]:
+#             M = np.matmul(M, cM)
 
-        if (self.border[0] != 0) or (self.border[1] != 0) or (
-                M != np.eye(3)).any():
-            if self.perspective:
-                im = cv2.warpPerspective(
-                    im, M, dsize=(width, height), borderValue=self.fill_value)
-            else:
-                im = cv2.warpAffine(
-                    im,
-                    M[:2],
-                    dsize=(width, height),
-                    borderValue=self.fill_value)
+#         if (self.border[0] != 0) or (self.border[1] != 0) or (
+#                 M != np.eye(3)).any():
+#             if self.perspective:
+#                 im = cv2.warpPerspective(
+#                     im, M, dsize=(width, height), borderValue=self.fill_value)
+#             else:
+#                 im = cv2.warpAffine(
+#                     im,
+#                     M[:2],
+#                     dsize=(width, height),
+#                     borderValue=self.fill_value)
 
-        sample['image'] = im
-        if sample['gt_bbox'].shape[0] > 0:
-            sample = transform_bbox(
-                sample,
-                M,
-                width,
-                height,
-                area_thr=self.area_thr,
-                perspective=self.perspective)
+#         sample['image'] = im
+#         if sample['gt_bbox'].shape[0] > 0:
+#             sample = transform_bbox(
+#                 sample,
+#                 M,
+#                 width,
+#                 height,
+#                 area_thr=self.area_thr,
+#                 perspective=self.perspective)
 
-        return sample
+#         if 'gt_bbox' in sample:
+#             sample['gt_bbox'] = sample['gt_bbox'].astype(np.float32)
 
+#         return sample
 
-@register_op
-class Mosaic(BaseOperator):
-    """
-    Mosaic Data Augmentation, refer to https://github.com/ultralytics/yolov5/blob/develop/utils/datasets.py
+# @register_op
+# class Mosaic(BaseOperator):
+#     """
+#     Mosaic Data Augmentation, refer to https://github.com/ultralytics/yolov5/blob/develop/utils/datasets.py
 
-    """
+#     """
 
-    def __init__(self,
-                 target_size,
-                 mosaic_border=None,
-                 fill_value=(114, 114, 114)):
-        super(Mosaic, self).__init__()
-        self.target_size = target_size
-        if mosaic_border is None:
-            mosaic_border = (-target_size // 2, -target_size // 2)
-        self.mosaic_border = mosaic_border
-        self.fill_value = fill_value
+#     def __init__(self,
+#                  target_size,
+#                  mosaic_border=None,
+#                  fill_value=(114, 114, 114)):
+#         super(Mosaic, self).__init__()
+#         self.target_size = target_size
+#         if mosaic_border is None:
+#             mosaic_border = (-target_size // 2, -target_size // 2)
+#         self.mosaic_border = mosaic_border
+#         self.fill_value = fill_value
 
-    def __call__(self, sample, context=None):
-        if not isinstance(sample, Sequence):
-            return sample
+#     def __call__(self, sample, context=None):
+#         if not isinstance(sample, Sequence):
+#             return sample
 
-        s = self.target_size
-        yc, xc = [
-            int(random.uniform(-x, 2 * s + x)) for x in self.mosaic_border
-        ]
-        boxes = [x['gt_bbox'] for x in sample]
-        labels = [x['gt_class'] for x in sample]
-        for i in range(len(sample)):
-            im = sample[i]['image']
-            h, w, c = im.shape
+#         s = self.target_size
+#         yc, xc = [
+#             int(random.uniform(-x, 2 * s + x)) for x in self.mosaic_border
+#         ]
+#         boxes = [x['gt_bbox'] for x in sample]
+#         labels = [x['gt_class'] for x in sample]
+#         for i in range(len(sample)):
+#             im = sample[i]['image']
+#             h, w, c = im.shape
 
-            if i == 0:  # top left
-                image = np.ones(
-                    (s * 2, s * 2, c), dtype=np.uint8) * self.fill_value
-                # xmin, ymin, xmax, ymax (dst image)
-                x1a, y1a, x2a, y2a = max(xc - w, 0), max(yc - h, 0), xc, yc
-                # xmin, ymin, xmax, ymax (src image)
-                x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (y2a - y1a), w, h
-            elif i == 1:  # top right
-                x1a, y1a, x2a, y2a = xc, max(yc - h, 0), min(xc + w, s * 2), yc
-                x1b, y1b, x2b, y2b = 0, h - (y2a - y1a), min(w, x2a - x1a), h
-            elif i == 2:  # bottom left
-                x1a, y1a, x2a, y2a = max(xc - w, 0), yc, xc, min(s * 2, yc + h)
-                x1b, y1b, x2b, y2b = w - (x2a - x1a), 0, max(xc, w), min(
-                    y2a - y1a, h)
-            elif i == 3:  # bottom right
-                x1a, y1a, x2a, y2a = xc, yc, min(xc + w,
-                                                 s * 2), min(s * 2, yc + h)
-                x1b, y1b, x2b, y2b = 0, 0, min(w, x2a - x1a), min(y2a - y1a, h)
+#             if i == 0:  # top left
+#                 image = np.ones(
+#                     (s * 2, s * 2, c), dtype=np.uint8) * self.fill_value
+#                 # xmin, ymin, xmax, ymax (dst image)
+#                 x1a, y1a, x2a, y2a = max(xc - w, 0), max(yc - h, 0), xc, yc
+#                 # xmin, ymin, xmax, ymax (src image)
+#                 x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (y2a - y1a), w, h
+#             elif i == 1:  # top right
+#                 x1a, y1a, x2a, y2a = xc, max(yc - h, 0), min(xc + w, s * 2), yc
+#                 x1b, y1b, x2b, y2b = 0, h - (y2a - y1a), min(w, x2a - x1a), h
+#             elif i == 2:  # bottom left
+#                 x1a, y1a, x2a, y2a = max(xc - w, 0), yc, xc, min(s * 2, yc + h)
+#                 x1b, y1b, x2b, y2b = w - (x2a - x1a), 0, max(xc, w), min(
+#                     y2a - y1a, h)
+#             elif i == 3:  # bottom right
+#                 x1a, y1a, x2a, y2a = xc, yc, min(xc + w,
+#                                                  s * 2), min(s * 2, yc + h)
+#                 x1b, y1b, x2b, y2b = 0, 0, min(w, x2a - x1a), min(y2a - y1a, h)
 
-            image[y1a:y2a, x1a:x2a] = im[y1b:y2b, x1b:x2b]
-            padw = x1a - x1b
-            padh = y1a - y1b
-            boxes[i] = boxes[i] + (padw, padh, padw, padh)
+#             image[y1a:y2a, x1a:x2a] = im[y1b:y2b, x1b:x2b]
+#             padw = x1a - x1b
+#             padh = y1a - y1b
+#             boxes[i] = boxes[i] + (padw, padh, padw, padh)
 
-        boxes = np.concatenate(boxes, axis=0)
-        boxes = np.clip(boxes, 0, s * 2)
-        labels = np.concatenate(labels, axis=0)
-        if 'is_crowd' in sample[0]:
-            is_crowd = np.concatenate([x['is_crowd'] for x in sample], axis=0)
-        if 'difficult' in sample[0]:
-            difficult = np.concatenate([x['difficult'] for x in sample], axis=0)
-        sample = sample[0]
-        sample['image'] = image.astype(np.uint8)
-        sample['gt_bbox'] = boxes
-        sample['gt_class'] = labels
-        if 'is_crowd' in sample:
-            sample['is_crowd'] = is_crowd
-        if 'difficult' in sample:
-            sample['difficult'] = difficult
+#         boxes = np.concatenate(boxes, axis=0)
+#         boxes = np.clip(boxes, 0, s * 2)
+#         labels = np.concatenate(labels, axis=0)
+#         if 'is_crowd' in sample[0]:
+#             is_crowd = np.concatenate([x['is_crowd'] for x in sample], axis=0)
+#         if 'difficult' in sample[0]:
+#             difficult = np.concatenate([x['difficult'] for x in sample], axis=0)
 
-        return sample
+#         sample = sample[0]
+#         sample['image'] = image.astype(np.uint8)
+#         sample['gt_bbox'] = boxes.astype(np.float32)
+#         sample['gt_class'] = labels
+
+#         if 'is_crowd' in sample:
+#             sample['is_crowd'] = is_crowd
+#         if 'difficult' in sample:
+#             sample['difficult'] = difficult
+
+#         return sample
 
 
 @register_op
@@ -3148,4 +3152,287 @@ class CenterRandColor(BaseOperator):
         for func in distortions:
             img = func(img, img_gray)
         sample['image'] = img
+        return sample
+
+
+@register_op
+class RandomHSV(BaseOperator):
+    def __init__(self, hgain=0.5, sgain=0.5, vgain=0.5):
+        super(RandomHSV, self).__init__()
+        self.gains = [hgain, sgain, vgain]
+
+    def __call__(self, sample, context=None):
+        im = sample['image']
+        r = np.random.uniform(-1, 1, 3) * self.gains + 1
+        hue, sat, val = cv2.split(cv2.cvtColor(im, cv2.COLOR_BGR2HSV))
+        x = np.arange(0, 256, dtype=np.int16)
+        lut_hue = ((x * r[0]) % 180).astype(np.uint8)
+        lut_sat = np.clip(x * r[1], 0, 255).astype(np.uint8)
+        lut_val = np.clip(x * r[2], 0, 255).astype(np.uint8)
+        im_hsv = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat),
+                            cv2.LUT(val, lut_val))).astype(np.uint8)
+        im = cv2.cvtColor(im_hsv, cv2.COLOR_HSV2BGR)
+        sample['image'] = im
+        return sample
+
+
+@register_op
+class LetterBox(BaseOperator):
+    def __init__(self,
+                 target_size,
+                 rect=True,
+                 color=(114, 114, 114),
+                 auto=True,
+                 scaleFill=False,
+                 augment=True):
+        super(LetterBox, self).__init__()
+        if isinstance(target_size, int):
+            target_size = (target_size, target_size)
+        self.target_size = target_size
+        self.color = color
+        self.auto = auto
+        self.scaleFill = scaleFill
+        self.augment = augment
+        self.rect = rect
+
+    def __call__(self, sample, context=None):
+        im = sample['image']
+        shape = im.shape[:2]
+        new_shape = sample['new_shape'] if self.rect else self.target_size
+        r = min(new_shape[0] / shape[0], new_shape[1] / shape[1])
+        if not self.augment:
+            r = min(r, 1.0)
+
+        ratio = r, r
+        new_unpad = int(round(shape[1] * r)), int(round(shape[0] * r))
+        dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - new_unpad[
+            1]  # wh padding
+        if self.auto:  # minimum rectangle
+            dw, dh = np.mod(dw, 64), np.mod(dh, 64)  # wh padding
+        elif self.scaleFill:  # stretch
+            dw, dh = 0.0, 0.0
+            new_unpad = (new_shape[1], new_shape[0])
+            ratio = new_shape[1] / shape[1], new_shape[0] / shape[
+                0]  # width, height ratios
+
+        dw /= 2  # divide padding into 2 sides
+        dh /= 2
+
+        if shape[::-1] != new_unpad:  # resize
+            im = cv2.resize(im, new_unpad, interpolation=cv2.INTER_LINEAR)
+        top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
+        left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
+        im = cv2.copyMakeBorder(
+            im, top, bottom, left, right, cv2.BORDER_CONSTANT,
+            value=self.color)  # add border
+        sample['image'] = im
+        sample['im_pad'] = [dh, dw]
+
+        return sample
+
+
+@register_op
+class RandomPerspective(BaseOperator):
+    """
+    Rotate, tranlate, scale, shear and perspect image and bboxes randomly,
+    refer to https://github.com/ultralytics/yolov5/blob/develop/utils/datasets.py
+    Args:
+        degree (int): rotation degree, uniformly sampled in [-degree, degree]
+        translate (float): translate fraction, translate_x and translate_y are uniformly sampled
+            in [0.5 - translate, 0.5 + translate]
+        scale (float): scale factor, uniformly sampled in [1 - scale, 1 + scale]
+        shear (int): shear degree, shear_x and shear_y are uniformly sampled in [-shear, shear]
+        perspective (float): perspective_x and perspective_y are uniformly sampled in [-perspective, perspective]
+        area_thr (float): the area threshold of bbox to be kept after transformation, default 0.25
+        fill_value (tuple): value used in case of a constant border, default (114, 114, 114)
+    """
+
+    def __init__(self,
+                 degree=10,
+                 translate=0.1,
+                 scale=0.1,
+                 shear=10,
+                 perspective=0.0,
+                 border=[0, 0],
+                 area_thr=0.25,
+                 fill_value=(114, 114, 114)):
+        super(RandomPerspective, self).__init__()
+        self.degree = degree
+        self.translate = translate
+        self.scale = scale
+        self.shear = shear
+        self.perspective = perspective
+        self.border = border
+        self.area_thr = area_thr
+        self.fill_value = fill_value
+
+    def apply(self, sample, context=None):
+        im = sample['image']
+        height = im.shape[0] + self.border[0] * 2
+        width = im.shape[1] + self.border[1] * 2
+
+        # center
+        C = np.eye(3)
+        C[0, 2] = -im.shape[1] / 2
+        C[1, 2] = -im.shape[0] / 2
+
+        # perspective
+        P = np.eye(3)
+        P[2, 0] = random.uniform(-self.perspective, self.perspective)
+        P[2, 1] = random.uniform(-self.perspective, self.perspective)
+
+        # Rotation and scale
+        R = np.eye(3)
+        a = random.uniform(-self.degree, self.degree)
+        s = random.uniform(1 - self.scale, 1 + self.scale)
+        R[:2] = cv2.getRotationMatrix2D(angle=a, center=(0, 0), scale=s)
+
+        # Shear
+        S = np.eye(3)
+        # shear x (deg)
+        S[0, 1] = math.tan(
+            random.uniform(-self.shear, self.shear) * math.pi / 180)
+        # shear y (deg)
+        S[1, 0] = math.tan(
+            random.uniform(-self.shear, self.shear) * math.pi / 180)
+
+        # Translation
+        T = np.eye(3)
+        T[0, 2] = random.uniform(0.5 - self.translate,
+                                 0.5 + self.translate) * width
+        T[1, 2] = random.uniform(0.5 - self.translate,
+                                 0.5 + self.translate) * height
+
+        # matmul
+        # M = T @ S @ R @ P @ C
+        #         M = np.eye(3)
+        #         for cM in [T, S, R, P, C]:
+        #             M = np.matmul(M, cM)
+
+        M = T @S @R @P @C
+
+        if (self.border[0] != 0) or (self.border[1] != 0) or (
+                M != np.eye(3)).any():
+            if self.perspective:
+                im = cv2.warpPerspective(
+                    im, M, dsize=(width, height), borderValue=self.fill_value)
+            else:
+                im = cv2.warpAffine(
+                    im,
+                    M[:2],
+                    dsize=(width, height),
+                    borderValue=self.fill_value)
+
+        sample['image'] = im
+        if sample['gt_bbox'].shape[0] > 0:
+            sample = transform_bbox(
+                sample,
+                M,
+                width,
+                height,
+                area_thr=self.area_thr,
+                perspective=self.perspective)
+
+        sample['gt_bbox'] = sample['gt_bbox'].astype(np.float32)
+
+        #         from PIL import Image, ImageDraw
+        #         _im = Image.fromarray(sample['image'])
+        #         _draw = ImageDraw.Draw(_im)
+        #         for bbx in sample['gt_bbox']:
+        #             x, y, w, h = bbx
+        #             # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
+        #             _draw.rectangle((x, y, w, h), outline='red')
+        #         _im.save('perspective_'+str(random.randint(0, 10)) + '.jpg')
+        #         print('perspective: ', _im.size)
+
+        return sample
+
+
+@register_op
+class Mosaic(BaseOperator):
+    """
+    Mosaic Data Augmentation, refer to https://github.com/ultralytics/yolov5/blob/develop/utils/datasets.py
+    """
+
+    def __init__(self,
+                 target_size,
+                 mosaic_border=None,
+                 fill_value=(114, 114, 114)):
+        super(Mosaic, self).__init__()
+        self.target_size = target_size
+        if mosaic_border is None:
+            mosaic_border = (-target_size // 2, -target_size // 2)
+        self.mosaic_border = mosaic_border
+        self.fill_value = fill_value
+
+    def __call__(self, sample, context=None):
+        if not isinstance(sample, Sequence):
+            return sample
+
+        s = self.target_size
+        # yc, xc = [
+        #     int(random.uniform(-x, 2 * s + x)) for x in self.mosaic_border
+        # ]
+        yc, xc = [
+            int(random.uniform(-x - x // 2, 2 * s + x + x // 2))
+            for x in self.mosaic_border
+        ]
+
+        boxes = [x['gt_bbox'] for x in sample]
+        labels = [x['gt_class'] for x in sample]
+        for i in range(len(sample)):
+            im = sample[i]['image']
+            h, w, c = im.shape
+
+            if i == 0:  # top left
+                image = np.ones(
+                    (s * 2, s * 2, c), dtype=np.uint8) * self.fill_value
+                # xmin, ymin, xmax, ymax (dst image)
+                x1a, y1a, x2a, y2a = max(xc - w, 0), max(yc - h, 0), xc, yc
+                # xmin, ymin, xmax, ymax (src image)
+                x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (y2a - y1a), w, h
+            elif i == 1:  # top right
+                x1a, y1a, x2a, y2a = xc, max(yc - h, 0), min(xc + w, s * 2), yc
+                x1b, y1b, x2b, y2b = 0, h - (y2a - y1a), min(w, x2a - x1a), h
+            elif i == 2:  # bottom left
+                x1a, y1a, x2a, y2a = max(xc - w, 0), yc, xc, min(s * 2, yc + h)
+                x1b, y1b, x2b, y2b = w - (x2a - x1a), 0, max(xc, w), min(
+                    y2a - y1a, h)
+            elif i == 3:  # bottom right
+                x1a, y1a, x2a, y2a = xc, yc, min(xc + w,
+                                                 s * 2), min(s * 2, yc + h)
+                x1b, y1b, x2b, y2b = 0, 0, min(w, x2a - x1a), min(y2a - y1a, h)
+
+            image[y1a:y2a, x1a:x2a] = im[y1b:y2b, x1b:x2b]
+            padw = x1a - x1b
+            padh = y1a - y1b
+            boxes[i] = boxes[i] + (padw, padh, padw, padh)
+
+        boxes = np.concatenate(boxes, axis=0)
+        boxes = np.clip(boxes, 0, s * 2)
+        labels = np.concatenate(labels, axis=0)
+        if 'is_crowd' in sample[0]:
+            is_crowd = np.concatenate([x['is_crowd'] for x in sample], axis=0)
+        if 'difficult' in sample[0]:
+            difficult = np.concatenate([x['difficult'] for x in sample], axis=0)
+        sample = sample[0]
+        sample['image'] = image.astype(np.uint8)
+        sample['gt_bbox'] = boxes.astype(np.float32)
+        sample['gt_class'] = labels
+        if 'is_crowd' in sample:
+            sample['is_crowd'] = is_crowd
+        if 'difficult' in sample:
+            sample['difficult'] = difficult
+
+#         from PIL import Image, ImageDraw
+#         _im = Image.fromarray(sample['image'])
+#         _draw = ImageDraw.Draw(_im)
+#         for bbx in sample['gt_bbox']:
+#             x, y, w, h = bbx
+#             # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
+#             _draw.rectangle((x, y, w, h), outline='red')
+#         _im.save('mosaic_'+str(random.randint(0, 10)) + '.jpg')
+#         print(_im.size)
+#         c += 1
+
         return sample

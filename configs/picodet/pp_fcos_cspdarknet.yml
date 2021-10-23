@@ -30,6 +30,7 @@ CSPPAN:
   num_csp_blocks: 2
   num_features: 4
   kernel_size: 3
+  add_identity: true
 
 PicoHead:
   conv_feat:

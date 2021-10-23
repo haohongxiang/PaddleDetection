@@ -9,7 +9,7 @@ _BASE_: [
 weights: output/pp_fcos/model_final
 find_unused_parameters: True
 use_ema: true
-snapshot_epoch: 2
+snapshot_epoch: 1
 
 
 architecture: PicoDet
@@ -24,6 +24,7 @@ ResNet:
   depth: 50
   variant: d
   return_idx: [1, 2, 3]
+  freeze_at: 0
 
 CSPPAN:
   out_channels: 256
@@ -31,6 +32,7 @@ CSPPAN:
   num_csp_blocks: 2
   num_features: 4
   kernel_size: 3
+  add_identity: true
 
 PicoHead:
   conv_feat:
@@ -40,7 +42,7 @@ PicoHead:
     num_convs: 4
     num_fpn_stride: 4
     norm_type: bn
-    share_cls_reg: True
+    share_cls_reg: true
     kernel_size: 3
 
   fpn_stride: [8, 16, 32, 64]
@@ -50,8 +52,8 @@ PicoHead:
   cell_offset: 0.5
   loss_class:
     name: VarifocalLoss
-    use_sigmoid: True
-    iou_weighted: True
+    use_sigmoid: true
+    iou_weighted: true
     loss_weight: 1.0
   loss_dfl:
     name: DistributionFocalLoss
@@ -71,16 +73,13 @@ PicoHead:
     nms_threshold: 0.6
 
 
-TrainReader:
-  batch_size: 12
 
-
-epoch: 120
+epoch: 180
 LearningRate:
   base_lr: 0.05
   schedulers:
   - !CosineDecay
-    max_epochs: 120
+    max_epochs: 180
   - !LinearWarmup
     start_factor: 0.1
     steps: 2000
@@ -92,3 +91,47 @@ OptimizerBuilder:
   regularizer:
     factor: 0.0005
     type: L2
+
+
+
+
+worker_num: 8
+TrainReader:
+  sample_transforms:
+  - Decode: {}
+  - RandomFlip: {prob: 0.5}
+  # - RandomDistort: {}
+  # - RandomCrop: {}
+
+  - RandomResize: {target_size: [640], random_interp: True, keep_ratio: True}
+  - Mosaic: {target_size: 640, mosaic_border: [-320, -320]}
+  # - RandomResize: {target_size: [640], random_interp: True, keep_ratio: True}
+  - RandomPerspective: {degree: 0, translate: 0.001, scale: 0.001, shear: 0.0, perspective: 0.0, border: [-320, -320]} # x y w h
+  - RandomFlip: {prob: 0.5}
+  - RandomHSV: {hgain: 0.015, sgain: 0.5, vgain: 0.3}
+
+  batch_transforms:
+  - BatchRandomResize: {target_size: [576, 608, 640, 672, 704], random_size: True, random_interp: True, keep_ratio: True}
+  - NormalizeImage: {is_scale: true, mean: [0.485,0.456,0.406], std: [0.229, 0.224,0.225]}
+  - Permute: {}
+
+  mosaic_epoch: 10000
+  batch_size: 8
+  shuffle: true
+  drop_last: true
+  collate_batch: false
+
+
+EvalReader:
+  sample_transforms:
+  - Decode: {}
+  - Resize: {interp: 2, target_size: [640, 640], keep_ratio: False}
+  - LetterBox: {target_size: 640, rect: false, auto: false, augment: false}
+  - NormalizeImage: {is_scale: true, mean: [0.485,0.456,0.406], std: [0.229, 0.224,0.225]}
+  - Permute: {}
+
+  batch_transforms:
+  - PadBatch: {pad_to_stride: 32}
+
+  batch_size: 8
+  shuffle: false
