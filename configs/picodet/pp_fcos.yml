@@ -1,0 +1,94 @@
+_BASE_: [
+  '../datasets/coco_detection.yml',
+  '../runtime.yml',
+  # '_base_/picodet_esnet.yml',
+  # '_base_/optimizer_300e.yml',
+  '_base_/picodet_640_reader.yml',
+]
+
+weights: output/pp_fcos/model_final
+find_unused_parameters: True
+use_ema: true
+snapshot_epoch: 2
+
+
+architecture: PicoDet
+pretrain_weights: https://paddledet.bj.bcebos.com/models/pretrained/ResNet50_vd_ssld_pretrained.pdparams
+
+PicoDet:
+  backbone: ResNet
+  neck: CSPPAN
+  head: PicoHead
+
+ResNet:
+  depth: 50
+  variant: d
+  return_idx: [1, 2, 3]
+
+CSPPAN:
+  out_channels: 256
+  use_depthwise: false
+  num_csp_blocks: 2
+  num_features: 4
+  kernel_size: 3
+
+PicoHead:
+  conv_feat:
+    name: PicoFeatL
+    feat_in: 256
+    feat_out: 256
+    num_convs: 4
+    num_fpn_stride: 4
+    norm_type: bn
+    share_cls_reg: True
+    kernel_size: 3
+
+  fpn_stride: [8, 16, 32, 64]
+  feat_in_chan: 256
+  prior_prob: 0.01
+  reg_max: 12
+  cell_offset: 0.5
+  loss_class:
+    name: VarifocalLoss
+    use_sigmoid: True
+    iou_weighted: True
+    loss_weight: 1.0
+  loss_dfl:
+    name: DistributionFocalLoss
+    loss_weight: 0.25
+  loss_bbox:
+    name: GIoULoss
+    loss_weight: 2.0
+  assigner:
+    name: SimOTAAssigner
+    candidate_topk: 10
+    iou_weight: 6
+  nms:
+    name: MultiClassNMS
+    nms_top_k: 1000
+    keep_top_k: 100
+    score_threshold: 0.025
+    nms_threshold: 0.6
+
+
+TrainReader:
+  batch_size: 12
+
+
+epoch: 120
+LearningRate:
+  base_lr: 0.05
+  schedulers:
+  - !CosineDecay
+    max_epochs: 120
+  - !LinearWarmup
+    start_factor: 0.1
+    steps: 2000
+
+OptimizerBuilder:
+  optimizer:
+    momentum: 0.9
+    type: Momentum
+  regularizer:
+    factor: 0.0005
+    type: L2

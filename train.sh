@@ -1,0 +1,1 @@
+ python -m paddle.distributed.launch --log_dir=log   --gpus 0,1,2,3 tools/train.py -c configs/picodet/pp_fcos.yml --eval
