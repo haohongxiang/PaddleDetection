@@ -194,7 +194,7 @@ class CSPLayer(nn.Layer):
         self.final_conv = ConvBNLayer(
             2 * mid_channels, out_channels, 1, act=act)
 
-        self.blocks = nn.Sequential(* [
+        self.blocks = nn.Sequential(*[
             DarknetBottleneck(
                 mid_channels,
                 mid_channels,
@@ -255,7 +255,8 @@ class CSPPAN(nn.Layer):
                  num_csp_blocks=1,
                  use_depthwise=True,
                  act='hard_swish',
-                 spatial_scales=[0.125, 0.0625, 0.03125]):
+                 spatial_scales=[0.125, 0.0625, 0.03125],
+                 add_identity=False):
         super(CSPPAN, self).__init__()
         self.conv_t = Channel_T(in_channels, out_channels, act=act)
         in_channels = [out_channels] * len(spatial_scales)
@@ -282,7 +283,7 @@ class CSPPAN(nn.Layer):
                     in_channels[idx - 1],
                     kernel_size=kernel_size,
                     num_blocks=num_csp_blocks,
-                    add_identity=False,
+                    add_identity=add_identity,
                     use_depthwise=use_depthwise,
                     act=act))
 
@@ -303,7 +304,7 @@ class CSPPAN(nn.Layer):
                     in_channels[idx + 1],
                     kernel_size=kernel_size,
                     num_blocks=num_csp_blocks,
-                    add_identity=False,
+                    add_identity=add_identity,
                     use_depthwise=use_depthwise,
                     act=act))
 
