@@ -76,7 +76,7 @@ PicoHead:
 
 epoch: 180
 LearningRate:
-  base_lr: 0.05
+  base_lr: 0.01
   schedulers:
   - !CosineDecay
     max_epochs: 180

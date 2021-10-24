@@ -6,10 +6,11 @@ _BASE_: [
   '_base_/picodet_640_reader.yml',
 ]
 
+
 weights: output/pp_fcos_cspdarknet/model_final
 find_unused_parameters: True
 use_ema: true
-snapshot_epoch: 2
+snapshot_epoch: 1
 
 
 architecture: PicoDet
@@ -20,17 +21,20 @@ PicoDet:
   neck: CSPPAN
   head: PicoHead
 
+
 CSPDarkNet53:
   num_stages: 3
-  pretrained: './CSPDarkNet53_pretrained.pdparams'
+  pretrained: '/paddle/workspace/CSPDarkNet53_pretrained.pdparams'
+
 
 CSPPAN:
   out_channels: 256
   use_depthwise: false
-  num_csp_blocks: 2
-  num_features: 4
+  num_csp_blocks: 3
+  num_features: 5
   kernel_size: 3
   add_identity: true
+
 
 PicoHead:
   conv_feat:
@@ -38,15 +42,15 @@ PicoHead:
     feat_in: 256
     feat_out: 256
     num_convs: 4
-    num_fpn_stride: 4
+    num_fpn_stride: 5
     norm_type: bn
-    share_cls_reg: true
+    share_cls_reg: false
     kernel_size: 3
 
-  fpn_stride: [8, 16, 32, 64]
+  fpn_stride: [8, 16, 32, 64, 128]
   feat_in_chan: 256
   prior_prob: 0.01
-  reg_max: 12
+  reg_max: 16
   cell_offset: 0.5
   loss_class:
     name: VarifocalLoss
@@ -72,18 +76,19 @@ PicoHead:
 
 
 TrainReader:
-  batch_size: 12
+  batch_size: 8
 
 
-epoch: 300
+epoch: 180
 LearningRate:
   base_lr: 0.01
   schedulers:
   - !CosineDecay
-    max_epochs: 300
+    max_epochs: 180
   - !LinearWarmup
     start_factor: 0.1
     steps: 2000
+
 
 OptimizerBuilder:
   optimizer:

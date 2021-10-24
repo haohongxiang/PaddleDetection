@@ -132,6 +132,17 @@ class Trainer(object):
         self._init_metrics()
         self._reset_metrics()
 
+        # info = paddle.flops(
+        #     model,
+        #     data=data,
+        #     print_detail=True,
+        #     custom_ops={paddle.nn.Hardswish: count_hard_swish})
+
+        params = sum([
+            p.numel() for p in self.model.parameters() if not p.stop_gradient
+        ])
+        print('params: ', params)
+
     def _init_callbacks(self):
         if self.mode == 'train':
             self._callbacks = [LogPrinter(self), Checkpointer(self)]
