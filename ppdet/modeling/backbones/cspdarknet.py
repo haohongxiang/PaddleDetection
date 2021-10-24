@@ -383,6 +383,8 @@ class CSPDarkNet53(nn.Layer):
                  num_stages=3,
                  pretrained='./CSPDarkNet53_pretrained.pdparams',
                  use_ssld=False,
+                 freeze_at=-1,
+                 use_sync_bn=False,
                  **kwargs):
         super().__init__()
         model = CSPNet(MODEL_CFGS["CSPDarkNet53"], block_fn=DarkBlock, **kwargs)
@@ -394,6 +396,12 @@ class CSPDarkNet53(nn.Layer):
         self.num_stages = num_stages
         self._out_channels = [64, 128, 256, 512, 1024][-self.num_stages:]
 
+        if use_sync_bn:
+            self.stem = nn.SyncBatchNorm.convert_sync_batchnorm(self.stem)
+            self.stages = nn.SyncBatchNorm.convert_sync_batchnorm(self.stages)
+
+        self._freeze_at(freeze_at)
+
     def forward(self, inputs):
         x = inputs['image']
 
@@ -404,6 +412,17 @@ class CSPDarkNet53(nn.Layer):
             outputs.append(x)
 
         return outputs[-self.num_stages:]
+
+    def _freeze_at(self, idx):
+        if idx < 0:
+            return
+
+        for p in self.stem.parameters():
+            p.stop_gradient = True
+
+        for i in range(idx):
+            for p in self.stages[i].parameters():
+                p.stop_gradient = True
 
     @property
     def out_shape(self):

@@ -89,6 +89,12 @@ class Trainer(object):
             self.model = self.cfg.model
             self.is_loaded_weights = True
 
+        if getattr(self.cfg, 'convert_sync_bn', False):
+            self.model = paddle.nn.SyncBatchNorm.convert_sync_batchnorm(
+                self.model)
+            print('convert_sync_bn...')
+            print(self.model)
+
         #normalize params for deploy
         self.model.load_meanstd(cfg['TestReader']['sample_transforms'])
 

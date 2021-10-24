@@ -28,37 +28,38 @@ from ppdet.core.workspace import register
 from ppdet.modeling.layers import ConvNormLayer
 from .simota_head import OTAVFLHead
 
+from ..necks.csp_pan import ConvBNLayer
 
-class ConvBNLayer(nn.Layer):
-    def __init__(self,
-                 in_channel=96,
-                 out_channel=96,
-                 kernel_size=3,
-                 stride=1,
-                 groups=1,
-                 act='leaky_relu'):
-        super(ConvBNLayer, self).__init__()
-        initializer = nn.initializer.KaimingUniform()
-        self.act = act
-        assert self.act in ['leaky_relu', "hard_swish"]
-        self.conv = nn.Conv2D(
-            in_channels=in_channel,
-            out_channels=out_channel,
-            kernel_size=kernel_size,
-            groups=groups,
-            padding=(kernel_size - 1) // 2,
-            stride=stride,
-            weight_attr=ParamAttr(initializer=initializer),
-            bias_attr=False)
-        self.bn = nn.BatchNorm2D(out_channel)
+# class ConvBNLayer(nn.Layer):
+#     def __init__(self,
+#                  in_channel=96,
+#                  out_channel=96,
+#                  kernel_size=3,
+#                  stride=1,
+#                  groups=1,
+#                  act='leaky_relu'):
+#         super(ConvBNLayer, self).__init__()
+#         initializer = nn.initializer.KaimingUniform()
+#         self.act = act
+#         assert self.act in ['leaky_relu', "hard_swish"]
+#         self.conv = nn.Conv2D(
+#             in_channels=in_channel,
+#             out_channels=out_channel,
+#             kernel_size=kernel_size,
+#             groups=groups,
+#             padding=(kernel_size - 1) // 2,
+#             stride=stride,
+#             weight_attr=ParamAttr(initializer=initializer),
+#             bias_attr=False)
+#         self.bn = nn.BatchNorm2D(out_channel)
 
-    def forward(self, x):
-        x = self.bn(self.conv(x))
-        if self.act == "leaky_relu":
-            x = F.leaky_relu(x)
-        elif self.act == "hard_swish":
-            x = F.hardswish(x)
-        return x
+#     def forward(self, x):
+#         x = self.bn(self.conv(x))
+#         if self.act == "leaky_relu":
+#             x = F.leaky_relu(x)
+#         elif self.act == "hard_swish":
+#             x = F.hardswish(x)
+#         return x
 
 
 @register
