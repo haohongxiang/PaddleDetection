@@ -216,16 +216,18 @@ class CSPLayer(nn.Layer):
 
 
 class Channel_T(nn.Layer):
-    def __init__(self,
-                 in_channels=[116, 232, 464],
-                 out_channels=96,
-                 act="leaky_relu"):
+    def __init__(
+            self,
+            in_channels=[116, 232, 464],
+            out_channels=96,
+            kernel_size=1,
+            act="leaky_relu", ):
         super(Channel_T, self).__init__()
         self.convs = nn.LayerList()
         for i in range(len(in_channels)):
             self.convs.append(
                 ConvBNLayer(
-                    in_channels[i], out_channels, 1, act=act))
+                    in_channels[i], out_channels, kernel_size, act=act))
 
     def forward(self, x):
         outs = [self.convs[i](x[i]) for i in range(len(x))]
@@ -256,9 +258,12 @@ class CSPPAN(nn.Layer):
                  use_depthwise=True,
                  act='hard_swish',
                  spatial_scales=[0.125, 0.0625, 0.03125],
-                 add_identity=False):
+                 add_identity=False,
+                 expand_ratio=0.5,
+                 t_kernel_size=1):
         super(CSPPAN, self).__init__()
-        self.conv_t = Channel_T(in_channels, out_channels, act=act)
+        self.conv_t = Channel_T(
+            in_channels, out_channels, t_kernel_size, act=act)
         in_channels = [out_channels] * len(spatial_scales)
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -285,6 +290,7 @@ class CSPPAN(nn.Layer):
                     num_blocks=num_csp_blocks,
                     add_identity=add_identity,
                     use_depthwise=use_depthwise,
+                    expand_ratio=expand_ratio,
                     act=act))
 
         # build bottom-up blocks

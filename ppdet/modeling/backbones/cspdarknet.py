@@ -385,6 +385,7 @@ class CSPDarkNet53(nn.Layer):
                  use_ssld=False,
                  freeze_at=-1,
                  use_sync_bn=False,
+                 use_global_stats=False,
                  **kwargs):
         super().__init__()
         model = CSPNet(MODEL_CFGS["CSPDarkNet53"], block_fn=DarkBlock, **kwargs)
@@ -401,6 +402,11 @@ class CSPDarkNet53(nn.Layer):
             self.stages = nn.SyncBatchNorm.convert_sync_batchnorm(self.stages)
 
         self._freeze_at(freeze_at)
+
+        if use_global_stats:
+            for m in self.sublayers():
+                if isinstance(m, (nn.BatchNorm, nn.BatchNorm2D)):
+                    m._use_global_stats = True
 
     def forward(self, inputs):
         x = inputs['image']
