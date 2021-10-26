@@ -224,10 +224,20 @@ class Channel_T(nn.Layer):
             act="leaky_relu", ):
         super(Channel_T, self).__init__()
         self.convs = nn.LayerList()
+        nums = [1, 2, 3]
+
         for i in range(len(in_channels)):
             self.convs.append(
                 ConvBNLayer(
                     in_channels[i], out_channels, kernel_size, act=act))
+
+            # if kernel_size == 1:
+            #     self.convs.append(
+            #         ConvBNLayer(
+            #             in_channels[i], out_channels, kernel_size, act=act))
+            # else:
+            #     m = nn.Sequential( *[ConvBNLayer(in_channels[i] if _i == 0 else out_channels, out_channels, kernel_size, act=act) for _i in range(nums[i])] )
+            #     self.convs.append(m)
 
     def forward(self, x):
         outs = [self.convs[i](x[i]) for i in range(len(x))]

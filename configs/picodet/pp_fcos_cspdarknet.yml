@@ -9,20 +9,29 @@ _BASE_: [
 weights: output/pp_fcos_cspdarknet/model_final
 find_unused_parameters: True
 use_ema: true
-snapshot_epoch: 2
+snapshot_epoch: 1
+# convert_sync_bn: true
 
 
 architecture: PicoDet
 # pretrain_weights: https://paddledet.bj.bcebos.com/models/pretrained/ResNet50_vd_ssld_pretrained.pdparams
+# pretrain_weights: http://10.255.134.13:8091/cspdarknet53.pdparams
 
 PicoDet:
-  backbone: CSPDarkNet53
-  neck: CSPPAN
+  # backbone: CSPDarkNet53
+  # neck: CSPPAN
+  backbone: CSPDarkNet
+  neck: CustomPAN
   head: PicoHead
 
-CSPDarkNet53:
-  num_stages: 3
-  pretrained: './CSPDarkNet53_pretrained.pdparams'
+
+CSPDarkNet:
+  layers: 53
+  return_idx: [2, 3, 4]
+
+# CSPDarkNet53:
+#   num_stages: 3
+#   pretrained: './CSPDarkNet53_pretrained.pdparams'
 
 CSPPAN:
   out_channels: 256
@@ -31,6 +40,19 @@ CSPPAN:
   num_features: 4
   kernel_size: 3
   add_identity: true
+  # expand_ratio: 0.5
+  # t_kernel_size: 1
+
+
+# CustomPAN:
+# block_per_stage: 1
+# layer_per_block: 2
+# act: 'mish'
+# block_func: 'CSPFusionBlock'
+# block_size: 3
+# keep_prob: 0.9
+# spp: true
+
 
 PicoHead:
   conv_feat:

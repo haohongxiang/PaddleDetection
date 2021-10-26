@@ -30,6 +30,7 @@ from . import lcnet
 from . import hardnet
 from . import esnet
 from . import cspdarknet
+from . import xcspdarknet
 
 from .vgg import *
 from .resnet import *
@@ -49,3 +50,4 @@ from .lcnet import *
 from .hardnet import *
 from .esnet import *
 from .cspdarknet import *
+from .xcspdarknet import *

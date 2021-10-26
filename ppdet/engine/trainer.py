@@ -144,8 +144,13 @@ class Trainer(object):
         #     print_detail=True,
         #     custom_ops={paddle.nn.Hardswish: count_hard_swish})
 
+        # params = sum([
+        #     p.numel() for p in self.model.parameters() if not p.stop_gradient
+        # ])
+
         params = sum([
-            p.numel() for p in self.model.parameters() if not p.stop_gradient
+            p.numel() for n, p in self.model.named_parameters()
+            if all([x not in n for x in ['_mean', '_var']])
         ])
         print('params: ', params)
 
