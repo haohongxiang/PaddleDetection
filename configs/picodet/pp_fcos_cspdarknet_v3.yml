@@ -10,7 +10,7 @@ weights: output/pp_fcos_cspdarknet/model_final
 find_unused_parameters: True
 use_ema: true
 snapshot_epoch: 1
-# convert_sync_bn: true
+convert_sync_bn: true
 
 
 architecture: PicoDet
