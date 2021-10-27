@@ -415,7 +415,8 @@ class PicoHead(OTAVFLHead):
         self.loss_bbox = loss_bbox
         self.assigner = assigner
         self.reg_max = reg_max
-        self.feat_in_chan = feat_in_chan
+        self.feat_in_chan = [feat_in_chan, ] * len(fpn_stride) if isinstance(
+            feat_in_chan, int) else feat_in_chan
         self.nms = nms
         self.nms_pre = nms_pre
         self.cell_offset = cell_offset
@@ -437,7 +438,7 @@ class PicoHead(OTAVFLHead):
             head_cls = self.add_sublayer(
                 "head_cls" + str(i),
                 nn.Conv2D(
-                    in_channels=self.feat_in_chan,
+                    in_channels=self.feat_in_chan[i],
                     out_channels=self.cls_out_channels + 4 * (self.reg_max + 1)
                     if self.conv_feat.share_cls_reg else self.cls_out_channels,
                     kernel_size=1,
@@ -452,7 +453,7 @@ class PicoHead(OTAVFLHead):
                 head_reg = self.add_sublayer(
                     "head_reg" + str(i),
                     nn.Conv2D(
-                        in_channels=self.feat_in_chan,
+                        in_channels=self.feat_in_chan[i],
                         out_channels=4 * (self.reg_max + 1),
                         kernel_size=1,
                         stride=1,

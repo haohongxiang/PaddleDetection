@@ -1181,7 +1181,7 @@ class CustomPAN(nn.Layer):
             route = self.pan_stages[i](block)
             pan_feats.append(route)
 
-        return pan_feats[::-1]
+        return pan_feats
 
     @classmethod
     def from_config(cls, cfg, input_shape):
@@ -1189,4 +1189,4 @@ class CustomPAN(nn.Layer):
 
     @property
     def out_shape(self):
-        return [ShapeSpec(channels=c) for c in self._out_channels]
+        return [ShapeSpec(channels=c) for c in self._out_channels[::-1]]
