@@ -15,13 +15,11 @@ snapshot_epoch: 1
 
 architecture: PicoDet
 # pretrain_weights: https://paddledet.bj.bcebos.com/models/pretrained/ResNet50_vd_ssld_pretrained.pdparams
-# pretrain_weights: http://10.255.134.13:8091/cspdarknet53.pdparams
+pretrain_weights: http://10.255.134.13:8091/cspdarknet53.pdparams
 
 PicoDet:
-  # backbone: CSPDarkNet53
-  # neck: CSPPAN
   backbone: CSPDarkNet
-  neck: CustomPAN
+  neck: CSPPAN
   head: PicoHead
 
 
@@ -40,18 +38,8 @@ CSPPAN:
   num_features: 4
   kernel_size: 3
   add_identity: true
-  # expand_ratio: 0.5
-  # t_kernel_size: 1
-
-
-# CustomPAN:
-# block_per_stage: 1
-# layer_per_block: 2
-# act: 'mish'
-# block_func: 'CSPFusionBlock'
-# block_size: 3
-# keep_prob: 0.9
-# spp: true
+  expand_ratio: 0.5
+  t_kernel_size: 1
 
 
 PicoHead:
@@ -97,12 +85,12 @@ TrainReader:
   batch_size: 12
 
 
-epoch: 300
+epoch: 180
 LearningRate:
   base_lr: 0.01
   schedulers:
   - !CosineDecay
-    max_epochs: 300
+    max_epochs: 180
   - !LinearWarmup
     start_factor: 0.1
     steps: 2000
