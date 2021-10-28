@@ -11,6 +11,7 @@ find_unused_parameters: True
 # use_ema: true
 snapshot_epoch: 1
 convert_sync_bn: true
+# cycle_epoch: 30
 
 
 architecture: PicoDet

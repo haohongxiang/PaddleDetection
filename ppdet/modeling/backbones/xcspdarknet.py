@@ -29,9 +29,17 @@ from ..shape_spec import ShapeSpec
 __all__ = ['CSPDarkNet']
 
 MODEL_CFGS = {
-    53: {
+    '53': {
         'ch_out': (64, 128, 256, 512, 1024),
         'depth': (1, 2, 8, 8, 4),
+        'stride': (2, ) * 5,
+        'exp_ratio': (2., ) + (1., ) * 4,
+        'bottle_ratio': (0.5, ) + (1.0, ) * 4,
+        'block_ratio': (1., ) + (0.5, ) * 4
+    },
+    '53_256': {
+        'ch_out': (64, 128, 256, 256, 256),
+        'depth': (1, 2, 8, 8, 8),
         'stride': (2, ) * 5,
         'exp_ratio': (2., ) + (1., ) * 4,
         'bottle_ratio': (0.5, ) + (1.0, ) * 4,
@@ -151,7 +159,7 @@ class CSPStage(nn.Layer):
 class CSPDarkNet(nn.Layer):
     def __init__(self, layers, act='leaky', return_idx=[0, 1, 2, 3, 4]):
         super(CSPDarkNet, self).__init__()
-        cfg = MODEL_CFGS[layers]
+        cfg = MODEL_CFGS[str(layers)]
 
         self.stem = nn.Sequential(('conv1', ConvBNLayer(
             3, 32, 3, 1, padding=0, act=act)))
