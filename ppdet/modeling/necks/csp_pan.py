@@ -44,7 +44,8 @@ class ConvBNLayer(nn.Layer):
             stride=stride,
             weight_attr=ParamAttr(initializer=initializer),
             bias_attr=False)
-        self.bn = nn.BatchNorm2D(out_channel)
+        # self.bn = nn.BatchNorm2D(out_channel)
+        self.bn = nn.BatchNorm(out_channel)
 
     def forward(self, x):
         x = self.bn(self.conv(x))
@@ -85,7 +86,9 @@ class DPModule(nn.Layer):
             stride=stride,
             weight_attr=ParamAttr(initializer=initializer),
             bias_attr=False)
-        self.bn1 = nn.BatchNorm2D(out_channel)
+        # self.bn1 = nn.BatchNorm2D(out_channel)
+        self.bn1 = nn.BatchNorm(out_channel)
+
         self.pwconv = nn.Conv2D(
             in_channels=out_channel,
             out_channels=out_channel,
@@ -94,7 +97,8 @@ class DPModule(nn.Layer):
             padding=0,
             weight_attr=ParamAttr(initializer=initializer),
             bias_attr=False)
-        self.bn2 = nn.BatchNorm2D(out_channel)
+        # self.bn2 = nn.BatchNorm2D(out_channel)
+        self.bn2 = nn.BatchNorm(out_channel)
 
     def act_func(self, x):
         if self.act == "leaky_relu":

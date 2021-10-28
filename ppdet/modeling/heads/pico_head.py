@@ -390,7 +390,8 @@ class PicoHead(OTAVFLHead):
                  feat_in_chan=96,
                  nms=None,
                  nms_pre=1000,
-                 cell_offset=0):
+                 cell_offset=0,
+                 kernel_size=1):
         super(PicoHead, self).__init__(
             conv_feat=conv_feat,
             dgqp_module=dgqp_module,
@@ -441,9 +442,9 @@ class PicoHead(OTAVFLHead):
                     in_channels=self.feat_in_chan[i],
                     out_channels=self.cls_out_channels + 4 * (self.reg_max + 1)
                     if self.conv_feat.share_cls_reg else self.cls_out_channels,
-                    kernel_size=1,
+                    kernel_size=kernel_size,
                     stride=1,
-                    padding=0,
+                    padding=(kernel_size - 1) // 2,
                     weight_attr=ParamAttr(initializer=Normal(
                         mean=0., std=0.01)),
                     bias_attr=ParamAttr(
@@ -455,9 +456,9 @@ class PicoHead(OTAVFLHead):
                     nn.Conv2D(
                         in_channels=self.feat_in_chan[i],
                         out_channels=4 * (self.reg_max + 1),
-                        kernel_size=1,
+                        kernel_size=kernel_size,
                         stride=1,
-                        padding=0,
+                        padding=(kernel_size - 1) // 2,
                         weight_attr=ParamAttr(initializer=Normal(
                             mean=0., std=0.01)),
                         bias_attr=ParamAttr(initializer=Constant(value=0))))
