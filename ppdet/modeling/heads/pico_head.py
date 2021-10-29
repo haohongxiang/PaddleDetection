@@ -82,7 +82,8 @@ class PicoFeatX(nn.Layer):
                  norm_type='bn',
                  share_cls_reg=False,
                  act='mish',
-                 kernel_size=3):
+                 kernel_size=3,
+                 negative_slope=0.01):
         super(PicoFeatX, self).__init__()
 
         self.num_convs = num_convs
@@ -112,9 +113,11 @@ class PicoFeatX(nn.Layer):
             self.cls_convs.append(cls_subnet_convs)
             self.reg_convs.append(reg_subnet_convs)
 
+        self.negative_slope = negative_slope
+
     def act_func(self, x):
         if self.act == "leaky_relu":
-            x = F.leaky_relu(x)
+            x = F.leaky_relu(x, negative_slope=self.negative_slope)
         elif self.act == "hard_swish":
             x = F.hardswish(x)
         elif self.act == 'mish':
@@ -157,7 +160,8 @@ class PicoFeatL(nn.Layer):
                  norm_type='bn',
                  share_cls_reg=False,
                  act='hard_swish',
-                 kernel_size=3):
+                 kernel_size=3,
+                 negative_slope=0.01):
 
         super(PicoFeatL, self).__init__()
         self.num_convs = num_convs
@@ -174,7 +178,11 @@ class PicoFeatL(nn.Layer):
                 cls_conv_dw = self.add_sublayer(
                     'cls_conv_dw{}.{}'.format(stage_idx, i),
                     ConvBNLayer(
-                        in_c, feat_out, kernel_size, act=self.act))
+                        in_c,
+                        feat_out,
+                        kernel_size,
+                        act=self.act,
+                        negative_slope=negative_slope))
                 cls_subnet_convs.append(cls_conv_dw)
 
                 # cls_conv_dw = self.add_sublayer(
@@ -205,7 +213,11 @@ class PicoFeatL(nn.Layer):
                     reg_conv_dw = self.add_sublayer(
                         'reg_conv_dw{}.{}'.format(stage_idx, i),
                         ConvBNLayer(
-                            in_c, feat_out, kernel_size, act=self.act))
+                            in_c,
+                            feat_out,
+                            kernel_size,
+                            act=self.act,
+                            negative_slope=negative_slope))
                     reg_subnet_convs.append(reg_conv_dw)
 
                     # reg_conv_dw = self.add_sublayer(
@@ -235,9 +247,11 @@ class PicoFeatL(nn.Layer):
             self.cls_convs.append(cls_subnet_convs)
             self.reg_convs.append(reg_subnet_convs)
 
+        self.negative_slope = negative_slope
+
     def act_func(self, x):
         if self.act == "leaky_relu":
-            x = F.leaky_relu(x)
+            x = F.leaky_relu(x, negative_slope=self.negative_slope)
         elif self.act == "hard_swish":
             x = F.hardswish(x)
         return x

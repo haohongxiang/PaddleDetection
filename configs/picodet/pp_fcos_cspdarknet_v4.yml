@@ -41,7 +41,8 @@ CSPPAN:
   add_identity: true
   expand_ratio: 0.5
   t_kernel_size: 3
-
+  act: leaky_relu
+  negative_slope: 0.01
 
 PicoHead:
   conv_feat:
@@ -53,6 +54,8 @@ PicoHead:
     norm_type: bn
     share_cls_reg: false
     kernel_size: 3
+    act: leaky_relu
+    negative_slope: 0.01
 
   kernel_size: 1
   fpn_stride: [8, 16, 32, 64]
