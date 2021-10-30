@@ -30,8 +30,8 @@ PicoDet:
 
 CSPDarkNet53:
   num_stages: 3
-  pretrained: '/paddle/workspace/CSPDarkNet53_pretrained.pdparams'
-
+  # pretrained: '/paddle/workspace/CSPDarkNet53_pretrained.pdparams'
+  pretrained: 'https://paddle-imagenet-models-name.bj.bcebos.com/dygraph/CSPDarkNet53_pretrained.pdparams'
 
 CSPPAN:
   out_channels: 256
@@ -125,7 +125,7 @@ LearningRate:
     max_epochs: 180
   - !LinearWarmup
     start_factor: 0.1
-    steps: 500
+    steps: 1000
 
 OptimizerBuilder:
   optimizer:
