@@ -63,7 +63,7 @@ class ConvBnAct(nn.Layer):
                  dilation=1,
                  groups=1,
                  act_layer=nn.LeakyReLU,
-                 norm_layer=nn.BatchNorm2D):
+                 norm_layer=nn.BatchNorm):
         super().__init__()
         if padding is None:
             padding = (kernel_size - 1) // 2
@@ -78,7 +78,7 @@ class ConvBnAct(nn.Layer):
             weight_attr=ParamAttr(),
             bias_attr=False)
 
-        self.bn = norm_layer(num_features=output_channels)
+        self.bn = norm_layer(output_channels)
         self.act = act_layer()
 
     def forward(self, inputs):
@@ -130,7 +130,7 @@ class DarkBlock(nn.Layer):
                  bottle_ratio=0.5,
                  groups=1,
                  act_layer=nn.ReLU,
-                 norm_layer=nn.BatchNorm2D,
+                 norm_layer=nn.BatchNorm,
                  attn_layer=None,
                  drop_block=None):
         super(DarkBlock, self).__init__()
@@ -306,7 +306,7 @@ class CSPNet(nn.Layer):
                  global_pool='avg',
                  drop_rate=0.,
                  act_layer=nn.LeakyReLU,
-                 norm_layer=nn.BatchNorm2D,
+                 norm_layer=nn.BatchNorm,
                  zero_init_last_bn=True,
                  stage_fn=CrossStage,
                  block_fn=DarkBlock):
@@ -405,7 +405,7 @@ class CSPDarkNet53(nn.Layer):
 
         if use_global_stats:
             for m in self.sublayers():
-                if isinstance(m, (nn.BatchNorm, nn.BatchNorm2D)):
+                if isinstance(m, (nn.BatchNorm, nn.BatchNorm)):
                     m._use_global_stats = True
 
     def forward(self, inputs):
