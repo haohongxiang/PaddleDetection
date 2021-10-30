@@ -175,27 +175,28 @@ class PicoFeatL(nn.Layer):
             reg_subnet_convs = []
             for i in range(self.num_convs):
                 in_c = feat_in if i == 0 else feat_out
-                cls_conv_dw = self.add_sublayer(
-                    'cls_conv_dw{}.{}'.format(stage_idx, i),
-                    ConvBNLayer(
-                        in_c,
-                        feat_out,
-                        kernel_size,
-                        act=self.act,
-                        negative_slope=negative_slope))
-                cls_subnet_convs.append(cls_conv_dw)
-
                 # cls_conv_dw = self.add_sublayer(
                 #     'cls_conv_dw{}.{}'.format(stage_idx, i),
-                #     ConvNormLayer(
-                #         ch_in=in_c,
-                #         ch_out=feat_out,
-                #         filter_size=5,
-                #         stride=1,
-                #         groups=feat_out,
-                #         norm_type=norm_type,
-                #         bias_on=False,
-                #         lr_scale=2.))
+                #     ConvBNLayer(
+                #         in_c,
+                #         feat_out,
+                #         kernel_size,
+                #         act=self.act,
+                #         negative_slope=negative_slope))
+                # cls_subnet_convs.append(cls_conv_dw)
+
+                cls_conv_dw = self.add_sublayer(
+                    'cls_conv_dw{}.{}'.format(stage_idx, i),
+                    ConvNormLayer(
+                        ch_in=in_c,
+                        ch_out=feat_out,
+                        filter_size=kernel_size,
+                        stride=1,
+                        # groups=feat_out,
+                        norm_type=norm_type,
+                        bias_on=False,
+                        lr_scale=2.))
+                cls_subnet_convs.append(cls_conv_dw)
 
                 # cls_conv_pw = self.add_sublayer(
                 #     'cls_conv_pw{}.{}'.format(stage_idx, i),
@@ -210,28 +211,29 @@ class PicoFeatL(nn.Layer):
                 # cls_subnet_convs.append(cls_conv_pw)
 
                 if not self.share_cls_reg:
-                    reg_conv_dw = self.add_sublayer(
-                        'reg_conv_dw{}.{}'.format(stage_idx, i),
-                        ConvBNLayer(
-                            in_c,
-                            feat_out,
-                            kernel_size,
-                            act=self.act,
-                            negative_slope=negative_slope))
-                    reg_subnet_convs.append(reg_conv_dw)
-
                     # reg_conv_dw = self.add_sublayer(
                     #     'reg_conv_dw{}.{}'.format(stage_idx, i),
-                    #     ConvNormLayer(
-                    #         ch_in=in_c,
-                    #         ch_out=feat_out,
-                    #         filter_size=5,
-                    #         stride=1,
-                    #         groups=feat_out,
-                    #         norm_type=norm_type,
-                    #         bias_on=False,
-                    #         lr_scale=2.))
+                    #     ConvBNLayer(
+                    #         in_c,
+                    #         feat_out,
+                    #         kernel_size,
+                    #         act=self.act,
+                    #         negative_slope=negative_slope))
                     # reg_subnet_convs.append(reg_conv_dw)
+
+                    reg_conv_dw = self.add_sublayer(
+                        'reg_conv_dw{}.{}'.format(stage_idx, i),
+                        ConvNormLayer(
+                            ch_in=in_c,
+                            ch_out=feat_out,
+                            filter_size=kernel_size,
+                            stride=1,
+                            # groups=feat_out,
+                            norm_type=norm_type,
+                            bias_on=False,
+                            lr_scale=2.))
+                    reg_subnet_convs.append(reg_conv_dw)
+
                     # reg_conv_pw = self.add_sublayer(
                     #     'reg_conv_pw{}.{}'.format(stage_idx, i),
                     #     ConvNormLayer(
