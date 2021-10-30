@@ -30,8 +30,8 @@ PicoDet:
 
 CSPDarkNet53:
   num_stages: 3
-  # pretrained: '/paddle/workspace/CSPDarkNet53_pretrained.pdparams'
-  pretrained: 'https://paddle-imagenet-models-name.bj.bcebos.com/dygraph/CSPDarkNet53_pretrained.pdparams'
+  pretrained: './CSPDarkNet53_pretrained.pdparams'
+  # pretrained: 'https://paddle-imagenet-models-name.bj.bcebos.com/dygraph/CSPDarkNet53_pretrained.pdparams'
 
 CSPPAN:
   out_channels: 256
@@ -119,7 +119,7 @@ TrainReader:
 
 epoch: 180
 LearningRate:
-  base_lr: 0.05
+  base_lr: 0.01
   schedulers:
   - !CosineDecay
     max_epochs: 180
