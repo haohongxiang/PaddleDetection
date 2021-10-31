@@ -44,7 +44,7 @@ class ConvBNLayer(nn.Layer):
             padding=(kernel_size - 1) // 2,
             stride=stride,
             weight_attr=ParamAttr(initializer=initializer),
-            bias_attr=False)
+            bias_attr=False, )
         # self.bn = nn.BatchNorm2D(out_channel)
         self.bn = nn.BatchNorm(out_channel)
 
