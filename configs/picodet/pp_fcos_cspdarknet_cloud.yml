@@ -1,0 +1,1104 @@
+_BASE_: [
+  '../datasets/coco_detection.yml',
+  '../runtime.yml',
+  # '_base_/picodet_esnet.yml',
+  # '_base_/optimizer_300e.yml',
+  '_base_/picodet_640_reader.yml',
+]
+
+weights: output/pp_fcos_cspdarknet/model_final
+find_unused_parameters: True
+use_ema: true
+snapshot_epoch: 2
+convert_sync_bn: true
+# cycle_epoch: 30
+
+
+architecture: PicoDet
+# pretrain_weights: https://paddledet.bj.bcebos.com/models/pretrained/ResNet50_vd_ssld_pretrained.pdparams
+pretrain_weights: http://10.255.134.13:8091/cspdarknet53.pdparams
+
+PicoDet:
+  # backbone: CSPDarkNet53
+  backbone: CSPDarkNet
+  neck: CSPPAN
+  head: PicoHead
+
+
+CSPDarkNet:
+  layers: '53'
+  return_idx: [2, 3, 4]
+
+# CSPDarkNet53:
+#   num_stages: 3
+#   pretrained: './CSPDarkNet53_pretrained.pdparams'
+#   # pretrained: 'https://paddle-imagenet-models-name.bj.bcebos.com/dygraph/CSPDarkNet53_pretrained.pdparams'
+
+CSPPAN:
+  out_channels: 256
+  use_depthwise: false
+  num_csp_blocks: 3
+  num_features: 3
+  kernel_size: 3
+  add_identity: false
+  expand_ratio: 0.5
+  t_kernel_size: 1
+  act: leaky_relu
+  negative_slope: 0.01
+
+# hard_swish
+
+PicoHead:
+  conv_feat:
+    name: PicoFeatL
+    feat_in: 256
+    feat_out: 256
+    num_convs: 4
+    num_fpn_stride: 3
+    norm_type: bn
+    share_cls_reg: true
+    kernel_size: 3
+    act: leaky_relu
+    negative_slope: 0.01
+
+  kernel_size: 1
+  fpn_stride: [8, 16, 32]
+  feat_in_chan: 256
+  prior_prob: 0.01
+  reg_max: 12
+  cell_offset: 0.5
+  loss_class:
+    name: VarifocalLoss
+    use_sigmoid: True
+    iou_weighted: True
+    loss_weight: 1.0
+  loss_dfl:
+    name: DistributionFocalLoss
+    loss_weight: 0.25
+  loss_bbox:
+    name: GIoULoss
+    loss_weight: 2.0
+  assigner:
+    name: SimOTAAssigner
+    candidate_topk: 10
+    iou_weight: 6
+  nms:
+    name: MultiClassNMS
+    nms_top_k: 1000
+    keep_top_k: 100
+    score_threshold: 0.025
+    nms_threshold: 0.6
+
+
+TrainReader:
+  batch_size: 4
+
+
+
+# epoch: 180
+
+# LearningRate:
+#   base_lr: 0.01
+#   schedulers:
+#   - !PiecewiseDecay
+#     gamma: 0.1
+#     milestones:
+#     - 120
+#     - 160
+#   - !LinearWarmup
+#     start_factor: 0.
+#     steps: 500
+
+# OptimizerBuilder:
+#   optimizer:
+#     momentum: 0.9
+#     type: Momentum
+#   regularizer:
+#     factor: 0.0005
+#     type: L2
+
+
+epoch: 180
+LearningRate:
+  base_lr: 0.005
+  schedulers:
+  - !CosineDecay
+    max_epochs: 180
+  - !LinearWarmup
+    start_factor: 0.1
+    steps: 1000
+
+OptimizerBuilder:
+  optimizer:
+    momentum: 0.9
+    type: Momentum
+  regularizer:
+    factor: 0.0005
+    type: L2
+
+
+
+
+
+
+
+
+# csp_pan.py
+
+# # Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserved.
+# #
+# # Licensed under the Apache License, Version 2.0 (the "License");
+# # you may not use this file except in compliance with the License.
+# # You may obtain a copy of the License at
+# #
+# #     http://www.apache.org/licenses/LICENSE-2.0
+# #
+# # Unless required by applicable law or agreed to in writing, software
+# # distributed under the License is distributed on an "AS IS" BASIS,
+# # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# # See the License for the specific language governing permissions and
+# # limitations under the License.
+
+# import paddle
+# import paddle.nn as nn
+# import paddle.nn.functional as F
+# from paddle import ParamAttr
+# from paddle.regularizer import L2Decay
+# from ppdet.core.workspace import register, serializable
+# from ..shape_spec import ShapeSpec
+
+# __all__ = ['CSPPAN']
+
+
+# class ConvBNLayer(nn.Layer):
+#     def __init__(self,
+#                  in_channel=96,
+#                  out_channel=96,
+#                  kernel_size=3,
+#                  stride=1,
+#                  groups=1,
+#                  act='leaky_relu',
+#                  negative_slope=0.01):
+#         super(ConvBNLayer, self).__init__()
+#         initializer = nn.initializer.KaimingUniform()
+#         self.act = act
+#         assert self.act in ['leaky_relu', "hard_swish"]
+#         self.conv = nn.Conv2D(
+#             in_channels=in_channel,
+#             out_channels=out_channel,
+#             kernel_size=kernel_size,
+#             groups=groups,
+#             padding=(kernel_size - 1) // 2,
+#             stride=stride,
+#             weight_attr=ParamAttr(initializer=initializer),
+#             # bias_attr=False
+#             )
+#         # self.bn = nn.BatchNorm2D(out_channel)
+#         self.bn = nn.BatchNorm(out_channel)
+
+#         self.negative_slope = negative_slope
+
+#     def forward(self, x):
+#         x = self.bn(self.conv(x))
+#         if self.act == "leaky_relu":
+#             x = F.leaky_relu(x, negative_slope=self.negative_slope)
+#         elif self.act == "hard_swish":
+#             x = F.hardswish(x)
+#         return x
+
+
+# class DPModule(nn.Layer):
+#     """
+#     Depth-wise and point-wise module.
+#      Args:
+#         in_channel (int): The input channels of this Module.
+#         out_channel (int): The output channels of this Module.
+#         kernel_size (int): The conv2d kernel size of this Module.
+#         stride (int): The conv2d's stride of this Module.
+#         act (str): The activation function of this Module,
+#                    Now support `leaky_relu` and `hard_swish`.
+#     """
+
+#     def __init__(self,
+#                  in_channel=96,
+#                  out_channel=96,
+#                  kernel_size=3,
+#                  stride=1,
+#                  act='leaky_relu',
+#                  negative_slope=0.01):
+#         super(DPModule, self).__init__()
+#         initializer = nn.initializer.KaimingUniform()
+#         self.act = act
+#         self.dwconv = nn.Conv2D(
+#             in_channels=in_channel,
+#             out_channels=out_channel,
+#             kernel_size=kernel_size,
+#             groups=out_channel,
+#             padding=(kernel_size - 1) // 2,
+#             stride=stride,
+#             weight_attr=ParamAttr(initializer=initializer),
+#             bias_attr=False)
+#         # self.bn1 = nn.BatchNorm2D(out_channel)
+#         self.bn1 = nn.BatchNorm(out_channel)
+
+#         self.pwconv = nn.Conv2D(
+#             in_channels=out_channel,
+#             out_channels=out_channel,
+#             kernel_size=1,
+#             groups=1,
+#             padding=0,
+#             weight_attr=ParamAttr(initializer=initializer),
+#             bias_attr=False)
+#         # self.bn2 = nn.BatchNorm2D(out_channel)
+#         self.bn2 = nn.BatchNorm(out_channel)
+
+#         self.negative_slope = negative_slope
+
+#     def act_func(self, x):
+#         if self.act == "leaky_relu":
+#             x = F.leaky_relu(x, negative_slope=self.negative_slope)
+#         elif self.act == "hard_swish":
+#             x = F.hardswish(x)
+#         return x
+
+#     def forward(self, x):
+#         x = self.act_func(self.bn1(self.dwconv(x)))
+#         x = self.act_func(self.bn2(self.pwconv(x)))
+#         return x
+
+
+# class DarknetBottleneck(nn.Layer):
+#     """The basic bottleneck block used in Darknet.
+
+#     Each Block consists of two ConvModules and the input is added to the
+#     final output. Each ConvModule is composed of Conv, BN, and act.
+#     The first convLayer has filter size of 1x1 and the second one has the
+#     filter size of 3x3.
+
+#     Args:
+#         in_channels (int): The input channels of this Module.
+#         out_channels (int): The output channels of this Module.
+#         expansion (int): The kernel size of the convolution. Default: 0.5
+#         add_identity (bool): Whether to add identity to the out.
+#             Default: True
+#         use_depthwise (bool): Whether to use depthwise separable convolution.
+#             Default: False
+#     """
+
+#     def __init__(self,
+#                  in_channels,
+#                  out_channels,
+#                  kernel_size=3,
+#                  expansion=0.5,
+#                  add_identity=True,
+#                  use_depthwise=False,
+#                  act="leaky_relu",
+#                  negative_slope=0.01):
+#         super(DarknetBottleneck, self).__init__()
+#         hidden_channels = int(out_channels * expansion)
+#         conv_func = DPModule if use_depthwise else ConvBNLayer
+#         self.conv1 = ConvBNLayer(
+#             in_channel=in_channels,
+#             out_channel=hidden_channels,
+#             kernel_size=1,
+#             act=act,
+#             negative_slope=negative_slope)
+#         self.conv2 = conv_func(
+#             in_channel=hidden_channels,
+#             out_channel=out_channels,
+#             kernel_size=kernel_size,
+#             stride=1,
+#             act=act,
+#             negative_slope=negative_slope)
+#         self.add_identity = \
+#             add_identity and in_channels == out_channels
+
+#     def forward(self, x):
+#         identity = x
+#         out = self.conv1(x)
+#         out = self.conv2(out)
+
+#         if self.add_identity:
+#             return out + identity
+#         else:
+#             return out
+
+
+# class CSPLayer(nn.Layer):
+#     """Cross Stage Partial Layer.
+
+#     Args:
+#         in_channels (int): The input channels of the CSP layer.
+#         out_channels (int): The output channels of the CSP layer.
+#         expand_ratio (float): Ratio to adjust the number of channels of the
+#             hidden layer. Default: 0.5
+#         num_blocks (int): Number of blocks. Default: 1
+#         add_identity (bool): Whether to add identity in blocks.
+#             Default: True
+#         use_depthwise (bool): Whether to depthwise separable convolution in
+#             blocks. Default: False
+#     """
+
+#     def __init__(self,
+#                  in_channels,
+#                  out_channels,
+#                  kernel_size=3,
+#                  expand_ratio=0.5,
+#                  num_blocks=1,
+#                  add_identity=True,
+#                  use_depthwise=False,
+#                  act="leaky_relu",
+#                  negative_slope=0.01):
+#         super().__init__()
+#         mid_channels = int(out_channels * expand_ratio)
+#         self.main_conv = ConvBNLayer(
+#             in_channels,
+#             mid_channels,
+#             1,
+#             act=act,
+#             negative_slope=negative_slope)
+#         self.short_conv = ConvBNLayer(
+#             in_channels,
+#             mid_channels,
+#             1,
+#             act=act,
+#             negative_slope=negative_slope)
+#         self.final_conv = ConvBNLayer(
+#             2 * mid_channels,
+#             out_channels,
+#             1,
+#             act=act,
+#             negative_slope=negative_slope)
+
+#         self.blocks = nn.Sequential(*[
+#             DarknetBottleneck(
+#                 mid_channels,
+#                 mid_channels,
+#                 kernel_size,
+#                 1.0,
+#                 add_identity,
+#                 use_depthwise,
+#                 act=act,
+#                 negative_slope=negative_slope) for _ in range(num_blocks)
+#         ])
+
+#     def forward(self, x):
+#         x_short = self.short_conv(x)
+
+#         x_main = self.main_conv(x)
+#         x_main = self.blocks(x_main)
+
+#         x_final = paddle.concat((x_main, x_short), axis=1)
+#         return self.final_conv(x_final)
+
+
+# class Channel_T(nn.Layer):
+#     def __init__(self,
+#                  in_channels=[116, 232, 464],
+#                  out_channels=96,
+#                  kernel_size=1,
+#                  act="leaky_relu",
+#                  negative_slope=0.01):
+#         super(Channel_T, self).__init__()
+#         self.convs = nn.LayerList()
+#         nums = [1, 2, 3]
+
+#         for i in range(len(in_channels)):
+#             self.convs.append(
+#                 ConvBNLayer(
+#                     in_channels[i],
+#                     out_channels,
+#                     kernel_size,
+#                     act=act,
+#                     negative_slope=negative_slope))
+
+#             # if kernel_size == 1:
+#             #     self.convs.append(
+#             #         ConvBNLayer(
+#             #             in_channels[i], out_channels, kernel_size, act=act))
+#             # else:
+#             #     m = nn.Sequential( *[ConvBNLayer(in_channels[i] if _i == 0 else out_channels, out_channels, kernel_size, act=act) for _i in range(nums[i])] )
+#             #     self.convs.append(m)
+
+#     def forward(self, x):
+#         outs = [self.convs[i](x[i]) for i in range(len(x))]
+#         return outs
+
+
+# @register
+# @serializable
+# class CSPPAN(nn.Layer):
+#     """Path Aggregation Network with CSP module.
+
+#     Args:
+#         in_channels (List[int]): Number of input channels per scale.
+#         out_channels (int): Number of output channels (used at each scale)
+#         kernel_size (int): The conv2d kernel size of this Module.
+#         num_features (int): Number of output features of CSPPAN module.
+#         num_csp_blocks (int): Number of bottlenecks in CSPLayer. Default: 1
+#         use_depthwise (bool): Whether to depthwise separable convolution in
+#             blocks. Default: True
+#     """
+
+#     def __init__(self,
+#                  in_channels,
+#                  out_channels,
+#                  kernel_size=5,
+#                  num_features=3,
+#                  num_csp_blocks=1,
+#                  use_depthwise=True,
+#                  act='hard_swish',
+#                  spatial_scales=[0.125, 0.0625, 0.03125],
+#                  add_identity=False,
+#                  expand_ratio=0.5,
+#                  t_kernel_size=1,
+#                  negative_slope=0.01):
+#         super(CSPPAN, self).__init__()
+#         self.conv_t = Channel_T(
+#             in_channels,
+#             out_channels,
+#             t_kernel_size,
+#             act=act,
+#             negative_slope=negative_slope)
+#         in_channels = [out_channels] * len(spatial_scales)
+#         self.in_channels = in_channels
+#         self.out_channels = out_channels
+#         self.spatial_scales = spatial_scales
+#         self.num_features = num_features
+#         conv_func = DPModule if use_depthwise else ConvBNLayer
+
+#         if self.num_features == 4:
+#             self.first_top_conv = conv_func(
+#                 in_channels[0],
+#                 in_channels[0],
+#                 kernel_size,
+#                 stride=2,
+#                 act=act,
+#                 negative_slope=negative_slope)
+#             self.second_top_conv = conv_func(
+#                 in_channels[0],
+#                 in_channels[0],
+#                 kernel_size,
+#                 stride=2,
+#                 act=act,
+#                 negative_slope=negative_slope)
+#             self.spatial_scales.append(self.spatial_scales[-1] / 2)
+
+#         # build top-down blocks
+#         self.upsample = nn.Upsample(scale_factor=2, mode='nearest')
+#         self.top_down_blocks = nn.LayerList()
+#         for idx in range(len(in_channels) - 1, 0, -1):
+#             self.top_down_blocks.append(
+#                 CSPLayer(
+#                     in_channels[idx - 1] * 2,
+#                     in_channels[idx - 1],
+#                     kernel_size=kernel_size,
+#                     num_blocks=num_csp_blocks,
+#                     add_identity=add_identity,
+#                     use_depthwise=use_depthwise,
+#                     expand_ratio=expand_ratio,
+#                     act=act,
+#                     negative_slope=negative_slope))
+
+#         # build bottom-up blocks
+#         self.downsamples = nn.LayerList()
+#         self.bottom_up_blocks = nn.LayerList()
+#         for idx in range(len(in_channels) - 1):
+#             self.downsamples.append(
+#                 conv_func(
+#                     in_channels[idx],
+#                     in_channels[idx],
+#                     kernel_size=kernel_size,
+#                     stride=2,
+#                     act=act,
+#                     negative_slope=negative_slope))
+#             self.bottom_up_blocks.append(
+#                 CSPLayer(
+#                     in_channels[idx] * 2,
+#                     in_channels[idx + 1],
+#                     kernel_size=kernel_size,
+#                     num_blocks=num_csp_blocks,
+#                     add_identity=add_identity,
+#                     use_depthwise=use_depthwise,
+#                     act=act,
+#                     negative_slope=negative_slope))
+
+#     def forward(self, inputs):
+#         """
+#         Args:
+#             inputs (tuple[Tensor]): input features.
+
+#         Returns:
+#             tuple[Tensor]: CSPPAN features.
+#         """
+#         assert len(inputs) == len(self.in_channels)
+#         inputs = self.conv_t(inputs)
+
+#         # top-down path
+#         inner_outs = [inputs[-1]]
+#         for idx in range(len(self.in_channels) - 1, 0, -1):
+#             feat_heigh = inner_outs[0]
+#             feat_low = inputs[idx - 1]
+
+#             upsample_feat = self.upsample(feat_heigh)
+
+#             inner_out = self.top_down_blocks[len(self.in_channels) - 1 - idx](
+#                 paddle.concat([upsample_feat, feat_low], 1))
+#             inner_outs.insert(0, inner_out)
+
+#         # bottom-up path
+#         outs = [inner_outs[0]]
+#         for idx in range(len(self.in_channels) - 1):
+#             feat_low = outs[-1]
+#             feat_height = inner_outs[idx + 1]
+#             downsample_feat = self.downsamples[idx](feat_low)
+#             out = self.bottom_up_blocks[idx](paddle.concat(
+#                 [downsample_feat, feat_height], 1))
+#             outs.append(out)
+
+#         top_features = None
+#         if self.num_features == 4:
+#             top_features = self.first_top_conv(inputs[-1])
+#             top_features = top_features + self.second_top_conv(outs[-1])
+#             outs.append(top_features)
+
+#         return tuple(outs)
+
+#     @property
+#     def out_shape(self):
+#         return [
+#             ShapeSpec(
+#                 channels=self.out_channels, stride=1. / s)
+#             for s in self.spatial_scales
+#         ]
+
+#     @classmethod
+#     def from_config(cls, cfg, input_shape):
+#         return {'in_channels': [i.channels for i in input_shape], }
+
+
+
+
+
+# pico_head.py
+
+
+# # Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserved.
+# #
+# # Licensed under the Apache License, Version 2.0 (the "License");
+# # you may not use this file except in compliance with the License.
+# # You may obtain a copy of the License at
+# #
+# #     http://www.apache.org/licenses/LICENSE-2.0
+# #
+# # Unless required by applicable law or agreed to in writing, software
+# # distributed under the License is distributed on an "AS IS" BASIS,
+# # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# # See the License for the specific language governing permissions and
+# # limitations under the License.
+
+# from __future__ import absolute_import
+# from __future__ import division
+# from __future__ import print_function
+
+# import math
+# import numpy as np
+# import paddle
+# import paddle.nn as nn
+# import paddle.nn.functional as F
+# from paddle import ParamAttr
+# from paddle.nn.initializer import Normal, Constant
+
+# from ppdet.core.workspace import register
+# from ppdet.modeling.layers import ConvNormLayer
+# from .simota_head import OTAVFLHead
+
+# from ..necks.csp_pan import ConvBNLayer
+
+# # class ConvBNLayer(nn.Layer):
+# #     def __init__(self,
+# #                  in_channel=96,
+# #                  out_channel=96,
+# #                  kernel_size=3,
+# #                  stride=1,
+# #                  groups=1,
+# #                  act='leaky_relu'):
+# #         super(ConvBNLayer, self).__init__()
+# #         initializer = nn.initializer.KaimingUniform()
+# #         self.act = act
+# #         assert self.act in ['leaky_relu', "hard_swish"]
+# #         self.conv = nn.Conv2D(
+# #             in_channels=in_channel,
+# #             out_channels=out_channel,
+# #             kernel_size=kernel_size,
+# #             groups=groups,
+# #             padding=(kernel_size - 1) // 2,
+# #             stride=stride,
+# #             weight_attr=ParamAttr(initializer=initializer),
+# #             bias_attr=False)
+# #         self.bn = nn.BatchNorm2D(out_channel)
+
+# #     def forward(self, x):
+# #         x = self.bn(self.conv(x))
+# #         if self.act == "leaky_relu":
+# #             x = F.leaky_relu(x)
+# #         elif self.act == "hard_swish":
+# #             x = F.hardswish(x)
+# #         return x
+
+
+# @register
+# class PicoFeatX(nn.Layer):
+#     """
+#     PicoFeat of PicoDet
+
+#     Args:
+#         feat_in (int): The channel number of input Tensor.
+#         feat_out (int): The channel number of output Tensor.
+#         num_convs (int): The convolution number of the LiteGFLFeat.
+#         norm_type (str): Normalization type, 'bn'/'sync_bn'/'gn'.
+#     """
+
+#     def __init__(self,
+#                  feat_in=[256, 512, 1024],
+#                  feat_out=256,
+#                  num_fpn_stride=3,
+#                  num_convs=2,
+#                  norm_type='bn',
+#                  share_cls_reg=False,
+#                  act='mish',
+#                  kernel_size=3,
+#                  negative_slope=0.01):
+#         super(PicoFeatX, self).__init__()
+
+#         self.num_convs = num_convs
+#         self.norm_type = norm_type
+#         self.share_cls_reg = share_cls_reg
+#         self.act = act
+#         self.cls_convs = []
+#         self.reg_convs = []
+#         for stage_idx in range(num_fpn_stride):
+#             cls_subnet_convs = []
+#             reg_subnet_convs = []
+#             for i in range(self.num_convs):
+#                 in_c = feat_in[stage_idx] if i == 0 else feat_out
+#                 cls_conv_dw = self.add_sublayer(
+#                     'cls_conv_dw{}.{}'.format(stage_idx, i),
+#                     ConvBNLayer(
+#                         in_c, feat_out, kernel_size, act=self.act))
+#                 cls_subnet_convs.append(cls_conv_dw)
+
+#                 if not self.share_cls_reg:
+#                     reg_conv_dw = self.add_sublayer(
+#                         'reg_conv_dw{}.{}'.format(stage_idx, i),
+#                         ConvBNLayer(
+#                             in_c, feat_out, kernel_size, act=self.act))
+#                     reg_subnet_convs.append(reg_conv_dw)
+
+#             self.cls_convs.append(cls_subnet_convs)
+#             self.reg_convs.append(reg_subnet_convs)
+
+#         self.negative_slope = negative_slope
+
+#     def act_func(self, x):
+#         if self.act == "leaky_relu":
+#             x = F.leaky_relu(x, negative_slope=self.negative_slope)
+#         elif self.act == "hard_swish":
+#             x = F.hardswish(x)
+#         elif self.act == 'mish':
+#             x = x * paddle.tanh(F.softplus(x))
+#         return x
+
+#     def forward(self, fpn_feat, stage_idx):
+#         assert stage_idx < len(self.cls_convs)
+#         cls_feat = fpn_feat
+#         reg_feat = fpn_feat
+
+#         if self.num_convs == 0:
+#             return cls_feat, reg_feat
+
+#         for i in range(len(self.cls_convs[stage_idx])):
+#             cls_feat = self.act_func(self.cls_convs[stage_idx][i](cls_feat))
+#             if not self.share_cls_reg:
+#                 reg_feat = self.act_func(self.reg_convs[stage_idx][i](reg_feat))
+
+#         return cls_feat, reg_feat
+
+
+# @register
+# class PicoFeatL(nn.Layer):
+#     """
+#     PicoFeat of PicoDet
+
+#     Args:
+#         feat_in (int): The channel number of input Tensor.
+#         feat_out (int): The channel number of output Tensor.
+#         num_convs (int): The convolution number of the LiteGFLFeat.
+#         norm_type (str): Normalization type, 'bn'/'sync_bn'/'gn'.
+#     """
+
+#     def __init__(self,
+#                  feat_in=256,
+#                  feat_out=96,
+#                  num_fpn_stride=3,
+#                  num_convs=2,
+#                  norm_type='bn',
+#                  share_cls_reg=False,
+#                  act='hard_swish',
+#                  kernel_size=3,
+#                  negative_slope=0.01):
+
+#         super(PicoFeatL, self).__init__()
+#         self.num_convs = num_convs
+#         self.norm_type = norm_type
+#         self.share_cls_reg = share_cls_reg
+#         self.act = act
+#         self.cls_convs = []
+#         self.reg_convs = []
+#         for stage_idx in range(num_fpn_stride):
+#             cls_subnet_convs = []
+#             reg_subnet_convs = []
+#             for i in range(self.num_convs):
+#                 in_c = feat_in if i == 0 else feat_out
+#                 # cls_conv_dw = self.add_sublayer(
+#                 #     'cls_conv_dw{}.{}'.format(stage_idx, i),
+#                 #     ConvBNLayer(
+#                 #         in_c,
+#                 #         feat_out,
+#                 #         kernel_size,
+#                 #         act=self.act,
+#                 #         negative_slope=negative_slope))
+#                 # cls_subnet_convs.append(cls_conv_dw)
+
+#                 cls_conv_dw = self.add_sublayer(
+#                     'cls_conv_dw{}.{}'.format(stage_idx, i),
+#                     ConvNormLayer(
+#                         ch_in=in_c,
+#                         ch_out=feat_out,
+#                         filter_size=kernel_size,
+#                         stride=1,
+#                         # groups=feat_out,
+#                         norm_type=norm_type,
+#                         # bias_on=False,
+#                         lr_scale=1.))
+#                 cls_subnet_convs.append(cls_conv_dw)
+
+#                 # cls_conv_pw = self.add_sublayer(
+#                 #     'cls_conv_pw{}.{}'.format(stage_idx, i),
+#                 #     ConvNormLayer(
+#                 #         ch_in=in_c,
+#                 #         ch_out=feat_out,
+#                 #         filter_size=1,
+#                 #         stride=1,
+#                 #         norm_type=norm_type,
+#                 #         bias_on=False,
+#                 #         lr_scale=2.))
+#                 # cls_subnet_convs.append(cls_conv_pw)
+
+#                 if not self.share_cls_reg:
+#                     # reg_conv_dw = self.add_sublayer(
+#                     #     'reg_conv_dw{}.{}'.format(stage_idx, i),
+#                     #     ConvBNLayer(
+#                     #         in_c,
+#                     #         feat_out,
+#                     #         kernel_size,
+#                     #         act=self.act,
+#                     #         negative_slope=negative_slope))
+#                     # reg_subnet_convs.append(reg_conv_dw)
+
+#                     reg_conv_dw = self.add_sublayer(
+#                         'reg_conv_dw{}.{}'.format(stage_idx, i),
+#                         ConvNormLayer(
+#                             ch_in=in_c,
+#                             ch_out=feat_out,
+#                             filter_size=kernel_size,
+#                             stride=1,
+#                             # groups=feat_out,
+#                             norm_type=norm_type,
+#                             # bias_on=False,
+#                             lr_scale=1.))
+#                     reg_subnet_convs.append(reg_conv_dw)
+
+#                     # reg_conv_pw = self.add_sublayer(
+#                     #     'reg_conv_pw{}.{}'.format(stage_idx, i),
+#                     #     ConvNormLayer(
+#                     #         ch_in=in_c,
+#                     #         ch_out=feat_out,
+#                     #         filter_size=1,
+#                     #         stride=1,
+#                     #         norm_type=norm_type,
+#                     #         bias_on=False,
+#                     #         lr_scale=2.))
+#                     # reg_subnet_convs.append(reg_conv_pw)
+
+#             self.cls_convs.append(cls_subnet_convs)
+#             self.reg_convs.append(reg_subnet_convs)
+
+#         self.negative_slope = negative_slope
+
+#     def act_func(self, x):
+#         if self.act == "leaky_relu":
+#             x = F.leaky_relu(x, negative_slope=self.negative_slope)
+#         elif self.act == "hard_swish":
+#             x = F.hardswish(x)
+#         return x
+
+#     def forward(self, fpn_feat, stage_idx):
+#         assert stage_idx < len(self.cls_convs)
+#         cls_feat = fpn_feat
+#         reg_feat = fpn_feat
+#         for i in range(len(self.cls_convs[stage_idx])):
+#             cls_feat = self.act_func(self.cls_convs[stage_idx][i](cls_feat))
+#             if not self.share_cls_reg:
+#                 reg_feat = self.act_func(self.reg_convs[stage_idx][i](reg_feat))
+#         return cls_feat, reg_feat
+
+
+# @register
+# class PicoFeat(nn.Layer):
+#     """
+#     PicoFeat of PicoDet
+
+#     Args:
+#         feat_in (int): The channel number of input Tensor.
+#         feat_out (int): The channel number of output Tensor.
+#         num_convs (int): The convolution number of the LiteGFLFeat.
+#         norm_type (str): Normalization type, 'bn'/'sync_bn'/'gn'.
+#     """
+
+#     def __init__(self,
+#                  feat_in=256,
+#                  feat_out=96,
+#                  num_fpn_stride=3,
+#                  num_convs=2,
+#                  norm_type='bn',
+#                  share_cls_reg=False,
+#                  act='hard_swish'):
+#         super(PicoFeat, self).__init__()
+#         self.num_convs = num_convs
+#         self.norm_type = norm_type
+#         self.share_cls_reg = share_cls_reg
+#         self.act = act
+#         self.cls_convs = []
+#         self.reg_convs = []
+#         for stage_idx in range(num_fpn_stride):
+#             cls_subnet_convs = []
+#             reg_subnet_convs = []
+#             for i in range(self.num_convs):
+#                 in_c = feat_in if i == 0 else feat_out
+#                 cls_conv_dw = self.add_sublayer(
+#                     'cls_conv_dw{}.{}'.format(stage_idx, i),
+#                     ConvNormLayer(
+#                         ch_in=in_c,
+#                         ch_out=feat_out,
+#                         filter_size=5,
+#                         stride=1,
+#                         groups=feat_out,
+#                         norm_type=norm_type,
+#                         bias_on=False,
+#                         lr_scale=2.))
+#                 cls_subnet_convs.append(cls_conv_dw)
+#                 cls_conv_pw = self.add_sublayer(
+#                     'cls_conv_pw{}.{}'.format(stage_idx, i),
+#                     ConvNormLayer(
+#                         ch_in=in_c,
+#                         ch_out=feat_out,
+#                         filter_size=1,
+#                         stride=1,
+#                         norm_type=norm_type,
+#                         bias_on=False,
+#                         lr_scale=2.))
+#                 cls_subnet_convs.append(cls_conv_pw)
+
+#                 if not self.share_cls_reg:
+#                     reg_conv_dw = self.add_sublayer(
+#                         'reg_conv_dw{}.{}'.format(stage_idx, i),
+#                         ConvNormLayer(
+#                             ch_in=in_c,
+#                             ch_out=feat_out,
+#                             filter_size=5,
+#                             stride=1,
+#                             groups=feat_out,
+#                             norm_type=norm_type,
+#                             bias_on=False,
+#                             lr_scale=2.))
+#                     reg_subnet_convs.append(reg_conv_dw)
+#                     reg_conv_pw = self.add_sublayer(
+#                         'reg_conv_pw{}.{}'.format(stage_idx, i),
+#                         ConvNormLayer(
+#                             ch_in=in_c,
+#                             ch_out=feat_out,
+#                             filter_size=1,
+#                             stride=1,
+#                             norm_type=norm_type,
+#                             bias_on=False,
+#                             lr_scale=2.))
+#                     reg_subnet_convs.append(reg_conv_pw)
+#             self.cls_convs.append(cls_subnet_convs)
+#             self.reg_convs.append(reg_subnet_convs)
+
+#     def act_func(self, x):
+#         if self.act == "leaky_relu":
+#             x = F.leaky_relu(x)
+#         elif self.act == "hard_swish":
+#             x = F.hardswish(x)
+#         return x
+
+#     def forward(self, fpn_feat, stage_idx):
+#         assert stage_idx < len(self.cls_convs)
+#         cls_feat = fpn_feat
+#         reg_feat = fpn_feat
+#         for i in range(len(self.cls_convs[stage_idx])):
+#             cls_feat = self.act_func(self.cls_convs[stage_idx][i](cls_feat))
+#             if not self.share_cls_reg:
+#                 reg_feat = self.act_func(self.reg_convs[stage_idx][i](reg_feat))
+#         return cls_feat, reg_feat
+
+
+# @register
+# class PicoHead(OTAVFLHead):
+#     """
+#     PicoHead
+#     Args:
+#         conv_feat (object): Instance of 'PicoFeat'
+#         num_classes (int): Number of classes
+#         fpn_stride (list): The stride of each FPN Layer
+#         prior_prob (float): Used to set the bias init for the class prediction layer
+#         loss_class (object): Instance of VariFocalLoss.
+#         loss_dfl (object): Instance of DistributionFocalLoss.
+#         loss_bbox (object): Instance of bbox loss.
+#         assigner (object): Instance of label assigner.
+#         reg_max: Max value of integral set :math: `{0, ..., reg_max}`
+#                 n QFL setting. Default: 7.
+#     """
+#     __inject__ = [
+#         'conv_feat', 'dgqp_module', 'loss_class', 'loss_dfl', 'loss_bbox',
+#         'assigner', 'nms'
+#     ]
+#     __shared__ = ['num_classes']
+
+#     def __init__(self,
+#                  conv_feat='PicoFeat',
+#                  dgqp_module=None,
+#                  num_classes=80,
+#                  fpn_stride=[8, 16, 32],
+#                  prior_prob=0.01,
+#                  loss_class='VariFocalLoss',
+#                  loss_dfl='DistributionFocalLoss',
+#                  loss_bbox='GIoULoss',
+#                  assigner='SimOTAAssigner',
+#                  reg_max=16,
+#                  feat_in_chan=96,
+#                  nms=None,
+#                  nms_pre=1000,
+#                  cell_offset=0,
+#                  kernel_size=1):
+#         super(PicoHead, self).__init__(
+#             conv_feat=conv_feat,
+#             dgqp_module=dgqp_module,
+#             num_classes=num_classes,
+#             fpn_stride=fpn_stride,
+#             prior_prob=prior_prob,
+#             loss_class=loss_class,
+#             loss_dfl=loss_dfl,
+#             loss_bbox=loss_bbox,
+#             assigner=assigner,
+#             reg_max=reg_max,
+#             feat_in_chan=feat_in_chan,
+#             nms=nms,
+#             nms_pre=nms_pre,
+#             cell_offset=cell_offset)
+#         self.conv_feat = conv_feat
+#         self.num_classes = num_classes
+#         self.fpn_stride = fpn_stride
+#         self.prior_prob = prior_prob
+#         self.loss_vfl = loss_class
+#         self.loss_dfl = loss_dfl
+#         self.loss_bbox = loss_bbox
+#         self.assigner = assigner
+#         self.reg_max = reg_max
+#         self.feat_in_chan = [feat_in_chan, ] * len(fpn_stride) if isinstance(
+#             feat_in_chan, int) else feat_in_chan
+#         self.nms = nms
+#         self.nms_pre = nms_pre
+#         self.cell_offset = cell_offset
+
+#         self.use_sigmoid = self.loss_vfl.use_sigmoid
+#         if self.use_sigmoid:
+#             self.cls_out_channels = self.num_classes
+#         else:
+#             self.cls_out_channels = self.num_classes + 1
+#         bias_init_value = -math.log((1 - self.prior_prob) / self.prior_prob)
+#         # Clear the super class initialization
+#         self.gfl_head_cls = None
+#         self.gfl_head_reg = None
+#         self.scales_regs = None
+
+#         self.head_cls_list = []
+#         self.head_reg_list = []
+#         for i in range(len(fpn_stride)):
+#             head_cls = self.add_sublayer(
+#                 "head_cls" + str(i),
+#                 nn.Conv2D(
+#                     in_channels=self.feat_in_chan[i],
+#                     out_channels=self.cls_out_channels + 4 * (self.reg_max + 1)
+#                     if self.conv_feat.share_cls_reg else self.cls_out_channels,
+#                     kernel_size=kernel_size,
+#                     stride=1,
+#                     padding=(kernel_size - 1) // 2,
+#                     weight_attr=ParamAttr(initializer=Normal(
+#                         mean=0., std=0.01)),
+#                     bias_attr=ParamAttr(
+#                         initializer=Constant(value=bias_init_value))))
+#             self.head_cls_list.append(head_cls)
+#             if not self.conv_feat.share_cls_reg:
+#                 head_reg = self.add_sublayer(
+#                     "head_reg" + str(i),
+#                     nn.Conv2D(
+#                         in_channels=self.feat_in_chan[i],
+#                         out_channels=4 * (self.reg_max + 1),
+#                         kernel_size=kernel_size,
+#                         stride=1,
+#                         padding=(kernel_size - 1) // 2,
+#                         weight_attr=ParamAttr(initializer=Normal(
+#                             mean=0., std=0.01)),
+#                         bias_attr=ParamAttr(initializer=Constant(value=0))))
+#                 self.head_reg_list.append(head_reg)
+
+#     def forward(self, fpn_feats, deploy=False):
+#         assert len(fpn_feats) == len(
+#             self.fpn_stride
+#         ), "The size of fpn_feats is not equal to size of fpn_stride"
+#         cls_logits_list = []
+#         bboxes_reg_list = []
+#         for i, fpn_feat in enumerate(fpn_feats):
+#             conv_cls_feat, conv_reg_feat = self.conv_feat(fpn_feat, i)
+#             if self.conv_feat.share_cls_reg:
+#                 cls_logits = self.head_cls_list[i](conv_cls_feat)
+#                 cls_score, bbox_pred = paddle.split(
+#                     cls_logits,
+#                     [self.cls_out_channels, 4 * (self.reg_max + 1)],
+#                     axis=1)
+#             else:
+#                 cls_score = self.head_cls_list[i](conv_cls_feat)
+#                 bbox_pred = self.head_reg_list[i](conv_reg_feat)
+
+#             if self.dgqp_module:
+#                 quality_score = self.dgqp_module(bbox_pred)
+#                 cls_score = F.sigmoid(cls_score) * quality_score
+
+#             if deploy:
+#                 # Now only supports batch size = 1 in deploy
+#                 # TODO(ygh): support batch size > 1
+#                 cls_score = F.sigmoid(cls_score).reshape(
+#                     [1, self.cls_out_channels, -1]).transpose([0, 2, 1])
+#                 bbox_pred = bbox_pred.reshape([1, (self.reg_max + 1) * 4,
+#                                                -1]).transpose([0, 2, 1])
+#             elif not self.training:
+#                 cls_score = F.sigmoid(cls_score.transpose([0, 2, 3, 1]))
+#                 bbox_pred = bbox_pred.transpose([0, 2, 3, 1])
+
+#             cls_logits_list.append(cls_score)
+#             bboxes_reg_list.append(bbox_pred)
+
+#         return (cls_logits_list, bboxes_reg_list)
