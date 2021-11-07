@@ -290,7 +290,8 @@ class PicoFeatL(nn.Layer):
                  share_cls_reg=False,
                  act='hard_swish',
                  kernel_size=3,
-                 negative_slope=0.01):
+                 negative_slope=0.01,
+                 lr_scale=1.0):
 
         super(PicoFeatL, self).__init__()
         self.num_convs = num_convs
@@ -325,7 +326,7 @@ class PicoFeatL(nn.Layer):
                         norm_type=norm_type,
                         bias_on=False,
                         initializer=nn.initializer.KaimingUniform(),
-                        lr_scale=1.))
+                        lr_scale=lr_scale))
                 cls_subnet_convs.append(cls_conv_dw)
 
                 # cls_conv_pw = self.add_sublayer(
@@ -362,7 +363,7 @@ class PicoFeatL(nn.Layer):
                             norm_type=norm_type,
                             bias_on=False,
                             initializer=nn.initializer.KaimingUniform(),
-                            lr_scale=1.))
+                            lr_scale=lr_scale))
                     reg_subnet_convs.append(reg_conv_dw)
 
                     # reg_conv_pw = self.add_sublayer(
