@@ -145,7 +145,7 @@ class ConvNormLayer(nn.Layer):
                 padding=(filter_size - 1) // 2,
                 groups=groups,
                 weight_attr=ParamAttr(
-                    initializer=initializer, learning_rate=1.),
+                    initializer=initializer, learning_rate=lr_scale),
                 bias_attr=bias_attr)
             if skip_quant:
                 self.conv.skip_quant = True
@@ -159,7 +159,7 @@ class ConvNormLayer(nn.Layer):
                 padding=(filter_size - 1) // 2,
                 groups=groups,
                 weight_attr=ParamAttr(
-                    initializer=initializer, learning_rate=1.),
+                    initializer=initializer, learning_rate=lr_scale),
                 bias_attr=True,
                 lr_scale=dcn_lr_scale,
                 regularizer=dcn_regularizer,

@@ -611,7 +611,8 @@ class PicoHead(OTAVFLHead):
                  nms=None,
                  nms_pre=1000,
                  cell_offset=0,
-                 kernel_size=1):
+                 kernel_size=1,
+                 lr_scale=1):
         super(PicoHead, self).__init__(
             conv_feat=conv_feat,
             dgqp_module=dgqp_module,
@@ -665,10 +666,13 @@ class PicoHead(OTAVFLHead):
                     kernel_size=kernel_size,
                     stride=1,
                     padding=(kernel_size - 1) // 2,
-                    weight_attr=ParamAttr(initializer=Normal(
-                        mean=0., std=0.01)),
+                    weight_attr=ParamAttr(
+                        initializer=Normal(
+                            mean=0., std=0.01),
+                        learning_rate=lr_scale),
                     bias_attr=ParamAttr(
-                        initializer=Constant(value=bias_init_value))))
+                        initializer=Constant(value=bias_init_value),
+                        learning_rate=lr_scale)))
             self.head_cls_list.append(head_cls)
             if not self.conv_feat.share_cls_reg:
                 head_reg = self.add_sublayer(
@@ -679,9 +683,13 @@ class PicoHead(OTAVFLHead):
                         kernel_size=kernel_size,
                         stride=1,
                         padding=(kernel_size - 1) // 2,
-                        weight_attr=ParamAttr(initializer=Normal(
-                            mean=0., std=0.01)),
-                        bias_attr=ParamAttr(initializer=Constant(value=0))))
+                        weight_attr=ParamAttr(
+                            initializer=Normal(
+                                mean=0., std=0.01),
+                            learning_rate=lr_scale),
+                        bias_attr=ParamAttr(
+                            initializer=Constant(value=0),
+                            learning_rate=lr_scale)))
                 self.head_reg_list.append(head_reg)
 
     def forward(self, fpn_feats, deploy=False):
