@@ -569,7 +569,7 @@ class YOLOv5Box(object):
         self.na = 3
         self.no = num_classes + 4 + 1
         # https://github.com/ultralytics/yolov5/blob/master/models/yolo.py#L33
-        
+
     def __call__(self,
                  yolo_head_out,
                  anchors,
@@ -580,68 +580,72 @@ class YOLOv5Box(object):
         scores_list = []
         origin_shape = im_shape / scale_factor
         origin_shape = paddle.cast(origin_shape, 'int32')
-        
+
         for i, head_out in enumerate(yolo_head_out):
-#             boxes, scores = ops.yolo_box(head_out, origin_shape, anchors[i],
-#                                          self.num_classes, self.conf_thresh,
-#                                          self.downsample_ratio // 2**i,
-#                                          self.clip_bbox, self.scale_x_y)
+            #             boxes, scores = ops.yolo_box(head_out, origin_shape, anchors[i],
+            #                                          self.num_classes, self.conf_thresh,
+            #                                          self.downsample_ratio // 2**i,
+            #                                          self.clip_bbox, self.scale_x_y)
             x = head_out
-    
+
             bs, _, ny, nx = x.shape  # x (n,255,20,20) to x(n,3,20,20,85)
-            x = x.reshape([bs, self.na, self.no, ny, nx]).transpose([0, 1, 3, 4, 2])
+            x = x.reshape([bs, self.na, self.no, ny, nx]).transpose(
+                [0, 1, 3, 4, 2])
 
             stride = self.downsample[i]
-            anchor = paddle.to_tensor(anchors[i], dtype='float32').reshape([-1, 2])
+            anchor = paddle.to_tensor(
+                anchors[i], dtype='float32').reshape([-1, 2])
             grid = self._make_grid(nx, ny)
-            
+
             # print(head_out.shape, x.shape, stride, anchor.shape, grid.shape, )
-            
+
             y = F.sigmoid(x)
-            
+
             xy = (y[..., 0:2] * 2. - 0.5 + grid) * stride  # xy
-            wh = (y[..., 2:4] * 2) ** 2 * anchor.reshape([1, self.na, 1, 1, 2])  # wh
+            wh = (y[..., 2:4] * 2)**2 * anchor.reshape(
+                [1, self.na, 1, 1, 2])  # wh
             lt_xy = (xy - wh / 2.) / scale_factor.reshape([bs, 1, 1, 1, 2])
             rb_xy = (xy + wh / 2.) / scale_factor.reshape([bs, 1, 1, 1, 2])
-            
-            boxes = paddle.concat((lt_xy, rb_xy), -1) # xmin ymin xmax ymax            
+
+            boxes = paddle.concat((lt_xy, rb_xy),
+                                  -1)  # xmin ymin xmax ymax            
             # scores = F.softmax(y[..., 5:],  axis=-1)
             scores = y[..., 5:]
 
             obj_scores = y[..., 4].reshape([bs, -1])
             boxes = boxes.reshape([bs, -1, 4])
             scores = scores.reshape([bs, -1, self.num_classes])
-            
-            # [1, 1200, 4] [1, 1200, 80]
-#             xmim = boxes[:, :, 0] / scale_factor[:, 0].reshape([1, -1])
-#             ymin = boxes[:, :, 1] / scale_factor[:, 0].reshape([1, -1])
-#             xmax = boxes[:, :, 2] / scale_factor[:, 0].reshape([1, -1])
-#             ymax = boxes[:, :, 3] / scale_factor[:, 0].reshape([1, -1])
 
-#             boxes[:, :, 0] /= scale_factor[:, 0].reshape([1, -1])
-#             boxes[:, :, 1] /= scale_factor[:, 1].reshape([1, -1])
-#             boxes[:, :, 2] /= scale_factor[:, 0].reshape([1, -1])
-#             boxes[:, :, 3] /= scale_factor[:, 1].reshape([1, -1])
+            # [1, 1200, 4] [1, 1200, 80]
+            #             xmim = boxes[:, :, 0] / scale_factor[:, 0].reshape([1, -1])
+            #             ymin = boxes[:, :, 1] / scale_factor[:, 0].reshape([1, -1])
+            #             xmax = boxes[:, :, 2] / scale_factor[:, 0].reshape([1, -1])
+            #             ymax = boxes[:, :, 3] / scale_factor[:, 0].reshape([1, -1])
+
+            #             boxes[:, :, 0] /= scale_factor[:, 0].reshape([1, -1])
+            #             boxes[:, :, 1] /= scale_factor[:, 1].reshape([1, -1])
+            #             boxes[:, :, 2] /= scale_factor[:, 0].reshape([1, -1])
+            #             boxes[:, :, 3] /= scale_factor[:, 1].reshape([1, -1])
 
             # print(boxes.shape, scores.shape)
-            
+
             # TODO
             assert bs == 1, ''
             mask = obj_scores > self.conf_thresh
-            
+
             if mask.sum().item():
                 indx = mask.nonzero()
                 boxes = paddle.gather_nd(boxes, indx).unsqueeze(0)
                 scores = paddle.gather_nd(scores, indx).unsqueeze(0)
                 obj_scores = paddle.gather_nd(obj_scores, indx).unsqueeze(-1)
                 # print(boxes.shape, scores.shape)
-            
-                boxes_list.append( boxes )
-                scores_list.append( scores.transpose([0, 2, 1]) )
-        
+                nms_scores = scores * obj_scores
+                boxes_list.append(boxes)
+                scores_list.append(nms_scores.transpose([0, 2, 1]))
+
         yolo_boxes = paddle.concat(boxes_list, axis=1)
         yolo_scores = paddle.concat(scores_list, axis=-1)
-        
+
         return yolo_boxes, yolo_scores
 
     @staticmethod
@@ -650,7 +654,6 @@ class YOLOv5Box(object):
         return paddle.stack((xv, yv), 2).reshape((1, 1, ny, nx, 2))
 
 
-    
 @register
 @serializable
 class SSDBox(object):
@@ -699,7 +702,6 @@ class SSDBox(object):
         scores = paddle.transpose(scores, [0, 2, 1])
 
         return boxes, scores
-
 
 
 @register
@@ -790,7 +792,6 @@ class AnchorGrid(object):
         return self._anchor_vars
 
 
-    
 @register
 @serializable
 class FCOSBox(object):
