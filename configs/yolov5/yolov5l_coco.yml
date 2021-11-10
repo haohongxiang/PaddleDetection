@@ -8,6 +8,13 @@ _BASE_:
   ]
 
 
+# pretrain_weights: http://10.255.134.13:8091/cspdarknet53.pdparams
+
+
+worker_num: 6
+TrainReader:
+  batch_size: 8
+
 
 YOLOv5:
   backbone: CSPDarknet
