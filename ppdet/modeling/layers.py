@@ -614,8 +614,9 @@ class YOLOv5Box(object):
             # scores = F.softmax(y[..., 5:],  axis=-1)
             scores = y[..., 5:]
 
-            obj_scores = y[..., 4].reshape([bs, -1, 1])
             boxes = boxes.reshape([bs, -1, 4])
+
+            obj_scores = y[..., 4].reshape([bs, -1, 1])
             scores = scores.reshape([bs, -1, self.num_classes])
 
             nms_scores = obj_scores * scores
