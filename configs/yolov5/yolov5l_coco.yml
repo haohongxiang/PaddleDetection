@@ -27,4 +27,4 @@ YOLOv5FPN:
 
 
 snapshot_epoch: 5
-weights: output/yolov5m_coco/model_final
+weights: output/yolov5l_coco/model_final
