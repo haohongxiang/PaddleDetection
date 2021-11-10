@@ -578,6 +578,8 @@ class YOLOv5Box(object):
                  var_weight=None):
         boxes_list = []
         scores_list = []
+        conf_list = []
+
         origin_shape = im_shape / scale_factor
         origin_shape = paddle.cast(origin_shape, 'int32')
 
@@ -612,9 +614,15 @@ class YOLOv5Box(object):
             # scores = F.softmax(y[..., 5:],  axis=-1)
             scores = y[..., 5:]
 
-            obj_scores = y[..., 4].reshape([bs, -1])
+            obj_scores = y[..., 4].reshape([bs, -1, 1])
             boxes = boxes.reshape([bs, -1, 4])
             scores = scores.reshape([bs, -1, self.num_classes])
+
+            nms_scores = obj_scores * scores
+
+            conf_list.append(obj_scores)
+            boxes_list.append(boxes)
+            scores_list.append(nms_scores.transpose([0, 2, 1]))
 
             # [1, 1200, 4] [1, 1200, 80]
             #             xmim = boxes[:, :, 0] / scale_factor[:, 0].reshape([1, -1])
@@ -629,20 +637,20 @@ class YOLOv5Box(object):
 
             # print(boxes.shape, scores.shape)
 
-            # TODO
-            assert bs == 1, ''
-            mask = obj_scores > self.conf_thresh
+            # # TODO
+            # assert bs == 1, ''
+            # mask = obj_scores > self.conf_thresh
+            # if mask.sum().item():
+            #     indx = mask.nonzero()
+            #     boxes = paddle.gather_nd(boxes, indx).unsqueeze(0)
+            #     scores = paddle.gather_nd(scores, indx).unsqueeze(0)
+            #     obj_scores = paddle.gather_nd(obj_scores, indx).unsqueeze(-1)
+            #     # print(boxes.shape, scores.shape)
+            #     nms_scores = scores * obj_scores
+            #     boxes_list.append(boxes)
+            #     scores_list.append(nms_scores.transpose([0, 2, 1]))
 
-            if mask.sum().item():
-                indx = mask.nonzero()
-                boxes = paddle.gather_nd(boxes, indx).unsqueeze(0)
-                scores = paddle.gather_nd(scores, indx).unsqueeze(0)
-                obj_scores = paddle.gather_nd(obj_scores, indx).unsqueeze(-1)
-                # print(boxes.shape, scores.shape)
-                nms_scores = scores * obj_scores
-                boxes_list.append(boxes)
-                scores_list.append(nms_scores.transpose([0, 2, 1]))
-
+        yolo_conf = paddle.concat(conf_list, axis=1)
         yolo_boxes = paddle.concat(boxes_list, axis=1)
         yolo_scores = paddle.concat(scores_list, axis=-1)
 
