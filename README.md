@@ -1,4 +1,7 @@
-# 	Hybrid Task Cascade for Instance Segmentation
+- reference: https://github.com/laihuihui/htc
+
+
+#     Hybrid Task Cascade for Instance Segmentation
 
 English | [简体中文](./README_cn.md)
 
@@ -20,10 +23,10 @@ English | [简体中文](./README_cn.md)
            * [Training output](#training-output)
         * [6.4 assessment process](#64-assessment-process)
      * [7 Model information](#7-model-information)
-  
+
 
 ## 1 Introduction
-This project reproduces HTC based on paddledetection framework. 
+This project reproduces HTC based on paddledetection framework.
 
 Cascade is a classic yet powerful architecture that has
 boosted performance on various tasks. However, how to introduce
@@ -95,7 +98,7 @@ weights
 
 ## 5 Quick start
 
-### step1: clone 
+### step1: clone
 
 ```bash
 # clone this repo
@@ -113,7 +116,7 @@ python tools/train.py -c configs/htc/htc_r50_fpn_1x_coco.yml
 ```
 If the training is interrupted, it can be recovered through the `-- resume` parameter or `-r` parameter, for example, using the `-- resume output/htc_r50_fpn_1x_coco/3` means the interrupt is resumed at 3epoch:
 ```bash
-python tools/train.py -c configs/htc/htc_r50_fpn_1x_coco.yml --resume output/htc_r50_fpn_1x_coco/3 
+python tools/train.py -c configs/htc/htc_r50_fpn_1x_coco.yml --resume output/htc_r50_fpn_1x_coco/3
 ```
 Perform evaluation in train using `--eval` parameter:
 ```bash
@@ -125,7 +128,7 @@ python -m paddle.distributed.launch --gpus 0,1,2,3 tools/train.py -c configs/htc
 ```
 The output is:
 ```
-Epoch: [0] [   0/7329] learning_rate: 0.000020 loss_rpn_cls: 0.691306 loss_rpn_reg: 0.054590 loss_bbox_cls_stage0: 4.189201 loss_bbox_reg_stage0: 0.064000 loss_bbox_cls_stage1: 2.481206 loss_bbox_reg_stage1: 0.016608 loss_bbox_cls_stage2: 1.106741 
+Epoch: [0] [   0/7329] learning_rate: 0.000020 loss_rpn_cls: 0.691306 loss_rpn_reg: 0.054590 loss_bbox_cls_stage0: 4.189201 loss_bbox_reg_stage0: 0.064000 loss_bbox_cls_stage1: 2.481206 loss_bbox_reg_stage1: 0.016608 loss_bbox_cls_stage2: 1.106741
 ```
 
 ### step3: evaluation
@@ -138,19 +141,19 @@ python tools/eval.py -c configs/htc/htc_r50_fpn_1x_coco.yml -o weights=output/ht
 ### 6.1 main structure
 
 ```
-├─config                          
-├─dataset                         
-├─ppdet                           
-├─output                          
-├─log                             
-├─tools                           
-│   ├─eval.py                     
-│   ├─train.py                    
-│  README.md                      
-│  README_cn.md                   
-│  README_paddeldetection_cn.md   
-│  README_paddeldetection_cn.md   
-│  requirement.txt                
+├─config  
+├─dataset  
+├─ppdet  
+├─output  
+├─log  
+├─tools  
+│   ├─eval.py  
+│   ├─train.py  
+│  README.md  
+│  README_cn.md  
+│  README_paddeldetection_cn.md  
+│  README_paddeldetection_cn.md  
+│  requirement.txt  
 ```
 
 ### 6.2 Part of the parameter description
@@ -189,7 +192,7 @@ At this time, the program will import the output log of each process into the pa
 #### Training output
 After the training starts, you will get the output similar to the following. Each round of 'batch' training will print the current epoch, step and loss values.
 ```text
-Epoch: [0] [   0/7329] learning_rate: 0.000020 loss_rpn_cls: 0.691306 loss_rpn_reg: 0.054590 loss_bbox_cls_stage0: 4.189201 loss_bbox_reg_stage0: 0.064000 loss_bbox_cls_stage1: 2.481206 loss_bbox_reg_stage1: 0.016608 loss_bbox_cls_stage2: 1.106741 
+Epoch: [0] [   0/7329] learning_rate: 0.000020 loss_rpn_cls: 0.691306 loss_rpn_reg: 0.054590 loss_bbox_cls_stage0: 4.189201 loss_bbox_reg_stage0: 0.064000 loss_bbox_cls_stage1: 2.481206 loss_bbox_reg_stage1: 0.016608 loss_bbox_cls_stage2: 1.106741
 ```
 
 ### 6.4 assessment process
