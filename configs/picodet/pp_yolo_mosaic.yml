@@ -99,7 +99,7 @@ PicoHead:
     name: GIoULoss
     loss_weight: 2.0
   assigner:
-    name: SimOTAAssigner
+    name: SimOTAAssignerX
     candidate_topk: 10
     iou_weight: 6 # 5
   nms:

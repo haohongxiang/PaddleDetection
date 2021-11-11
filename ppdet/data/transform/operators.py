@@ -3461,7 +3461,9 @@ class RandomPerspective(BaseOperator):
                  perspective=0.0,
                  border=[0, 0],
                  area_thr=0.25,
-                 fill_value=(114, 114, 114)):
+                 fill_value=(114, 114, 114),
+                 debug=False):
+
         super(RandomPerspective, self).__init__()
         self.degree = degree
         self.translate = translate
@@ -3471,6 +3473,7 @@ class RandomPerspective(BaseOperator):
         self.border = border
         self.area_thr = area_thr
         self.fill_value = fill_value
+        self.debug = debug
 
     def apply(self, sample, context=None):
         im = sample['image']
@@ -3541,15 +3544,16 @@ class RandomPerspective(BaseOperator):
 
         sample['gt_bbox'] = sample['gt_bbox'].astype(np.float32)
 
-        #         from PIL import Image, ImageDraw
-        #         _im = Image.fromarray(sample['image'])
-        #         _draw = ImageDraw.Draw(_im)
-        #         for bbx in sample['gt_bbox']:
-        #             x, y, w, h = bbx
-        #             # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
-        #             _draw.rectangle((x, y, w, h), outline='red')
-        #         _im.save('perspective_'+str(random.randint(0, 10)) + '.jpg')
-        #         print('perspective: ', _im.size)
+        if self.debug:
+            from PIL import Image, ImageDraw
+            _im = Image.fromarray(sample['image'])
+            _draw = ImageDraw.Draw(_im)
+            for bbx in sample['gt_bbox']:
+                x, y, w, h = bbx
+                # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
+                _draw.rectangle((x, y, w, h), outline='red')
+            _im.save('perspective_' + str(random.randint(0, 10)) + '.jpg')
+            print('perspective: ', _im.size)
 
         return sample
 
@@ -3563,13 +3567,15 @@ class Mosaic(BaseOperator):
     def __init__(self,
                  target_size,
                  mosaic_border=None,
-                 fill_value=(114, 114, 114)):
+                 fill_value=(114, 114, 114),
+                 debug=False):
         super(Mosaic, self).__init__()
         self.target_size = target_size
         if mosaic_border is None:
             mosaic_border = (-target_size // 2, -target_size // 2)
         self.mosaic_border = mosaic_border
         self.fill_value = fill_value
+        self.debug = debug
 
     def __call__(self, sample, context=None):
         if not isinstance(sample, Sequence):
@@ -3625,15 +3631,15 @@ class Mosaic(BaseOperator):
         if 'difficult' in sample:
             sample['difficult'] = difficult
 
-#         from PIL import Image, ImageDraw
-#         _im = Image.fromarray(sample['image'])
-#         _draw = ImageDraw.Draw(_im)
-#         for bbx in sample['gt_bbox']:
-#             x, y, w, h = bbx
-#             # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
-#             _draw.rectangle((x, y, w, h), outline='red')
-#         _im.save('mosaic_'+str(random.randint(0, 10)) + '.jpg')
-#         print(_im.size)
-#         c += 1
+        if self.debug:
+            from PIL import Image, ImageDraw
+            _im = Image.fromarray(sample['image'])
+            _draw = ImageDraw.Draw(_im)
+            for bbx in sample['gt_bbox']:
+                x, y, w, h = bbx
+                # _draw.rectangle((x - w/2, y - h/2, x + w/2, y + h/2), outline='red')
+                _draw.rectangle((x, y, w, h), outline='red')
+            _im.save('mosaic_' + str(random.randint(0, 10)) + '.jpg')
+            print(_im.size)
 
         return sample
