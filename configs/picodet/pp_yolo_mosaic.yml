@@ -3,10 +3,10 @@ _BASE_: [
   '../runtime.yml',
   # '_base_/picodet_esnet.yml',
   # '_base_/optimizer_300e.yml',
-  '_base_/picodet_640_reader.yml',
+  # '_base_/picodet_640_reader.yml',
 ]
 
-weights: output/pp_fcos_cspdarknet/model_final
+weights: output/pp_yolo_mosaic/model_final
 find_unused_parameters: True
 use_ema: true
 snapshot_epoch: 5
