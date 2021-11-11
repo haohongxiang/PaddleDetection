@@ -1,5 +1,6 @@
 
 
+rm /dev/shm/paddle_* -rf
 
 ps aux | grep "tools/train.py" | awk '{print $2}' | xargs kill -9 
 

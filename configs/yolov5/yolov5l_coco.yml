@@ -11,9 +11,10 @@ _BASE_:
 # pretrain_weights: http://10.255.134.13:8091/cspdarknet53.pdparams
 
 
-worker_num: 6
+worker_num: 4
 TrainReader:
   batch_size: 8
+  use_shared_memory: true
 
 
 YOLOv5:
@@ -33,5 +34,5 @@ YOLOv5FPN:
 
 
 
-snapshot_epoch: 1
+snapshot_epoch: 2
 weights: output/yolov5l_coco/model_final
