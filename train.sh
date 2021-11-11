@@ -1,6 +1,8 @@
 
 # wget http://10.181.196.20:8787/workspace/ssd6/lvwenyu01/workspace/dataset/CSPDarkNet53_pretrained.pdparams
 
+rm /dev/shm/paddle_* -rf
+
 
 ps aux | grep "tools/train.py" | awk '{print $2}' | xargs kill -9 
 
