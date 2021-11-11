@@ -3184,7 +3184,8 @@ class LetterBox(BaseOperator):
                  color=(114, 114, 114),
                  auto=True,
                  scaleFill=False,
-                 augment=True):
+                 augment=True,
+                 debug=False):
         super(LetterBox, self).__init__()
         if isinstance(target_size, int):
             target_size = (target_size, target_size)
@@ -3228,6 +3229,11 @@ class LetterBox(BaseOperator):
         sample['image'] = im
         sample['im_pad'] = [dh, dw]
 
+        if self.debug:
+            from PIL import Image, ImageDraw
+            _im = Image.fromarray(sample['image'])
+            _im.save('letterbox_' + str(random.randint(0, 10)) + '.jpg')
+            print(_im.size)
         return sample
 
 
@@ -3454,6 +3460,7 @@ class RandomPerspective(BaseOperator):
     """
 
     def __init__(self,
+                 target_size=(640, 640),
                  degree=10,
                  translate=0.1,
                  scale=0.1,
@@ -3475,10 +3482,15 @@ class RandomPerspective(BaseOperator):
         self.fill_value = fill_value
         self.debug = debug
 
+        self.target_size = target_size if isinstance(target_size, (
+            list, tuple)) else (target_size, target_size)
+
     def apply(self, sample, context=None):
         im = sample['image']
         height = im.shape[0] + self.border[0] * 2
         width = im.shape[1] + self.border[1] * 2
+
+        # height, width = self.target_size
 
         # center
         C = np.eye(3)
@@ -3585,6 +3597,12 @@ class Mosaic(BaseOperator):
         yc, xc = [
             int(random.uniform(-x, 2 * s + x)) for x in self.mosaic_border
         ]
+
+        # yc, xc = [
+        #     int(random.uniform(-x - x // 2, 2 * s + x + x // 2))
+        #     for x in self.mosaic_border
+        # ]
+
         boxes = [x['gt_bbox'] for x in sample]
         labels = [x['gt_class'] for x in sample]
         for i in range(len(sample)):
