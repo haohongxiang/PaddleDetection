@@ -3195,6 +3195,7 @@ class LetterBox(BaseOperator):
         self.scaleFill = scaleFill
         self.augment = augment
         self.rect = rect
+        self.debug = debug
 
     def __call__(self, sample, context=None):
         im = sample['image']
