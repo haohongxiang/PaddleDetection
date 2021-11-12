@@ -53,7 +53,7 @@ def batch_norm(ch,
     if norm_type == 'sync_bn':
         batch_norm = nn.SyncBatchNorm
     else:
-        batch_norm = nn.BatchNorm2D
+        batch_norm = nn.BatchNorm  # nn.BatchNorm2D
 
     norm_lr = 0. if freeze_norm else 1.
     weight_attr = ParamAttr(
