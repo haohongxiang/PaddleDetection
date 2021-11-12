@@ -64,12 +64,15 @@ class ConvBNLayer(nn.Layer):
             groups=groups,
             data_format=data_format,
             bias_attr=False)
-        self.batch_norm = batch_norm(
-            ch_out,
-            norm_type=norm_type,
-            norm_decay=norm_decay,
-            freeze_norm=freeze_norm,
-            data_format=data_format)
+
+        # self.batch_norm = batch_norm(
+        #     ch_out,
+        #     norm_type=norm_type,
+        #     norm_decay=norm_decay,
+        #     freeze_norm=freeze_norm,
+        #     data_format=data_format)
+
+        self.batch_norm = nn.BatchNorm(ch_out)
         self.act = act
 
     def forward(self, inputs):
