@@ -29,6 +29,7 @@ from ppdet.modeling.layers import ConvNormLayer
 from .simota_head import OTAVFLHead
 
 from ..necks.csp_pan import ConvBNLayer
+from ..initializer import normal_, constant_, bias_init_with_prob, uniform_
 
 # class ConvBNLayer(nn.Layer):
 #     def __init__(self,
@@ -572,6 +573,81 @@ class PicoFeat(nn.Layer):
             if not self.share_cls_reg:
                 reg_feat = self.act_func(self.reg_convs[stage_idx][i](reg_feat))
         return cls_feat, reg_feat
+
+
+@register
+class FeatYOLOX(nn.Layer):
+    def __init__(
+            self,
+            feat_in=[256, 512, 1024],
+            feat_out=256,
+            num_convs=2,
+            share_cls_reg=False,
+            data_format='NCHW',
+            act='mish', ):
+
+        super(FeatYOLOX, self).__init__()
+
+        self.in_channels = feat_in
+        self.feat_channels = feat_out
+        self.share_cls_reg = share_cls_reg
+
+        self.stem_conv = nn.LayerList()
+        self.cls_convs = nn.LayerList()
+        self.reg_convs = nn.LayerList()
+
+        for in_channel in self.in_channels:
+            self.stem_conv.append(
+                ConvBNLayer(
+                    ch_in=in_channel,
+                    ch_out=self.feat_channels,
+                    filter_size=1,
+                    act=act,
+                    data_format=data_format))
+
+            self.cls_convs.append(
+                nn.Sequential(*[
+                    ConvBNLayer(
+                        ch_in=self.feat_channels,
+                        ch_out=self.feat_channels,
+                        filter_size=3,
+                        padding=1,
+                        act=act,
+                        data_format=data_format) for _ in range(num_convs)
+                ]))
+
+            if not share_cls_reg:
+                self.reg_convs.append(
+                    nn.Sequential(*[
+                        ConvBNLayer(
+                            ch_in=self.feat_channels,
+                            ch_out=self.feat_channels,
+                            filter_size=3,
+                            padding=1,
+                            act=act,
+                            data_format=data_format) for _ in range(num_convs)
+                    ]))
+
+        self._init_weights()
+
+    def _init_weights(self):
+        bias_cls = bias_init_with_prob(0.01)
+        for cls_head in zip(self.cls_convs):
+            constant_(cls_head[-1].weight)
+            constant_(cls_head[-1].bias, bias_cls)
+
+    def forward(self, fpn_feat, idx):
+        assert idx < len(self.cls_convs)
+
+        fpn_feat = self.stem_conv[idx](fpn_feat)
+
+        cls_feat = self.cls_convs[idx](fpn_feat)
+        if not self.share_cls_reg:
+            reg_feat = self.reg_convs[idx](fpn_feat)
+
+            return cls_feat, reg_feat
+
+        return cls_feat, cls_feat
 
 
 @register
