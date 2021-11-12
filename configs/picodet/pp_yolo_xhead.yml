@@ -42,7 +42,7 @@ CSPDarkNet:
 CustomPAN:
   block_per_stage: 1
   layer_per_block: 2
-  act: 'leaky'
+  act: 'mish'
   block_func: 'CSPFusionBlock'
   block_size: 3
   keep_prob: 0.9
@@ -122,7 +122,7 @@ TrainReader:
 
 
 
-epoch: 180
+epoch: 240
 
 LearningRate:
   base_lr: 0.01
