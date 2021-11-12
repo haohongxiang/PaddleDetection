@@ -596,6 +596,7 @@ class FeatYOLOX(nn.Layer):
         self.cls_convs = nn.LayerList()
         self.reg_convs = nn.LayerList()
 
+        from ..backbones.darknet import ConvBNLayer
         for in_channel in self.in_channels:
             self.stem_conv.append(
                 ConvBNLayer(
