@@ -629,13 +629,13 @@ class FeatYOLOX(nn.Layer):
                             data_format=data_format) for _ in range(num_convs)
                     ]))
 
-        self._init_weights()
+        # self._init_weights()
 
-    def _init_weights(self):
-        bias_cls = bias_init_with_prob(0.01)
-        for cls_head in zip(self.cls_convs):
-            constant_(cls_head[-1].weight)
-            constant_(cls_head[-1].bias, bias_cls)
+        # def _init_weights(self):
+        #     bias_cls = bias_init_with_prob(0.01)
+        #     for cls_head in zip(self.cls_convs):
+        #         constant_(cls_head[-1].weight)
+        #         constant_(cls_head[-1].bias, bias_cls)
 
     def forward(self, fpn_feat, idx):
         assert idx < len(self.cls_convs)
