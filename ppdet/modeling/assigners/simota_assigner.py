@@ -23,7 +23,7 @@ from ppdet.core.workspace import register
 
 
 @register
-class SimOTAAssigner(object):
+class SimOTAAssigner_Origin(object):
     """Computes matching between predictions and ground truth.
 
     Args:
@@ -273,7 +273,7 @@ class SimOTAAssigner(object):
 
 
 @register
-class SimOTAAssignerX(object):
+class SimOTAAssigner(object):
     """Computes matching between predictions and ground truth.
     Args:
         center_radius (int | float, optional): Ground truth center size
@@ -508,3 +508,6 @@ class SimOTAAssignerX(object):
         pos_num = max(pos_inds.size, 1)
 
         return pos_num, label, label_weight, bbox_target
+
+
+SimOTAAssignerX = SimOTAAssigner
