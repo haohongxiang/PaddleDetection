@@ -1,4 +1,6 @@
-- reference: https://github.com/laihuihui/htc
+# reference
+- https://github.com/laihuihui/htc
+- https://github.com/nightrome/cocostuff#downloads
 
 
 #     Hybrid Task Cascade for Instance Segmentation
