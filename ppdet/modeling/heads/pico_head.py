@@ -582,11 +582,17 @@ class FeatYOLOX(nn.Layer):
             feat_in=[256, 512, 1024],
             feat_out=256,
             num_convs=2,
+            num_stages=3,
             share_cls_reg=False,
             data_format='NCHW',
             act='mish', ):
 
         super(FeatYOLOX, self).__init__()
+
+        feat_in = feat_in if isinstance(feat_in, (
+            list, tuple)) else [feat_in, ] * num_stages
+        feat_out = feat_out if isinstance(feat_out, (
+            list, tuple)) else [feat_out, ] * len(feat_in)
 
         self.in_channels = feat_in
         self.feat_channels = feat_out
@@ -597,11 +603,11 @@ class FeatYOLOX(nn.Layer):
         self.reg_convs = nn.LayerList()
 
         from ..backbones.darknet import ConvBNLayer
-        for in_channel in self.in_channels:
+        for i, in_channel in enumerate(self.in_channels):
             self.stem_conv.append(
                 ConvBNLayer(
                     ch_in=in_channel,
-                    ch_out=self.feat_channels,
+                    ch_out=self.feat_channels[i],
                     filter_size=1,
                     act=act,
                     data_format=data_format))
@@ -609,8 +615,8 @@ class FeatYOLOX(nn.Layer):
             self.cls_convs.append(
                 nn.Sequential(*[
                     ConvBNLayer(
-                        ch_in=self.feat_channels,
-                        ch_out=self.feat_channels,
+                        ch_in=self.feat_channels[i],
+                        ch_out=self.feat_channels[i],
                         filter_size=3,
                         padding=1,
                         act=act,
@@ -621,8 +627,8 @@ class FeatYOLOX(nn.Layer):
                 self.reg_convs.append(
                     nn.Sequential(*[
                         ConvBNLayer(
-                            ch_in=self.feat_channels,
-                            ch_out=self.feat_channels,
+                            ch_in=self.feat_channels[i],
+                            ch_out=self.feat_channels[i],
                             filter_size=3,
                             padding=1,
                             act=act,
