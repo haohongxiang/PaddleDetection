@@ -576,7 +576,7 @@ class PicoFeat(nn.Layer):
 
 
 @register
-class FeatYOLOX(nn.Layer):
+class FeatHeadX(nn.Layer):
     def __init__(
             self,
             feat_in=[256, 512, 1024],
@@ -587,7 +587,7 @@ class FeatYOLOX(nn.Layer):
             data_format='NCHW',
             act='mish', ):
 
-        super(FeatYOLOX, self).__init__()
+        super(FeatHeadX, self).__init__()
 
         feat_in = feat_in if isinstance(feat_in, (
             list, tuple)) else [feat_in, ] * num_stages
