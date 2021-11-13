@@ -63,7 +63,7 @@ CustomPAN:
 PicoHead:
 
   conv_feat:
-    name: FeatYOLOX
+    name: FeatHeadX
     feat_in: [256, 512, 1024]
     feat_out: 256
     num_convs: 2
