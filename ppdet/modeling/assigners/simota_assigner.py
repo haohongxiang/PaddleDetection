@@ -23,7 +23,7 @@ from ppdet.core.workspace import register
 
 
 @register
-class SimOTAAssigner_Origin(object):
+class SimOTAAssignerOrigin(object):
     """Computes matching between predictions and ground truth.
 
     Args:
