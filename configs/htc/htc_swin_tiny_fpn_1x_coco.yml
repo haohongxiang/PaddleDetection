@@ -1,0 +1,31 @@
+_BASE_: [
+    './htc_r50_fpn_1x_coco.yml',
+    './optimizer_swin_1x.yml'
+]
+
+
+weights: output/htc_swin_tiny_fpn_1x_coco/model_final
+
+
+HybridTaskCascade:
+  backbone: SwinTransformer
+  neck: FPN
+  rpn_head: RPNHead
+  bbox_head: HybridTaskCascadeHead
+  # mask_head: HybridTaskMaskHead
+  fused_semantic_head: FusedSemanticHead
+  # post process
+  bbox_post_process: BBoxPostProcess
+  mask_post_process: MaskPostProcess
+
+
+SwinTransformer:
+  embed_dim: 96
+  depths: [2, 2, 6, 2]
+  num_heads: [3, 6, 12, 24]
+  window_size: 7
+  ape: false
+  drop_path_rate: 0.1
+  patch_norm: true
+  out_indices: [0, 1, 2, 3]
+  pretrained: https://paddledet.bj.bcebos.com/models/pretrained/swin_tiny_patch4_window7_224.pdparams
