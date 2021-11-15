@@ -1,8 +1,8 @@
 _BASE_: [
     './htc_r50_fpn_1x_coco.yml',
-    './optimizer_swin_1x.yml'
+    './reader_swin.yml',
+    './optimizer_swin_1x.yml',
 ]
-
 
 weights: output/htc_swin_large_fpn_1x_coco/model_final
 
