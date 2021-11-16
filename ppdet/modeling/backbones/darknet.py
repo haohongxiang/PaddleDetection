@@ -75,6 +75,8 @@ class ConvBNLayer(nn.Layer):
         self.batch_norm = nn.BatchNorm(ch_out)
         self.act = act
 
+        assert act in ['leaky', 'mish', None], ''
+
     def forward(self, inputs):
         out = self.conv(inputs)
         out = self.batch_norm(out)
@@ -82,6 +84,9 @@ class ConvBNLayer(nn.Layer):
             out = F.leaky_relu(out, 0.1)
         elif self.act == 'mish':
             out = mish(out)
+        else:
+            pass
+
         return out
 
 
