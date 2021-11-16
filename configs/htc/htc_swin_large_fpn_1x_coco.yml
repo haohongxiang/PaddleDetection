@@ -1,6 +1,7 @@
 _BASE_: [
     './htc_r50_fpn_1x_coco.yml',
-    './reader_swin.yml',
+    # './reader_swin.yml',
+    './reader.yml',
     './optimizer_swin_1x.yml',
 ]
 
