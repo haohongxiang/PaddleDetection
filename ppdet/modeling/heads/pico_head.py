@@ -680,11 +680,12 @@ class FeatHeadL(nn.Layer):
                  num_convs=2,
                  norm_type='bn',
                  share_cls_reg=False,
-                 act='hard_swish',
+                 act='mish',
                  kernel_size=3,
                  negative_slope=0.01,
                  lr_scale=1.0,
-                 use_stem=False):
+                 use_stem=False,
+                 share_stem=True):
 
         super(PicoFeatL, self).__init__()
         self.num_convs = num_convs
@@ -692,6 +693,7 @@ class FeatHeadL(nn.Layer):
         self.share_cls_reg = share_cls_reg
         self.act = act
         self.use_stem = use_stem
+        self.share_stem = share_stem
 
         feat_in = feat_in if isinstance(feat_in, (
             list, tuple)) else [feat_in, ] * num_fpn_stride
@@ -704,19 +706,50 @@ class FeatHeadL(nn.Layer):
 
         for stage_idx in range(num_fpn_stride):
 
+            stem_subnet_convs = []
             if use_stem:
-                stem_conv = self.add_sublayer(
-                    'stem_conv{}'.format(stage_idx),
-                    ConvNormLayer(
-                        ch_in=feat_in[stage_idx],
-                        ch_out=feat_out[stage_idx],
-                        filter_size=1,
-                        stride=1,
-                        norm_type=norm_type,
-                        bias_on=False,
-                        initializer=nn.initializer.KaimingUniform(),
-                        lr_scale=lr_scale))
-                self.stem_convs.append(stem_conv)
+                if share_stem:
+                    stem_conv = self.add_sublayer(
+                        'stem_conv{}'.format(stage_idx),
+                        ConvNormLayer(
+                            ch_in=feat_in[stage_idx],
+                            ch_out=feat_out[stage_idx],
+                            filter_size=1,
+                            stride=1,
+                            norm_type=norm_type,
+                            bias_on=False,
+                            initializer=nn.initializer.KaimingUniform(),
+                            lr_scale=lr_scale))
+                    stem_subnet_convs.append(stem_conv)
+
+                else:
+                    stem_conv1 = self.add_sublayer(
+                        'stem_conv1.{}'.format(stage_idx),
+                        ConvNormLayer(
+                            ch_in=feat_in[stage_idx],
+                            ch_out=feat_out[stage_idx],
+                            filter_size=1,
+                            stride=1,
+                            norm_type=norm_type,
+                            bias_on=False,
+                            initializer=nn.initializer.KaimingUniform(),
+                            lr_scale=lr_scale))
+                    stem_subnet_convs.append(stem_conv1)
+
+                    stem_conv2 = self.add_sublayer(
+                        'stem_conv2.{}'.format(stage_idx),
+                        ConvNormLayer(
+                            ch_in=feat_in[stage_idx],
+                            ch_out=feat_out[stage_idx],
+                            filter_size=1,
+                            stride=1,
+                            norm_type=norm_type,
+                            bias_on=False,
+                            initializer=nn.initializer.KaimingUniform(),
+                            lr_scale=lr_scale))
+                    stem_subnet_convs.append(stem_conv2)
+
+            self.stem_convs.append(stem_subnet_convs)
 
             cls_subnet_convs = []
             reg_subnet_convs = []
@@ -819,10 +852,22 @@ class FeatHeadL(nn.Layer):
         assert stage_idx < len(self.cls_convs)
 
         if self.use_stem:
-            fpn_feat = self.act_func(self.stem_convs[stage_idx](fpn_feat))
+            if self.share_stem:
+                assert len(self.stem_convs[stage_idx]) == 1, ''
+                fpn_feat = self.act_func(self.stem_convs[stage_idx][0](
+                    fpn_feat))
+                cls_feat = fpn_feat
+                reg_feat = fpn_feat
+            else:
+                assert len(self.stem_convs[stage_idx]) == 2, ''
+                cls_feat = self.act_func(self.stem_convs[stage_idx][0](
+                    fpn_feat))
+                reg_feat = self.act_func(self.stem_convs[stage_idx][1](
+                    fpn_feat))
 
-        cls_feat = fpn_feat
-        reg_feat = fpn_feat
+        else:
+            cls_feat = fpn_feat
+            reg_feat = fpn_feat
 
         for i in range(len(self.cls_convs[stage_idx])):
             cls_feat = self.act_func(self.cls_convs[stage_idx][i](cls_feat))

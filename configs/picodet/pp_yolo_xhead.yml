@@ -74,8 +74,10 @@ PicoHead:
     feat_out: 256
     num_convs: 2
     share_cls_reg: false
-    # use_stem: true
     act: 'mish'
+
+    # use_stem: true
+    # share_stem: true
 
   fpn_stride: [8, 16, 32]
   feat_in_chan: [256, 256, 256]
