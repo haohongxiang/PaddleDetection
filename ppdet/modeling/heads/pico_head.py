@@ -686,7 +686,7 @@ class FeatHeadL(nn.Layer):
                  use_stem=False,
                  share_stem=True):
 
-        super(PicoFeatL, self).__init__()
+        super(FeatHeadL, self).__init__()
         self.num_convs = num_convs
         self.norm_type = norm_type
         self.share_cls_reg = share_cls_reg
