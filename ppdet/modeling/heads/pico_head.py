@@ -23,7 +23,6 @@ import paddle.nn as nn
 import paddle.nn.functional as F
 from paddle import ParamAttr
 from paddle.nn.initializer import Normal, Constant
-from PaddleDetection.ppdet.modeling.ops import mish
 
 from ppdet.core.workspace import register
 from ppdet.modeling.layers import ConvNormLayer
