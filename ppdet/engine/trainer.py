@@ -80,6 +80,12 @@ class Trainer(object):
             self.model = self.cfg.model
             self.is_loaded_weights = True
 
+        if getattr(self.cfg, 'convert_sync_bn', False):
+            self.model = paddle.nn.SyncBatchNorm.convert_sync_batchnorm(
+                self.model)
+            print('convert_sync_bn...')
+            print(self.model)
+
         self.use_ema = ('use_ema' in cfg and cfg['use_ema'])
         if self.use_ema:
             self.ema = ModelEMA(
