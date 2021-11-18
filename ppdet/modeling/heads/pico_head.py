@@ -295,6 +295,9 @@ class PicoFeatL(nn.Layer):
                  lr_scale=1.0):
 
         super(PicoFeatL, self).__init__()
+
+        assert self.act in ['leaky_relu', 'leaky', 'hard_swish', 'mish'], ''
+
         self.num_convs = num_convs
         self.norm_type = norm_type
         self.share_cls_reg = share_cls_reg
