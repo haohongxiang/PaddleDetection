@@ -1,7 +1,7 @@
 _BASE_: [
   '../datasets/coco_detection.yml',
   '../runtime.yml',
-  './reader.yml'
+  './reader.yml',
   './scheduler.yml',
 ]
 
