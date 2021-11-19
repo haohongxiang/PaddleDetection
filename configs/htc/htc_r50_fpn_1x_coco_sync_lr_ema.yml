@@ -3,9 +3,10 @@ _BASE_: [
 ]
 weights: output/htc_r50_fpn_1x_coco_sync_lr_ema/model_final
 
-
 convert_sync_bn: true
 use_ema: true
+ema_decay: 0.9998
+
 snapshot_epoch: 2
 
 LearningRate:

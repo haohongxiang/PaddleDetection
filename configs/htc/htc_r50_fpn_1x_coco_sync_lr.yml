@@ -5,7 +5,9 @@ weights: output/htc_r50_fpn_1x_coco_sync_lr/model_final
 
 
 convert_sync_bn: true
-use_ema: falses
+use_ema: false
+ema_decay: 0.9998
+
 snapshot_epoch: 2
 
 LearningRate:
