@@ -51,3 +51,8 @@ from .pico_head import *
 from .detr_head import *
 from .sparsercnn_head import *
 from .tood_head import *
+
+from . import htc_head, htc_mask_head, htc_semantic_head
+from .htc_head import *
+from .htc_mask_head import *
+from .htc_semantic_head import *
