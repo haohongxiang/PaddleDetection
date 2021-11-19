@@ -401,82 +401,14 @@ class PicoFeatL(nn.Layer):
         assert stage_idx < len(self.cls_convs)
         cls_feat = fpn_feat
         reg_feat = fpn_feat
+
+        if self.num_convs == 0:
+            return cls_feat, reg_feat
+
         for i in range(len(self.cls_convs[stage_idx])):
             cls_feat = self.act_func(self.cls_convs[stage_idx][i](cls_feat))
             if not self.share_cls_reg:
                 reg_feat = self.act_func(self.reg_convs[stage_idx][i](reg_feat))
-        return cls_feat, reg_feat
-
-
-@register
-class PicoFeatLv1(nn.Layer):
-    """
-    PicoFeat of PicoDet
-
-    Args:
-        feat_in (int): The channel number of input Tensor.
-        feat_out (int): The channel number of output Tensor.
-        num_convs (int): The convolution number of the LiteGFLFeat.
-        norm_type (str): Normalization type, 'bn'/'sync_bn'/'gn'.
-    """
-
-    def __init__(self,
-                 feat_in=256,
-                 feat_out=96,
-                 num_fpn_stride=3,
-                 num_convs=2,
-                 norm_type='bn',
-                 share_cls_reg=False,
-                 act='hard_swish',
-                 kernel_size=3,
-                 negative_slope=0.01):
-
-        super(PicoFeatLv1, self).__init__()
-        self.num_convs = num_convs
-        self.norm_type = norm_type
-        self.share_cls_reg = share_cls_reg
-        self.act = act
-        self.cls_convs = []
-        self.reg_convs = []
-        for stage_idx in range(num_fpn_stride):
-            cls_subnet_convs = []
-            reg_subnet_convs = []
-            for i in range(self.num_convs):
-                in_c = feat_in if i == 0 else feat_out
-                cls_conv_dw = self.add_sublayer(
-                    'cls_conv_dw{}.{}'.format(stage_idx, i),
-                    ConvBNLayer(
-                        in_c,
-                        feat_out,
-                        kernel_size,
-                        act=self.act,
-                        negative_slope=negative_slope))
-                cls_subnet_convs.append(cls_conv_dw)
-
-                if not self.share_cls_reg:
-                    reg_conv_dw = self.add_sublayer(
-                        'reg_conv_dw{}.{}'.format(stage_idx, i),
-                        ConvBNLayer(
-                            in_c,
-                            feat_out,
-                            kernel_size,
-                            act=self.act,
-                            negative_slope=negative_slope))
-                    reg_subnet_convs.append(reg_conv_dw)
-
-            self.cls_convs.append(cls_subnet_convs)
-            self.reg_convs.append(reg_subnet_convs)
-
-        self.negative_slope = negative_slope
-
-    def forward(self, fpn_feat, stage_idx):
-        assert stage_idx < len(self.cls_convs)
-        cls_feat = fpn_feat
-        reg_feat = fpn_feat
-        for i in range(len(self.cls_convs[stage_idx])):
-            cls_feat = self.cls_convs[stage_idx][i](cls_feat)
-            if not self.share_cls_reg:
-                reg_feat = self.reg_convs[stage_idx][i](reg_feat)
         return cls_feat, reg_feat
 
 
