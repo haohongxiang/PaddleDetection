@@ -6,5 +6,5 @@ rm /dev/shm/paddle_* -rf
 
 ps aux | grep "tools/train.py" | awk '{print $2}' | xargs kill -9 
 
-python -m paddle.distributed.launch --log_dir=log   --gpus 0,1,2,3 tools/train.py -c configs/picodet/pp_fcos_cspdarknet.yml --eval  > train.log 2>&1 &
+python -m paddle.distributed.launch --log_dir=log   --gpus 0,1,2,3 tools/train.py -c configs/picodet/pp_yolo.yml --eval  > train.log 2>&1 &
 
