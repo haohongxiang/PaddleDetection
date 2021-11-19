@@ -26,7 +26,7 @@ SwinTransformer:
   num_heads: [ 6, 12, 24, 48 ]
   window_size: 7
   ape: false
-  drop_path_rate: 0.1
+  drop_path_rate: 0.4
   patch_norm: true
   out_indices: [0, 1, 2, 3]
   pretrained: https://bj.bcebos.com/v1/paddledet/models/pretrained/swin_large_patch4_window7_224_22k.params

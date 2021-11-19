@@ -15,7 +15,7 @@ pretrain_weights: https://paddledet.bj.bcebos.com/models/pretrained/ResNet50_cos
 
 convert_sync_bn: false
 use_ema: false
-
+ema_decay: 0.9998
 snapshot_epoch: 2
 
 
