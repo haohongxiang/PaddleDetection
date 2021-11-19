@@ -296,7 +296,7 @@ class PicoFeatL(nn.Layer):
 
         super(PicoFeatL, self).__init__()
 
-        assert self.act in ['leaky_relu', 'leaky', 'hard_swish', 'mish'], ''
+        assert act in ['leaky_relu', 'leaky', 'hard_swish', 'mish'], ''
 
         self.num_convs = num_convs
         self.norm_type = norm_type
