@@ -23,6 +23,7 @@
 | Swin-Tiny-FPN | Faster       |    2    |   1x    |     ----     |  42.6  | [下载链接](https://paddledet.bj.bcebos.com/models/faster_rcnn_swin_tiny_fpn_1x_coco.pdparams) | [配置文件](https://github.com/PaddlePaddle/PaddleDetection/tree/develop/configs/faster_rcnn/faster_rcnn_swin_tiny_1x_coco.yml) |
 | Swin-Tiny-FPN | Faster       |    2    |   2x    |     ----     |  44.8  | [下载链接](https://paddledet.bj.bcebos.com/models/faster_rcnn_swin_tiny_fpn_2x_coco.pdparams) | [配置文件](https://github.com/PaddlePaddle/PaddleDetection/tree/develop/configs/faster_rcnn/faster_rcnn_swin_tiny_2x_coco.yml) |
 | Swin-Tiny-FPN | Faster       |    2    |   3x    |     ----     |  45.3  | [下载链接](https://paddledet.bj.bcebos.com/models/faster_rcnn_swin_tiny_fpn_3x_coco.pdparams) | [配置文件](https://github.com/PaddlePaddle/PaddleDetection/tree/develop/configs/faster_rcnn/faster_rcnn_swin_tiny_3x_coco.yml) |
+| Swin-Large-FPN | Faster       |    2    |   1x    |     ----     |  ---  | [下载链接]() | [配置文件](https://github.com/PaddlePaddle/PaddleDetection/tree/develop/configs/faster_rcnn/faster_rcnn_swin_large_1x_coco.yml) |
 
 ## Citations
 ```
