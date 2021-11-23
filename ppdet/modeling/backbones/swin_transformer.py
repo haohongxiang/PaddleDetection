@@ -482,30 +482,40 @@ class BasicLayer(nn.Layer):
         # calculate attention mask for SW-MSA
         Hp = int(np.ceil(H / self.window_size)) * self.window_size
         Wp = int(np.ceil(W / self.window_size)) * self.window_size
-        img_mask = paddle.fluid.layers.zeros(
-            [1, Hp, Wp, 1], dtype='float32')  # 1 Hp Wp 1
-        h_slices = (slice(0, -self.window_size),
-                    slice(-self.window_size, -self.shift_size),
-                    slice(-self.shift_size, None))
-        w_slices = (slice(0, -self.window_size),
-                    slice(-self.window_size, -self.shift_size),
-                    slice(-self.shift_size, None))
-        cnt = 0
-        for h in h_slices:
-            for w in w_slices:
-                img_mask[:, h, w, :] = cnt
-                cnt += 1
-        mask_windows = window_partition(
-            img_mask, self.window_size)  # nW, window_size, window_size, 1
-        mask_windows = mask_windows.reshape(
-            [-1, self.window_size * self.window_size])
-        attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
-        huns = -100.0 * paddle.ones_like(attn_mask)
-        attn_mask = huns * (attn_mask != 0).astype("float32")
+
+        if Hp <= self.window_size or Wp <= self.window_size:
+            attn_mask = None
+
+        else:
+
+            img_mask = paddle.zeros([1, Hp, Wp, 1], dtype='float32')
+            # img_mask = paddle.fluid.layers.zeros(
+            #     [1, Hp, Wp, 1], dtype='float32')  # 1 Hp Wp 1
+
+            h_slices = (slice(0, -self.window_size),
+                        slice(-self.window_size, -self.shift_size),
+                        slice(-self.shift_size, None))
+            w_slices = (slice(0, -self.window_size),
+                        slice(-self.window_size, -self.shift_size),
+                        slice(-self.shift_size, None))
+
+            cnt = 0
+            for h in h_slices:
+                for w in w_slices:
+                    img_mask[:, h, w, :] = cnt
+                    cnt += 1
+            mask_windows = window_partition(
+                img_mask, self.window_size)  # nW, window_size, window_size, 1
+            mask_windows = mask_windows.reshape(
+                [-1, self.window_size * self.window_size])
+            attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
+            huns = -100.0 * paddle.ones_like(attn_mask)
+            attn_mask = huns * (attn_mask != 0).astype("float32")
 
         for blk in self.blocks:
             blk.H, blk.W = H, W
             x = blk(x, attn_mask)
+
         if self.downsample is not None:
             x_down = self.downsample(x, H, W)
             Wh, Ww = (H + 1) // 2, (W + 1) // 2
