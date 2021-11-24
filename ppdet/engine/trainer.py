@@ -121,6 +121,12 @@ class Trainer(object):
         self._init_metrics()
         self._reset_metrics()
 
+        params = sum([
+            p.numel() for n, p in self.model.named_parameters()
+            if all([x not in n for x in ['_mean', '_var']])
+        ])
+        print('params: ', params)
+
     def _init_callbacks(self):
         if self.mode == 'train':
             self._callbacks = [LogPrinter(self), Checkpointer(self)]
