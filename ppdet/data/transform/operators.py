@@ -2371,11 +2371,11 @@ class RandomResizeCrop(BaseOperator):
 @register_op
 class Instaboost(BaseOperator):
     def __init__(self,
-                 action_candidate: tuple=('normal', 'horizontal', 'skip'),
-                 action_prob: tuple=(1, 0, 0),
-                 scale: tuple=(0.8, 1.2),
-                 dx: float=15,
-                 dy: float=15,
+                 action_candidate=('normal', 'horizontal', 'skip'),
+                 action_prob=(1, 0, 0),
+                 scale=(0.8, 1.2),
+                 dx=15,
+                 dy=15,
                  theta=(-1, 1),
                  color_prob=0.5,
                  heatmap_flag=False,
@@ -2414,17 +2414,14 @@ class Instaboost(BaseOperator):
         # im_fpath = os.path.join(root, img_folder, im_fname)
         assert os.path.split(sample['im_file'])[-1] == im_fname, ''
 
-        # im = np.array(Image.open(sample['im_file']))
-        # Image.open(im_fpath).show()
         sample = self.decode(sample)
 
-        im = sample['image']
         ann_info, img = instaboost.get_new_data(
-            ann_info, im, self.cfg, background=None)
+            ann_info, sample['image'], self.cfg, background=None)
         ann_info = self._parse_ann_info(
             ann_info, coco, catid2clsid, with_mask=True)
 
-        print(sample['semantic'].shape)
+        # print(sample['semantic'].shape)
 
         sample['image'] = img
         sample['semantic'] = ann_info['semantic']
