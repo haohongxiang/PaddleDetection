@@ -2427,7 +2427,7 @@ class Instaboost(BaseOperator):
         print(sample['semantic'].shape)
 
         sample['image'] = img
-        sample['semantic'] = ann_info['masks']
+        sample['semantic'] = ann_info['semantic']
         sample['gt_bbox'] = ann_info['boxes']
         sample['gt_class'] = ann_info['labels']
 
@@ -2497,9 +2497,21 @@ class Instaboost(BaseOperator):
         ann = dict(
             boxes=gt_bboxes, labels=gt_labels, bboxes_ignore=gt_bboxes_ignore)
 
+        assert len(gt_bboxes) == len(gt_labels), ''
+
         if with_mask:
             ann['masks'] = np.array(gt_masks)
             # ann['mask_polys'] = gt_mask_polys
             # ann['poly_lens'] = gt_poly_lens
+            assert len(gt_bboxes) == len(gt_labels) == len(gt_masks), ''
+
+            _mask = np.array(gt_masks).sum(axis=0)
+            segment = np.ones_like(_mask) * 255
+
+            for msk, lab in zip(gt_masks, gt_labels):
+                segment[msk > 0] = lab
+
+            segment = segment.astype(np.uint8)
+            ann['semantic'] = segment[:, :, None]  # h w 1
 
         return ann
