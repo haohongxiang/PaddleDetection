@@ -82,7 +82,8 @@ class DetDataset(Dataset):
 
         if isinstance(roidb, Sequence):
             for r in roidb:
-                r['curr_iter'] = self._curr_iter
+                # r['curr_iter'] = self._curr_iter
+                pass
         else:
             roidb['curr_iter'] = self._curr_iter
         self._curr_iter += 1

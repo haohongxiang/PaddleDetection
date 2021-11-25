@@ -2393,7 +2393,7 @@ class Instaboost(BaseOperator):
         self.prob = prob
         self.decode = Decode()
 
-    def apply(self, blob, context=None):
+    def __call__(self, blob, context=None):
 
         sample, coco, catid2clsid, img_ids, idx = blob
 
@@ -2428,7 +2428,7 @@ class Instaboost(BaseOperator):
         sample['gt_bbox'] = ann_info['boxes']
         sample['gt_class'] = ann_info['labels']
 
-        return img, ann_info
+        return sample
 
     @staticmethod
     def _parse_ann_info(ann_info, coco, catid2clsid, with_mask=True):
@@ -2469,14 +2469,15 @@ class Instaboost(BaseOperator):
                 gt_bboxes.append(bbox)
                 gt_labels.append(catid2clsid[ann['category_id']])
 
-            if with_mask:
-                gt_masks.append(coco.annToMask(ann))
-                mask_polys = [
-                    p for p in ann['segmentation'] if len(p) >= 6
-                ]  # valid polygons have >= 3 points (6 coordinates)
-                poly_lens = [len(p) for p in mask_polys]
-                gt_mask_polys.append(mask_polys)
-                gt_poly_lens.extend(poly_lens)
+                # TODO  
+                if with_mask:
+                    gt_masks.append(coco.annToMask(ann))
+                    mask_polys = [
+                        p for p in ann['segmentation'] if len(p) >= 6
+                    ]  # valid polygons have >= 3 points (6 coordinates)
+                    poly_lens = [len(p) for p in mask_polys]
+                    gt_mask_polys.append(mask_polys)
+                    gt_poly_lens.extend(poly_lens)
 
         if gt_bboxes:
             gt_bboxes = np.array(gt_bboxes, dtype=np.float32)
