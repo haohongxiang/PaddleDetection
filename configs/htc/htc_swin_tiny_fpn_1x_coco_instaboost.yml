@@ -171,6 +171,7 @@ TrainReader:
   - PadBatch: {pad_to_stride: 32}
   - SegRescale: {scale_factor: 0.125}
 
+  instaboost_epoch: 100000
   batch_size: 1
   shuffle: true
   drop_last: true
