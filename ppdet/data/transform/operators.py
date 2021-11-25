@@ -2379,6 +2379,7 @@ class Instaboost(BaseOperator):
                  theta=(-1, 1),
                  color_prob=0.5,
                  heatmap_flag=False,
+                 with_mask=True,
                  prob=0.5):
         super().__init__()
 
@@ -2391,11 +2392,15 @@ class Instaboost(BaseOperator):
                                                scale, dx, dy, theta, color_prob,
                                                heatmap_flag)
         self.prob = prob
+        self.with_mask = with_mask
+
         self.decode = Decode()
 
     def __call__(self, blob, context=None):
 
         sample, coco, catid2clsid, img_ids, idx = blob
+
+        # print('-- Instaboost ---')
 
         if random.random() > self.prob:
             return self.decode(sample)
@@ -2419,14 +2424,16 @@ class Instaboost(BaseOperator):
         ann_info, img = instaboost.get_new_data(
             ann_info, sample['image'], self.cfg, background=None)
         ann_info = self._parse_ann_info(
-            ann_info, coco, catid2clsid, with_mask=True)
+            ann_info, coco, catid2clsid, with_mask=self.with_mask)
 
         # print(sample['semantic'].shape)
 
         sample['image'] = img
-        sample['semantic'] = ann_info['semantic']
+        if self.with_mask:
+            sample['semantic'] = ann_info['semantic']
+
         sample['gt_bbox'] = ann_info['boxes']
-        sample['gt_class'] = ann_info['labels']
+        sample['gt_class'] = ann_info['labels'].reshape(-1, 1)
 
         return sample
 
@@ -2469,7 +2476,7 @@ class Instaboost(BaseOperator):
                 gt_bboxes.append(bbox)
                 gt_labels.append(catid2clsid[ann['category_id']])
 
-                # TODO  
+                # TODO
                 if with_mask:
                     gt_masks.append(coco.annToMask(ann))
                     mask_polys = [
@@ -2501,6 +2508,8 @@ class Instaboost(BaseOperator):
             ann['masks'] = np.array(gt_masks)
             # ann['mask_polys'] = gt_mask_polys
             # ann['poly_lens'] = gt_poly_lens
+            # print(len(gt_bboxes), len(gt_labels), len(gt_masks))
+
             assert len(gt_bboxes) == len(gt_labels) == len(gt_masks), ''
 
             _mask = np.array(gt_masks).sum(axis=0)
