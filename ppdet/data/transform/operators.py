@@ -2366,3 +2366,140 @@ class RandomResizeCrop(BaseOperator):
             sample['gt_segm'] = np.asarray(masks).astype(np.uint8)
 
         return sample
+
+
+@register_op
+class Instaboost(BaseOperator):
+    def __init__(self,
+                 action_candidate: tuple=('normal', 'horizontal', 'skip'),
+                 action_prob: tuple=(1, 0, 0),
+                 scale: tuple=(0.8, 1.2),
+                 dx: float=15,
+                 dy: float=15,
+                 theta=(-1, 1),
+                 color_prob=0.5,
+                 heatmap_flag=False,
+                 prob=0.5):
+        super().__init__()
+
+        try:
+            import instaboostfast as instaboost
+        except:
+            raise RuntimeError('pip install instaboostfast')
+
+        self.cfg = instaboost.InstaBoostConfig(action_candidate, action_prob,
+                                               scale, dx, dy, theta, color_prob,
+                                               heatmap_flag)
+        self.prob = prob
+        self.decode = Decode()
+
+    def apply(self, blob, context=None):
+
+        sample, coco, catid2clsid, img_ids, idx = blob
+
+        if random.random() > self.prob:
+            return self.decode(sample)
+
+        try:
+            import instaboostfast as instaboost
+        except:
+            raise RuntimeError('pip install instaboostfast')
+
+        img_id = img_ids[idx]
+        ann_ids = coco.getAnnIds(imgIds=[img_id])
+        ann_info = coco.loadAnns(ann_ids)
+
+        img_anno = coco.loadImgs([img_id])[0]
+        im_fname = img_anno['file_name']
+        # im_fpath = os.path.join(root, img_folder, im_fname)
+        assert os.path.split(sample['im_file'])[-1] == im_fname, ''
+
+        # im = np.array(Image.open(sample['im_file']))
+        # Image.open(im_fpath).show()
+        sample = self.decode(sample)
+
+        im = sample['image']
+        ann_info, img = instaboost.get_new_data(
+            ann_info, im, self.cfg, background=None)
+        ann_info = self._parse_ann_info(
+            ann_info, coco, catid2clsid, with_mask=True)
+
+        print(sample['semantic'].shape)
+
+        sample['image'] = img
+        sample['semantic'] = ann_info['masks']
+        sample['gt_bbox'] = ann_info['boxes']
+        sample['gt_class'] = ann_info['labels']
+
+        return img, ann_info
+
+    @staticmethod
+    def _parse_ann_info(ann_info, coco, catid2clsid, with_mask=True):
+        # https://github.com/GothicAi/Instaboost/blob/master/mmdetection/mmdet/datasets/coco.py
+        """Parse bbox and mask annotation.
+        Args:
+            ann_info (list[dict]): Annotation info of an image.
+            with_mask (bool): Whether to parse mask annotations.
+        Returns:
+            dict: A dict containing the following keys: bboxes, bboxes_ignore,
+                labels, masks, mask_polys, poly_lens.
+        """
+        gt_bboxes = []
+        gt_labels = []
+        gt_bboxes_ignore = []
+        # Two formats are provided.
+        # 1. mask: a binary map of the same size of the image.
+        # 2. polys: each mask consists of one or several polys, each poly is a
+        # list of float.
+        if with_mask:
+            gt_masks = []
+            gt_mask_polys = []
+            gt_poly_lens = []
+
+        for i, ann in enumerate(ann_info):
+            if ann.get('ignore', False):
+                continue
+
+            x1, y1, w, h = ann['bbox']
+            if ann['area'] <= 0 or w < 1 or h < 1:
+                continue
+
+            bbox = [x1, y1, x1 + w - 1, y1 + h - 1]
+
+            if ann['iscrowd']:
+                gt_bboxes_ignore.append(bbox)
+            else:
+                gt_bboxes.append(bbox)
+                gt_labels.append(catid2clsid[ann['category_id']])
+
+            if with_mask:
+                gt_masks.append(coco.annToMask(ann))
+                mask_polys = [
+                    p for p in ann['segmentation'] if len(p) >= 6
+                ]  # valid polygons have >= 3 points (6 coordinates)
+                poly_lens = [len(p) for p in mask_polys]
+                gt_mask_polys.append(mask_polys)
+                gt_poly_lens.extend(poly_lens)
+
+        if gt_bboxes:
+            gt_bboxes = np.array(gt_bboxes, dtype=np.float32)
+            gt_labels = np.array(gt_labels, dtype=np.int64)
+
+        else:
+            gt_bboxes = np.zeros((0, 4), dtype=np.float32)
+            gt_labels = np.array([], dtype=np.int64)
+
+        if gt_bboxes_ignore:
+            gt_bboxes_ignore = np.array(gt_bboxes_ignore, dtype=np.float32)
+        else:
+            gt_bboxes_ignore = np.zeros((0, 4), dtype=np.float32)
+
+        ann = dict(
+            boxes=gt_bboxes, labels=gt_labels, bboxes_ignore=gt_bboxes_ignore)
+
+        if with_mask:
+            ann['masks'] = np.array(gt_masks)
+            # ann['mask_polys'] = gt_mask_polys
+            # ann['poly_lens'] = gt_poly_lens
+
+        return ann

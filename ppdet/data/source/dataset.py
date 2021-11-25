@@ -77,6 +77,9 @@ class DetDataset(Dataset):
                 copy.deepcopy(self.roidbs[np.random.randint(n)])
                 for _ in range(3)
             ]
+        elif self.instaboost_epoch == 0 or self._epoch < self.instaboost_epoch:
+            roidb = [roidb, self.dataset, self.label_map, self.img_ids, idx]
+
         if isinstance(roidb, Sequence):
             for r in roidb:
                 r['curr_iter'] = self._curr_iter
@@ -95,6 +98,7 @@ class DetDataset(Dataset):
         self.mixup_epoch = kwargs.get('mixup_epoch', -1)
         self.cutmix_epoch = kwargs.get('cutmix_epoch', -1)
         self.mosaic_epoch = kwargs.get('mosaic_epoch', -1)
+        self.instaboost_epoch = kwargs.get('instaboost_epoch', -1)
 
     def set_transform(self, transform):
         self.transform = transform

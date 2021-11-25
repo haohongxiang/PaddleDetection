@@ -88,6 +88,10 @@ class COCODataSet(DetDataset):
             for catid, clsid in self.catid2clsid.items()
         })
 
+        self.dataset = coco
+        self.label_map = self.catid2clsid
+        self.img_ids = []
+
         if 'annotations' not in coco.dataset:
             self.load_image_only = True
             logger.warning('Annotation file: {} does not contains ground truth '
@@ -233,6 +237,11 @@ class COCODataSet(DetDataset):
             ct += 1
             if self.sample_num > 0 and ct >= self.sample_num:
                 break
+
+            self.img_ids.append(img_id)
+
+        assert len(self.img_ids) == len(self.roidbs), ''
+
         assert ct > 0, 'not found any coco record in %s' % (anno_path)
         logger.debug('{} samples in file {}'.format(ct, anno_path))
         if len(empty_records) > 0:
