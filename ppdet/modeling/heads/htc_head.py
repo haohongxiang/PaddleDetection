@@ -12,7 +12,10 @@ from .roi_extractor import RoIAlign
 from ..shape_spec import ShapeSpec
 from ..bbox_utils import bbox2delta, delta2bbox, clip_bbox, nonempty_bbox
 
-__all__ = ['HybridTaskCascadeTwoFCHead', 'HybridTaskCascadeXConvNormHead', 'HybridTaskCascadeHead']
+__all__ = [
+    'HybridTaskCascadeTwoFCHead', 'HybridTaskCascadeXConvNormHead',
+    'HybridTaskCascadeHead'
+]
 
 
 @register
@@ -154,8 +157,7 @@ class HybridTaskCascadeHead(BBoxHead):
                  smoothl1loss=False,
                  smoothl1lossbetanume=0.0,
                  smoothl1lossbetadeno=1.0,
-                 stage_loss_weights=[1, 0.5, 0.25]
-                 ):
+                 stage_loss_weights=[1, 0.5, 0.25]):
         nn.Layer.__init__(self, )
         self.head = head
         self.mask_head = mask_head
@@ -201,7 +203,12 @@ class HybridTaskCascadeHead(BBoxHead):
         self.assigned_label = None
         self.assigned_rois = None
 
-    def forward(self, body_feats=None, rois=None, rois_num=None, inputs=None, semantic_feats=None):
+    def forward(self,
+                body_feats=None,
+                rois=None,
+                rois_num=None,
+                inputs=None,
+                semantic_feats=None):
         """
         body_feats (list[Tensor]): Feature maps from backbone
         rois (Tensor): RoIs generated from RPN module
@@ -218,17 +225,27 @@ class HybridTaskCascadeHead(BBoxHead):
         targets_mask_list = []
         for i in range(self.num_cascade_stages):
             if self.training:
-                rois, rois_num, targets, pos_gts = self.bbox_assigner(rois, rois_num, inputs, concate_gt=True, thresh=thresh[i], pos_is_gts=True)
+                rois, rois_num, targets, pos_gts = self.bbox_assigner(
+                    rois,
+                    rois_num,
+                    inputs,
+                    concate_gt=True,
+                    thresh=thresh[i],
+                    pos_is_gts=True)
                 # rois, rois_num, targets, pos_is_gts = self.bbox_assigner(rois, rois_num, inputs, delete_pos = True)
                 targets_list.append(targets)
                 # self.assigned_rois = (rois, rois_num)
                 # self.assigned_targets = targets
             rois_feat = self.roi_extractor(body_feats, rois, rois_num)
-            semantic_rois_feat = self.semantic_roi_extractor([semantic_feats], rois, rois_num)
-            if semantic_rois_feat.shape[-2:] != rois_feat.shape[-2:]:
-                semantic_rois_feat = F.adaptive_avg_pool2d(
-                    semantic_rois_feat, rois_feat.shape[-2:])
-            rois_feat += semantic_rois_feat
+
+            if semantic_feats is not None:
+                semantic_rois_feat = self.semantic_roi_extractor(
+                    [semantic_feats], rois, rois_num)
+                if semantic_rois_feat.shape[-2:] != rois_feat.shape[-2:]:
+                    semantic_rois_feat = F.adaptive_avg_pool2d(
+                        semantic_rois_feat, rois_feat.shape[-2:])
+                rois_feat += semantic_rois_feat
+
             bbox_feat = self.head(rois_feat, i)
             scores = self.bbox_score_list[i](bbox_feat)
             deltas = self.bbox_delta_list[i](bbox_feat)
@@ -249,10 +266,16 @@ class HybridTaskCascadeHead(BBoxHead):
                 targets_mask_list.append(targets_mask)
                 # a = rois_mask[0][9, :]
                 # b = rois_mask[0][90, :]
-                mask_res.append(self.mask_head(body_feats, rois_mask, rois_num_mask,
-                                               inputs, targets_mask, bbox_feat,
-                                               semantic_feats=semantic_feats,
-                                               stage = i))
+                mask_res.append(
+                    self.mask_head(
+                        body_feats,
+                        rois_mask,
+                        rois_num_mask,
+                        inputs,
+                        targets_mask,
+                        bbox_feat,
+                        semantic_feats=semantic_feats,
+                        stage=i))
 
         if self.training:
             loss = {}
@@ -269,8 +292,8 @@ class HybridTaskCascadeHead(BBoxHead):
                 for k, v in res.items():
                     loss[k] = v * self.stage_loss_weights[int(k[-1])]
                 # loss.update(res) * self.stage_loss_weights[stage]
-            # for k, v in mask_res.items():
-            #     loss[k] = v * self.stage_loss_weights[stage]
+                # for k, v in mask_res.items():
+                #     loss[k] = v * self.stage_loss_weights[stage]
 
             return loss, bbox_feat
         else:
@@ -278,9 +301,21 @@ class HybridTaskCascadeHead(BBoxHead):
                 head_out_list)
             return (deltas, scores), self.head
 
-    def get_mask_result(self, body_feats, bbox, bbox_num, bbox_pred, inputs, semantic_feats=None, stage=2):
-        mask_out = self.mask_head(body_feats, bbox, bbox_num, inputs,
-                                  semantic_feats=semantic_feats, stage=2)
+    def get_mask_result(self,
+                        body_feats,
+                        bbox,
+                        bbox_num,
+                        bbox_pred,
+                        inputs,
+                        semantic_feats=None,
+                        stage=2):
+        mask_out = self.mask_head(
+            body_feats,
+            bbox,
+            bbox_num,
+            inputs,
+            semantic_feats=semantic_feats,
+            stage=2)
         # self.mask_head(body_feats, rois_mask, rois_num_mask,
         #                inputs, targets_mask, bbox_feat,
         #                semantic_feats=semantic_feats,

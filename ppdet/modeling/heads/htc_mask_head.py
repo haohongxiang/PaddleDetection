@@ -12,6 +12,7 @@ from ppdet.modeling.layers import ConvNormLayer
 
 from .roi_extractor import RoIAlign
 
+
 @register
 class HybridTaskMaskFeatSub(nn.Layer):
     """
@@ -31,7 +32,7 @@ class HybridTaskMaskFeatSub(nn.Layer):
                  num_convs=4,
                  norm_type=None,
                  num_classes=80,
-                 with_conv_res = True):
+                 with_conv_res=True):
         super(HybridTaskMaskFeatSub, self).__init__()
         self.num_convs = num_convs
         self.in_channel = in_channel
@@ -112,7 +113,11 @@ class HybridTaskMaskFeatSub(nn.Layer):
         # return self.out_channel
         return self.num_classes
 
-    def forward(self, feats, res_feat=None, return_logits=True, return_feat=True):
+    def forward(self,
+                feats,
+                res_feat=None,
+                return_logits=True,
+                return_feat=True):
         if res_feat is not None:
             assert self.with_conv_res
             res_feat = self.conv_res(res_feat)
@@ -128,6 +133,7 @@ class HybridTaskMaskFeatSub(nn.Layer):
         if return_feat:
             outs.append(res_feat)
         return outs if len(outs) > 1 else outs[0]
+
 
 @register
 class HybridTaskMaskFeat(nn.Layer):
@@ -147,7 +153,7 @@ class HybridTaskMaskFeat(nn.Layer):
                  out_channel=256,
                  num_convs=4,
                  norm_type=None,
-                 num_cascade_stages = 3):
+                 num_cascade_stages=3):
         super(HybridTaskMaskFeat, self).__init__()
         self.in_channel = in_channel
         self.out_channel = out_channel
@@ -156,7 +162,13 @@ class HybridTaskMaskFeat(nn.Layer):
         self.upsample = []
         for stage in range(self.num_cascade_stages):
             head_per_stage = self.add_sublayer(
-                str(stage), HybridTaskMaskFeatSub(in_channel, out_channel, num_convs, norm_type, with_conv_res = (stage != 0)))
+                str(stage),
+                HybridTaskMaskFeatSub(
+                    in_channel,
+                    out_channel,
+                    num_convs,
+                    norm_type,
+                    with_conv_res=(stage != 0)))
             self.upsample.append(head_per_stage)
         # a = 0
 
@@ -172,8 +184,7 @@ class HybridTaskMaskFeat(nn.Layer):
     def forward_train(self, feats, stage=0):
         last_feat = None
         for i in range(stage):
-            last_feat = self.upsample[i](
-                feats, last_feat, return_logits=False)
+            last_feat = self.upsample[i](feats, last_feat, return_logits=False)
         mask_logits = self.upsample[stage](feats, last_feat, return_feat=False)
         # return self.upsample[stage](feats)
         return mask_logits
@@ -189,7 +200,7 @@ class HybridTaskMaskFeat(nn.Layer):
         result.append(mask_logits)
         return result
 
-    def forward(self, feats, stage = 0):
+    def forward(self, feats, stage=0):
         if self.training:
             return self.forward_train(feats, stage)
         else:
@@ -271,8 +282,15 @@ class HybridTaskMaskHead(nn.Layer):
             mask_pred, mask_target, weight=mask_weight, reduction="mean")
         return loss_mask
 
-    def forward_train(self, body_feats, rois, rois_num, inputs, targets,
-                      bbox_feat, semantic_feats, stage = 0):
+    def forward_train(self,
+                      body_feats,
+                      rois,
+                      rois_num,
+                      inputs,
+                      targets,
+                      bbox_feat,
+                      semantic_feats,
+                      stage=0):
         """
         body_feats (list[Tensor]): Multi-level backbone features
         rois (list[Tensor]): Proposals for each batch with shape [N, 4]
@@ -287,11 +305,14 @@ class HybridTaskMaskHead(nn.Layer):
             rois_feat = paddle.gather(bbox_feat, mask_index)
         else:
             rois_feat = self.roi_extractor(body_feats, rois, rois_num)
-        semantic_rois_feat = self.semantic_roi_extractor([semantic_feats], rois, rois_num)
-        if semantic_rois_feat.shape[-2:] != rois_feat.shape[-2:]:
-            semantic_rois_feat = F.adaptive_avg_pool2d(
-                semantic_rois_feat, rois_feat.shape[-2:])
-        rois_feat += semantic_rois_feat
+
+        if semantic_feats is not None:
+            semantic_rois_feat = self.semantic_roi_extractor([semantic_feats],
+                                                             rois, rois_num)
+            if semantic_rois_feat.shape[-2:] != rois_feat.shape[-2:]:
+                semantic_rois_feat = F.adaptive_avg_pool2d(semantic_rois_feat,
+                                                           rois_feat.shape[-2:])
+            rois_feat += semantic_rois_feat
         # mask_feat = self.head(rois_feat, stage)
         # mask_logits = self.mask_fcn_logits[stage](mask_feat)
 
@@ -322,11 +343,15 @@ class HybridTaskMaskHead(nn.Layer):
             bbox = [rois[:, 2:]]
             labels = rois[:, 0].cast('int32')
             rois_feat = self.roi_extractor(body_feats, bbox, rois_num)
-            semantic_rois_feat = self.semantic_roi_extractor([semantic_feats], bbox, rois_num)
-            if semantic_rois_feat.shape[-2:] != rois_feat.shape[-2:]:
-                semantic_rois_feat = F.adaptive_avg_pool2d(
-                    semantic_rois_feat, rois_feat.shape[-2:])
-            rois_feat += semantic_rois_feat
+
+            if semantic_feats is not None:
+                semantic_rois_feat = self.semantic_roi_extractor(
+                    [semantic_feats], bbox, rois_num)
+                if semantic_rois_feat.shape[-2:] != rois_feat.shape[-2:]:
+                    semantic_rois_feat = F.adaptive_avg_pool2d(
+                        semantic_rois_feat, rois_feat.shape[-2:])
+                rois_feat += semantic_rois_feat
+
             if self.share_bbox_feat:
                 assert feat_func is not None
                 rois_feat = feat_func(rois_feat)
@@ -334,7 +359,8 @@ class HybridTaskMaskHead(nn.Layer):
             # mask_feat = self.head(rois_feat)
             # mask_logit = self.mask_fcn_logits(mask_feat)
             mask_logit = self.head(rois_feat, stage)
-            mask_logit = paddle.to_tensor([F.sigmoid(logit) for logit in mask_logit])
+            mask_logit = paddle.to_tensor(
+                [F.sigmoid(logit) for logit in mask_logit])
             mask_logit = paddle.mean(mask_logit, axis=0)
 
             mask_num_class = mask_logit[0].shape[1]
@@ -362,13 +388,24 @@ class HybridTaskMaskHead(nn.Layer):
                 bbox_feat=None,
                 feat_func=None,
                 semantic_feats=None,
-                stage = 0):
+                stage=0):
         if self.training:
-            return self.forward_train(body_feats, rois, rois_num, inputs,
-                                      targets, bbox_feat, semantic_feats=semantic_feats,
-                                      stage=stage)
+            return self.forward_train(
+                body_feats,
+                rois,
+                rois_num,
+                inputs,
+                targets,
+                bbox_feat,
+                semantic_feats=semantic_feats,
+                stage=stage)
         else:
             im_scale = inputs['scale_factor']
-            return self.forward_test(body_feats, rois, rois_num, im_scale,
-                                     feat_func, semantic_feats=semantic_feats,
-                                     stage=stage)
+            return self.forward_test(
+                body_feats,
+                rois,
+                rois_num,
+                im_scale,
+                feat_func,
+                semantic_feats=semantic_feats,
+                stage=stage)

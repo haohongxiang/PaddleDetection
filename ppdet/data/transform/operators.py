@@ -2430,8 +2430,11 @@ class Instaboost(BaseOperator):
 
         sample['image'] = img
         if self.with_mask:
+            # _m = ann_info['semantic'] != 255
+            # sample['semantic'][_m] = ann_info['semantic']
             sample['semantic'] = ann_info['semantic']
 
+        sample['gt_poly'] = ann_info['mask_polys']
         sample['gt_bbox'] = ann_info['boxes']
         sample['gt_class'] = ann_info['labels'].reshape(-1, 1)
 
@@ -2479,9 +2482,13 @@ class Instaboost(BaseOperator):
                 # TODO
                 if with_mask:
                     gt_masks.append(coco.annToMask(ann))
-                    mask_polys = [
-                        p for p in ann['segmentation'] if len(p) >= 6
-                    ]  # valid polygons have >= 3 points (6 coordinates)
+
+                    # mask_polys = [
+                    #     p for p in ann['segmentation'] if len(p) >= 6
+                    # ]  # valid polygons have >= 3 points (6 coordinates)
+
+                    mask_polys = [p for p in ann['segmentation']]
+
                     poly_lens = [len(p) for p in mask_polys]
                     gt_mask_polys.append(mask_polys)
                     gt_poly_lens.extend(poly_lens)
@@ -2510,7 +2517,8 @@ class Instaboost(BaseOperator):
             # ann['poly_lens'] = gt_poly_lens
             # print(len(gt_bboxes), len(gt_labels), len(gt_masks))
 
-            assert len(gt_bboxes) == len(gt_labels) == len(gt_masks), ''
+            assert len(gt_bboxes) == len(gt_labels) == len(gt_masks) == len(
+                gt_mask_polys), ''
 
             _mask = np.array(gt_masks).sum(axis=0)
             segment = np.ones_like(_mask) * 255
@@ -2520,5 +2528,6 @@ class Instaboost(BaseOperator):
 
             segment = segment.astype(np.uint8)
             ann['semantic'] = segment[:, :, None]  # h w 1
+            ann['mask_polys'] = gt_mask_polys
 
         return ann

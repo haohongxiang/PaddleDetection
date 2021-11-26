@@ -43,15 +43,16 @@ class HybridTaskCascade(BaseArch):
         'mask_post_process',
     ]
 
-    def __init__(self,
-                 backbone,
-                 rpn_head,
-                 bbox_head,
-                 bbox_post_process,
-                 neck=None,
-                 # mask_head=None,
-                 fused_semantic_head=None,
-                 mask_post_process=None):
+    def __init__(
+            self,
+            backbone,
+            rpn_head,
+            bbox_head,
+            bbox_post_process,
+            neck=None,
+            # mask_head=None,
+            fused_semantic_head=None,
+            mask_post_process=None):
         super(HybridTaskCascade, self).__init__()
         self.backbone = backbone
         self.rpn_head = rpn_head
@@ -78,7 +79,8 @@ class HybridTaskCascade(BaseArch):
         out_shape = neck and out_shape or bbox_head.get_head().out_shape
         kwargs = {'input_shape': out_shape}
         # mask_head = cfg['mask_head'] and create(cfg['mask_head'], **kwargs)
-        fused_semantic_head = cfg['fused_semantic_head'] and create(cfg['fused_semantic_head'], **kwargs)
+        fused_semantic_head = cfg['fused_semantic_head'] and create(
+            cfg['fused_semantic_head'], **kwargs)
         return {
             'backbone': backbone,
             'neck': neck,
@@ -96,12 +98,22 @@ class HybridTaskCascade(BaseArch):
         if self.training:
             loss_seg = {}
             if self.with_semantic:
-                semantic_pred, semantic_feats = self.fused_semantic_head(body_feats)
-                loss_seg = self.fused_semantic_head.loss(semantic_pred, self.inputs['semantic'])
+                semantic_pred, semantic_feats = self.fused_semantic_head(
+                    body_feats)
+                loss_seg = self.fused_semantic_head.loss(
+                    semantic_pred, self.inputs['semantic'])
                 loss_seg = {'loss_semantic': loss_seg}
+            else:
+                semantic_feats = None
+                # loss_seg = {'loss_semantic': 0.}
+
             rois, rois_num, rpn_loss = self.rpn_head(body_feats, self.inputs)
-            bbox_loss, bbox_feat = self.bbox_head(body_feats, rois, rois_num,
-                                                  self.inputs, semantic_feats=semantic_feats)
+            bbox_loss, bbox_feat = self.bbox_head(
+                body_feats,
+                rois,
+                rois_num,
+                self.inputs,
+                semantic_feats=semantic_feats)
             return rpn_loss, bbox_loss, loss_seg
             # rois, rois_num = self.bbox_head.get_assigned_rois()
             # bbox_targets = self.bbox_head.get_assigned_targets()
@@ -118,8 +130,14 @@ class HybridTaskCascade(BaseArch):
                 _, semantic_feats = self.fused_semantic_head(body_feats)
             else:
                 semantic_feats = None
+
             rois, rois_num, _ = self.rpn_head(body_feats, self.inputs)
-            preds, _ = self.bbox_head(body_feats, rois, rois_num, self.inputs, semantic_feats=semantic_feats)
+            preds, _ = self.bbox_head(
+                body_feats,
+                rois,
+                rois_num,
+                self.inputs,
+                semantic_feats=semantic_feats)
             refined_rois = self.bbox_head.get_refined_rois()
 
             im_shape = self.inputs['im_shape']
@@ -136,9 +154,14 @@ class HybridTaskCascade(BaseArch):
             # origin_shape = self.bbox_post_process.get_origin_shape()
             # mask_pred = self.mask_post_process(mask_out[:, 0, :, :], bbox_pred,
             #                                    bbox_num, origin_shape)
-            mask_out = self.bbox_head.get_mask_result(body_feats, bbox, bbox_num,
-                                                      bbox_pred, inputs=self.inputs,
-                                                      semantic_feats=semantic_feats, stage=2)
+            mask_out = self.bbox_head.get_mask_result(
+                body_feats,
+                bbox,
+                bbox_num,
+                bbox_pred,
+                inputs=self.inputs,
+                semantic_feats=semantic_feats,
+                stage=2)
             origin_shape = self.bbox_post_process.get_origin_shape()
             mask_pred = self.mask_post_process(mask_out[:, 0, :, :], bbox_pred,
                                                bbox_num, origin_shape)
