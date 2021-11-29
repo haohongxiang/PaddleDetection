@@ -2526,8 +2526,8 @@ class Instaboost(BaseOperator):
             for msk, lab in zip(gt_masks, gt_labels):
                 segment[msk > 0] = lab
 
-            segment = segment.astype(np.uint8)
-            ann['semantic'] = segment[:, :, None]  # h w 1
+            ann['semantic'] = segment[:, :, None].astype(np.uint8)  # h w 1
             ann['mask_polys'] = gt_mask_polys
+            ann['labels'] = gt_labels.astype(np.int32)
 
         return ann
