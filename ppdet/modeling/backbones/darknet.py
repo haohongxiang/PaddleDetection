@@ -79,6 +79,8 @@ class ConvBNLayer(nn.Layer):
             out = F.leaky_relu(out, 0.1)
         elif self.act == 'mish':
             out = mish(out)
+        elif self.act == 'relu':
+            out = F.relu(out)
         return out
 
 
@@ -156,7 +158,7 @@ class BasicBlock(nn.Layer):
         # channel route: 10-->5 --> 5-->10
         self.conv1 = ConvBNLayer(
             ch_in=ch_in,
-            ch_out=int(ch_out/2),
+            ch_out=int(ch_out / 2),
             filter_size=1,
             stride=1,
             padding=0,
@@ -165,8 +167,8 @@ class BasicBlock(nn.Layer):
             freeze_norm=freeze_norm,
             data_format=data_format)
         self.conv2 = ConvBNLayer(
-            ch_in=int(ch_out/2),
-            ch_out=ch_out ,
+            ch_in=int(ch_out / 2),
+            ch_out=ch_out,
             filter_size=3,
             stride=1,
             padding=1,
@@ -317,7 +319,7 @@ class DarkNet(nn.Layer):
                 down_name,
                 DownSample(
                     ch_in=int(ch_in[i]),
-                    ch_out=int(ch_in[i+1]),
+                    ch_out=int(ch_in[i + 1]),
                     norm_type=norm_type,
                     norm_decay=norm_decay,
                     freeze_norm=freeze_norm,
