@@ -492,7 +492,10 @@ class BasicLayer(nn.Layer):
 
         if shift_size > 0:
             # calculate attention mask for SW-MSA
-            img_mask = paddle.zeros((1, H, W, 1))  # 1 H W 1
+            Hp = int(np.ceil(H / window_size)) * window_size
+            Wp = int(np.ceil(W / window_size)) * window_size
+
+            img_mask = paddle.zeros((1, Hp, Wp, 1))  # 1 H W 1
             h_slices = (slice(0, -window_size),
                         slice(-window_size, -shift_size),
                         slice(-shift_size, None))
