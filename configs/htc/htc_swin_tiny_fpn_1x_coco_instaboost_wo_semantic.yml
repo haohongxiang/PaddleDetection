@@ -7,7 +7,7 @@ _BASE_: [
 ]
 
 
-weights: output/htc_swin_tiny_fpn_1x_coco_instaboost/model_final
+weights: output/htc_swin_tiny_fpn_1x_coco_instaboost_wo_semantic/model_final
 
 snapshot_epoch: 4
 log_iter: 100
