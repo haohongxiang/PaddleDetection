@@ -3,15 +3,14 @@ _BASE_: [
     '../runtime.yml',
     # '../cascade_rcnn/_base_/cascade_mask_rcnn_r50_fpn.yml',
     './optimizer_swin_1x.yml',
-    './swin_reader.yml',
+    './reader_swin.yml',
 ]
 
 weights: output/htc_swin_large_fpn_1x_coco/model_final
 
-
 snapshot_epoch: 4
 log_iter: 100
-
+fp16: True
 
 architecture: HybridTaskCascade
 

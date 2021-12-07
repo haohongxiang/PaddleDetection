@@ -320,7 +320,9 @@ class SwinTransformerBlock(nn.Layer):
         pad_l = pad_t = 0
         pad_r = (self.window_size - W % self.window_size) % self.window_size
         pad_b = (self.window_size - H % self.window_size) % self.window_size
-        x = F.pad(x, [0, pad_l, 0, pad_b, 0, pad_r, 0, pad_t])
+        # x = F.pad(x, [0, pad_l, 0, pad_b, 0, pad_r, 0, pad_t]) # (pad_left, pad_right, pad_top, pad_bottom, pad_front, pad_back).
+        # x = F.pad(x, [0, 0, pad_l, pad_r, pad_t, pad_b]) 
+        x = F.pad(x, [pad_l, pad_r, pad_t, pad_b], data_format='NHWC')
         _, Hp, Wp, _ = x.shape
 
         # cyclic shift
@@ -397,7 +399,8 @@ class PatchMerging(nn.Layer):
         # padding
         pad_input = (H % 2 == 1) or (W % 2 == 1)
         if pad_input:
-            x = F.pad(x, [0, 0, 0, W % 2, 0, H % 2])
+            # x = F.pad(x, [0, 0, 0, W % 2, 0, H % 2])
+            x = F.pad(x, [0, W % 2, 0, H % 2], data_format='NHWC')
 
         x0 = x[:, 0::2, 0::2, :]  # B H/2 W/2 C
         x1 = x[:, 1::2, 0::2, :]  # B H/2 W/2 C
@@ -482,36 +485,40 @@ class BasicLayer(nn.Layer):
         Hp = int(np.ceil(H / self.window_size)) * self.window_size
         Wp = int(np.ceil(W / self.window_size)) * self.window_size
 
-        if Hp <= self.window_size or Wp <= self.window_size:
-            attn_mask = None
+        # if Hp <= self.window_size or Wp <= self.window_size:
+        #     attn_mask = None
 
-        else:
-            # img_mask = paddle.fluid.layers.zeros(
-            #     [1, Hp, Wp, 1], dtype='float32')  # 1 Hp Wp 1
-            img_mask = paddle.zeros((1, Hp, Wp, 1), dtype='float32')
+        # else:
+        # img_mask = paddle.fluid.layers.zeros(
+        #     [1, Hp, Wp, 1], dtype='float32')  # 1 Hp Wp 1
 
-            h_slices = (slice(0, -self.window_size),
-                        slice(-self.window_size, -self.shift_size),
-                        slice(-self.shift_size, None))
-            w_slices = (slice(0, -self.window_size),
-                        slice(-self.window_size, -self.shift_size),
-                        slice(-self.shift_size, None))
-            cnt = 0
-            for h in h_slices:
-                for w in w_slices:
-                    img_mask[:, h, w, :] = cnt
-                    cnt += 1
-            mask_windows = window_partition(
-                img_mask, self.window_size)  # nW, window_size, window_size, 1
-            mask_windows = mask_windows.reshape(
-                [-1, self.window_size * self.window_size])
-            attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
-            huns = -100.0 * paddle.ones_like(attn_mask)
-            attn_mask = huns * (attn_mask != 0).astype("float32")
+        img_mask = paddle.zeros((1, Hp, Wp, 1), dtype='float32')
+
+        h_slices = (slice(0, -self.window_size),
+                    slice(-self.window_size, -self.shift_size),
+                    slice(-self.shift_size, None))
+        w_slices = (slice(0, -self.window_size),
+                    slice(-self.window_size, -self.shift_size),
+                    slice(-self.shift_size, None))
+        cnt = 0
+        for h in h_slices:
+            for w in w_slices:
+                img_mask[:, h, w, :] = cnt
+                cnt += 1
+
+        mask_windows = window_partition(
+            img_mask, self.window_size)  # nW, window_size, window_size, 1
+        mask_windows = mask_windows.reshape(
+            [-1, self.window_size * self.window_size])
+        attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
+
+        huns = -100.0 * paddle.ones_like(attn_mask)
+        attn_mask = huns * (attn_mask != 0).astype("float32")
 
         for blk in self.blocks:
             blk.H, blk.W = H, W
             x = blk(x, attn_mask)
+
         if self.downsample is not None:
             x_down = self.downsample(x, H, W)
             Wh, Ww = (H + 1) // 2, (W + 1) // 2
@@ -548,7 +555,7 @@ class PatchEmbed(nn.Layer):
         B, C, H, W = x.shape
         # assert [H, W] == self.img_size[:2], "Input image size ({H}*{W}) doesn't match model ({}*{}).".format(H, W, self.img_size[0], self.img_size[1])
         if W % self.patch_size[1] != 0:
-            x = F.pad(x, [0, self.patch_size[1] - W % self.patch_size[1], 0, 0])
+            x = F.pad(x, [0, self.patch_size[1] - W % self.patch_size[1]])
         if H % self.patch_size[0] != 0:
             x = F.pad(x, [0, 0, 0, self.patch_size[0] - H % self.patch_size[0]])
 
@@ -722,6 +729,7 @@ class SwinTransformer(nn.Layer):
         else:
             x = x.flatten(2).transpose([0, 2, 1])
         x = self.pos_drop(x)
+
         outs = []
         for i in range(self.num_layers):
             layer = self.layers[i]
