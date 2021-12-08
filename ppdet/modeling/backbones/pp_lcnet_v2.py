@@ -25,6 +25,7 @@ from .theseus_layer import TheseusLayer
 from .save_load import load_dygraph_pretrain, load_dygraph_pretrain_from_url
 
 from ..shape_spec import ShapeSpec
+from ppdet.core.workspace import register, serializable
 
 MODEL_URLS = {
     "PPLCNet_x0_25":
@@ -171,6 +172,8 @@ class SEModule(TheseusLayer):
         return x
 
 
+@register
+@serializable
 class PPLCNet(TheseusLayer):
     def __init__(
             self,
@@ -180,7 +183,6 @@ class PPLCNet(TheseusLayer):
             #  dropout_prob=0.2,
             #  class_expand=1280
     ):
-
         super().__init__()
         self.scale = scale
         # self.class_expand = class_expand
