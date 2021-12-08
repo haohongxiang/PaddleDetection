@@ -25,9 +25,12 @@ __all__ = ['Backbone']
 
 @register
 class Backbone(BaseArch):
+    __category__ = 'architecture'
+
     def __init__(
             self,
             backbone, ):
+
         super(Backbone, self).__init__()
         self.backbone = backbone
 
@@ -41,16 +44,21 @@ class Backbone(BaseArch):
     def _forward(self):
         body_feats = self.backbone(self.inputs)
 
-        return body_feats
+        if self.training:
+            return sum([out.sum() for out in body_feats])
+        else:
+            return sum([out.sum() for out in body_feats]), sum(
+                [out.sum() for out in body_feats])
 
     def get_loss(self, ):
-        outputs = self._forward()
-        return outputs
+        bbox_loss = self._forward()
+        loss = {}
+        loss.update(bbox_loss)
+        total_loss = paddle.add_n(list(loss.values()))
+        loss.update({'loss': total_loss})
+        return loss
 
     def get_pred(self):
-        body_feats = self._forward()
-        output = {
-            'bbox': paddle.empty([0, 4]),
-            'bbox_num': paddle.to_tensor([0.])
-        }
+        bbox_pred, bbox_num = self._forward()
+        output = {'bbox': bbox_pred, 'bbox_num': bbox_num}
         return output
