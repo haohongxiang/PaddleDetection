@@ -1,3 +1,11 @@
+_BASE_: [
+  '../datasets/coco_detection.yml',
+  '../runtime.yml',
+  './optimizer.yml',
+  './reader.yml',
+]
+
+
 architecture: Backbone
 
 

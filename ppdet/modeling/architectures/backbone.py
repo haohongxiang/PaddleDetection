@@ -49,5 +49,8 @@ class Backbone(BaseArch):
 
     def get_pred(self):
         body_feats = self._forward()
-        output = {'bbox': None, 'bbox_num': 0}
+        output = {
+            'bbox': paddle.empty([0, 4]),
+            'bbox_num': paddle.to_tensor([0.])
+        }
         return output
