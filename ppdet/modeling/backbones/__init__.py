@@ -23,8 +23,8 @@ from . import ghostnet
 from . import senet
 from . import res2net
 from . import dla
-# from . import swin
-from . import swin_l
+from . import swin
+# from . import swin_l
 
 from .vgg import *
 from .resnet import *
@@ -37,5 +37,5 @@ from .ghostnet import *
 from .senet import *
 from .res2net import *
 from .dla import *
-# from .swin import *
-from .swin_l import *
+from .swin import *
+# from .swin_l import *
