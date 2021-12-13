@@ -50,7 +50,7 @@ class COCODataSet(DetDataset):
                  load_crowd=False,
                  allow_empty=False,
                  empty_ratio=1.,
-                 load_semantic=True):
+                 load_semantic=False):
         super(COCODataSet, self).__init__(dataset_dir, image_dir, anno_path,
                                           data_fields, sample_num)
         self.load_image_only = False

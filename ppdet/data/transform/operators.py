@@ -655,7 +655,7 @@ class Resize(BaseOperator):
 
             mask = mask_util.decode(rle)
             mask = cv2.resize(
-                image,
+                mask,
                 None,
                 None,
                 fx=im_scale_x,
@@ -2380,6 +2380,7 @@ class Instaboost(BaseOperator):
                  color_prob=0.5,
                  heatmap_flag=False,
                  with_mask=True,
+                 with_semantic=False,
                  prob=0.5):
         super().__init__()
 
@@ -2393,6 +2394,7 @@ class Instaboost(BaseOperator):
                                                heatmap_flag)
         self.prob = prob
         self.with_mask = with_mask
+        self.with_semantic = with_semantic
 
         self.decode = Decode()
 
@@ -2414,8 +2416,8 @@ class Instaboost(BaseOperator):
         ann_ids = coco.getAnnIds(imgIds=[img_id])
         ann_info = coco.loadAnns(ann_ids)
 
-        img_anno = coco.loadImgs([img_id])[0]
-        im_fname = img_anno['file_name']
+        im_anno = coco.loadImgs([img_id])[0]
+        im_fname = im_anno['file_name']
         # im_fpath = os.path.join(root, img_folder, im_fname)
         assert os.path.split(sample['im_file'])[-1] == im_fname, ''
 
@@ -2423,25 +2425,130 @@ class Instaboost(BaseOperator):
 
         ann_info, img = instaboost.get_new_data(
             ann_info, sample['image'], self.cfg, background=None)
-        ann_info = self._parse_ann_info(
-            ann_info, coco, catid2clsid, with_mask=self.with_mask)
-
-        # print(sample['semantic'].shape)
+        # ann_info = self._parse_anns(ann_info, catid2clsid)
 
         sample['image'] = img
-        if self.with_mask:
-            # _m = ann_info['semantic'] != 255
-            # sample['semantic'][_m] = ann_info['semantic']
-            sample['semantic'] = ann_info['semantic']
 
+        # sample.update(ann_info)
+
+        ann_info = self._parse_ann_infox(
+            ann_info, coco, catid2clsid, with_mask=self.with_mask)
         sample['gt_poly'] = ann_info['mask_polys']
         sample['gt_bbox'] = ann_info['boxes']
         sample['gt_class'] = ann_info['labels'].reshape(-1, 1)
 
+        # ann_info = self._parse_ann_info(
+        #     ann_info, coco, catid2clsid, with_mask=self.with_mask)
+        # sample['gt_poly'] = ann_info['mask_polys']
+        # sample['gt_bbox'] = ann_info['bboxes']
+        # sample['gt_class'] = ann_info['labels'].reshape(-1, 1)
+
+        if self.with_mask:
+            # _m = ann_info['semantic'] != 255
+            # sample['semantic'][_m] = ann_info['semantic']
+            # sample['semantic'] = ann_info['semantic']
+            pass
+
         return sample
 
+    def _parse_ann_info(self, ann_info, coco, catid2clsid, with_mask=True):
+        """Parse bbox and mask annotation.
+        Args:
+            ann_info (list[dict]): Annotation info of an image.
+            with_mask (bool): Whether to parse mask annotations.
+        Returns:
+            dict: A dict containing the following keys: bboxes, bboxes_ignore,
+                labels, masks, mask_polys, poly_lens.
+        """
+        gt_bboxes = []
+        gt_labels = []
+        gt_bboxes_ignore = []
+        # Two formats are provided.
+        # 1. mask: a binary map of the same size of the image.
+        # 2. polys: each mask consists of one or several polys, each poly is a
+        # list of float.
+        if with_mask:
+            gt_masks = []
+            gt_mask_polys = []
+            gt_poly_lens = []
+        for i, ann in enumerate(ann_info):
+            if ann.get('ignore', False):
+                continue
+            x1, y1, w, h = ann['bbox']
+            if ann['area'] <= 0 or w < 1 or h < 1:
+                continue
+            bbox = [x1, y1, x1 + w - 1, y1 + h - 1]
+            if ann['iscrowd']:
+                gt_bboxes_ignore.append(bbox)
+            else:
+                gt_bboxes.append(bbox)
+
+                # TODO
+                # gt_labels.append(self.cat2label[ann['category_id']])
+                gt_labels.append(catid2clsid[ann['category_id']])
+
+            if with_mask:
+                # TODO
+                # gt_masks.append(self.coco.annToMask(ann))
+                gt_masks.append(coco.annToMask(ann))
+
+                mask_polys = [
+                    p for p in ann['segmentation'] if len(p) >= 6  # 6
+                ]  # valid polygons have >= 3 points (6 coordinates)
+
+                poly_lens = [len(p) for p in mask_polys]
+                gt_mask_polys.append(mask_polys)
+                gt_poly_lens.extend(poly_lens)
+
+        if gt_bboxes:
+            gt_bboxes = np.array(gt_bboxes, dtype=np.float32)
+            gt_labels = np.array(gt_labels, dtype=np.int32)
+        else:
+            gt_bboxes = np.zeros((0, 4), dtype=np.float32)
+            gt_labels = np.array([], dtype=np.int32)
+
+        if gt_bboxes_ignore:
+            gt_bboxes_ignore = np.array(gt_bboxes_ignore, dtype=np.float32)
+        else:
+            gt_bboxes_ignore = np.zeros((0, 4), dtype=np.float32)
+
+        ann = dict(
+            bboxes=gt_bboxes, labels=gt_labels, bboxes_ignore=gt_bboxes_ignore)
+
+        if with_mask:
+            ann['masks'] = gt_masks
+            # poly format is not used in the current implementation
+            ann['mask_polys'] = gt_mask_polys
+            ann['poly_lens'] = gt_poly_lens
+
+        return ann
+
+    def _parse_anns(self, anns, catid2clsid):
+        gt_bboxes = []
+        gt_labels = []
+        gt_masks_ann = []
+        for ann in anns:
+            x1, y1, w, h = ann['bbox']
+            # TODO: more essential bug need to be fixed in instaboost
+            if w <= 0 or h <= 0:
+                continue
+            bbox = [x1, y1, x1 + w, y1 + h]
+            gt_bboxes.append(bbox)
+            gt_labels.append(catid2clsid[ann['category_id']])
+            gt_masks_ann.append(ann['segmentation'])
+
+        gt_bboxes = np.array(gt_bboxes, dtype=np.float32)
+        gt_labels = np.array(gt_labels, dtype=np.int32).reshape(-1, 1)
+        # gt_labels.append(catid2clsid[ann['category_id']])
+
+        return {
+            'gt_bbox': gt_bboxes,
+            'gt_class': gt_labels,
+            'gt_poly': gt_masks_ann
+        }
+
     @staticmethod
-    def _parse_ann_info(ann_info, coco, catid2clsid, with_mask=True):
+    def _parse_ann_infox(ann_info, coco, catid2clsid, with_mask=True):
         # https://github.com/GothicAi/Instaboost/blob/master/mmdetection/mmdet/datasets/coco.py
         """Parse bbox and mask annotation.
         Args:
@@ -2468,10 +2575,14 @@ class Instaboost(BaseOperator):
                 continue
 
             x1, y1, w, h = ann['bbox']
-            if ann['area'] <= 0 or w < 1 or h < 1:
-                continue
+            # if ann['area'] <= 0 or w < 1 or h < 1:
+            #     continue
 
-            bbox = [x1, y1, x1 + w - 1, y1 + h - 1]
+            # bbox = [x1, y1, x1 + w - 1, y1 + h - 1]
+
+            if ann['area'] <= 0 or w < 0 or h < 0:
+                continue
+            bbox = [x1, y1, x1 + w, y1 + h]
 
             if ann['iscrowd']:
                 gt_bboxes_ignore.append(bbox)
