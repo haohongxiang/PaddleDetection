@@ -81,8 +81,8 @@ RPNHead:
 
 
 HybridTaskCascadeHead:
-  # head: HybridTaskCascadeTwoFCHead
-  head: HybridTaskCascadeXConvNormHead
+  head: HybridTaskCascadeTwoFCHead
+  # head: HybridTaskCascadeXConvNormHead
 
   roi_extractor:
     resolution: 7
@@ -109,14 +109,14 @@ BBoxAssigner:
   use_random: True
 
 
-# HybridTaskCascadeTwoFCHead:
-#   out_channel: 1024
-
-
-HybridTaskCascadeXConvNormHead:
-  num_convs: 4
-  norm_type: 'gn'
+HybridTaskCascadeTwoFCHead:
   out_channel: 1024
+
+
+# HybridTaskCascadeXConvNormHead:
+#   num_convs: 4
+#   norm_type: 'gn'
+#   out_channel: 1024
 
 
 BBoxPostProcess:
