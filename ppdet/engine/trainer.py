@@ -271,6 +271,7 @@ class Trainer(object):
             model = fleet.distributed_model(model)
             self.optimizer = fleet.distributed_optimizer(
                 self.optimizer).user_defined_optimizer
+
         elif self._nranks > 1:
             find_unused_parameters = self.cfg[
                 'find_unused_parameters'] if 'find_unused_parameters' in self.cfg else False
@@ -278,9 +279,17 @@ class Trainer(object):
                 self.model, find_unused_parameters=find_unused_parameters)
 
         # initial fp16
-        if self.cfg.get('fp16', False):
+        if self.cfg.get('use_amp', False):
+            # if True:
             scaler = amp.GradScaler(
                 enable=self.cfg.use_gpu, init_loss_scaling=1024)
+
+            #             model, self.optimizer = paddle.amp.decorate(models=model, 
+            #                                                          optimizers=self.optimizer, 
+            #                                                          level='O2', 
+            #                                                          master_weight=None, 
+            #                                                          save_dtype=None)
+            print('use amp fp16...')
 
         self.status.update({
             'epoch_id': self.start_epoch,
@@ -306,9 +315,13 @@ class Trainer(object):
                 self.status['step_id'] = step_id
                 self._compose_callback.on_step_begin(self.status)
 
-                if self.cfg.get('fp16', False):
+                if self.cfg.get('use_amp', False):
                     with amp.auto_cast(enable=self.cfg.use_gpu):
+                        #                     with paddle.amp.auto_cast(enable=True, 
+                        #                                               custom_white_list=None, 
+                        #                                               custom_black_list=None, level='O2'):
                         # model forward
+                        # data['image'] = paddle.cast(data['image'], 'float16')
                         outputs = model(data)
                         loss = outputs['loss']
 
@@ -317,6 +330,7 @@ class Trainer(object):
                     scaled_loss.backward()
                     # in dygraph mode, optimizer.minimize is equal to optimizer.step
                     scaler.minimize(self.optimizer, scaled_loss)
+
                 else:
                     # model forward
                     outputs = model(data)
