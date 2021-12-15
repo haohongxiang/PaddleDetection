@@ -284,11 +284,12 @@ class Trainer(object):
             scaler = amp.GradScaler(
                 enable=self.cfg.use_gpu, init_loss_scaling=1024)
 
-            #             model, self.optimizer = paddle.amp.decorate(models=model, 
-            #                                                          optimizers=self.optimizer, 
-            #                                                          level='O2', 
-            #                                                          master_weight=None, 
-            #                                                          save_dtype=None)
+            # model, self.optimizer = paddle.amp.decorate(models=model, 
+            #                                                 optimizers=self.optimizer, 
+            #                                                 level='O2', 
+            #                                                 master_weight=None, 
+            #                                                 save_dtype=None)
+
             print('use amp fp16...')
 
         self.status.update({
