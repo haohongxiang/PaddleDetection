@@ -2425,23 +2425,17 @@ class Instaboost(BaseOperator):
 
         ann_info, img = instaboost.get_new_data(
             ann_info, sample['image'], self.cfg, background=None)
-        # ann_info = self._parse_anns(ann_info, catid2clsid)
 
         sample['image'] = img
 
+        # ann_info = self._parse_anns(ann_info, catid2clsid)
         # sample.update(ann_info)
 
         ann_info = self._parse_ann_infox(
-            ann_info, coco, catid2clsid, with_mask=self.with_mask)
+            ann_info, coco, catid2clsid, with_mask=True)
         sample['gt_poly'] = ann_info['mask_polys']
         sample['gt_bbox'] = ann_info['boxes']
         sample['gt_class'] = ann_info['labels'].reshape(-1, 1)
-
-        # ann_info = self._parse_ann_info(
-        #     ann_info, coco, catid2clsid, with_mask=self.with_mask)
-        # sample['gt_poly'] = ann_info['mask_polys']
-        # sample['gt_bbox'] = ann_info['bboxes']
-        # sample['gt_class'] = ann_info['labels'].reshape(-1, 1)
 
         if self.with_mask:
             # _m = ann_info['semantic'] != 255
@@ -2535,7 +2529,8 @@ class Instaboost(BaseOperator):
             bbox = [x1, y1, x1 + w, y1 + h]
             gt_bboxes.append(bbox)
             gt_labels.append(catid2clsid[ann['category_id']])
-            gt_masks_ann.append(ann['segmentation'])
+            if 'segmentation' in ann and ann['segmentation']:
+                gt_masks_ann.append(ann['segmentation'])
 
         gt_bboxes = np.array(gt_bboxes, dtype=np.float32)
         gt_labels = np.array(gt_labels, dtype=np.int32).reshape(-1, 1)
@@ -2575,13 +2570,9 @@ class Instaboost(BaseOperator):
                 continue
 
             x1, y1, w, h = ann['bbox']
-            # if ann['area'] <= 0 or w < 1 or h < 1:
-            #     continue
-
-            # bbox = [x1, y1, x1 + w - 1, y1 + h - 1]
-
             if ann['area'] <= 0 or w < 0 or h < 0:
                 continue
+
             bbox = [x1, y1, x1 + w, y1 + h]
 
             if ann['iscrowd']:

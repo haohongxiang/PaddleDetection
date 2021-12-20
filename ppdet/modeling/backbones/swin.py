@@ -135,6 +135,138 @@ def window_reverse(windows, window_size, H, W):
     return x
 
 
+class _WindowAttention(nn.Layer):
+    """ Window based multi-head self attention (W-MSA) module with relative position bias.
+    It supports both of shifted and non-shifted window.
+    Args:
+        dim (int): Number of input channels.
+        window_size (tuple[int]): The height and width of the window.
+        num_heads (int): Number of attention heads.
+        qkv_bias (bool, optional):  If True, add a learnable bias to query, key, value. Default: True
+        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set
+        attn_drop (float, optional): Dropout ratio of attention weight. Default: 0.0
+        proj_drop (float, optional): Dropout ratio of output. Default: 0.0
+    """
+
+    def __init__(self,
+                 dim,
+                 window_size,
+                 num_heads,
+                 qkv_bias=True,
+                 qk_scale=None,
+                 attn_drop=0.,
+                 proj_drop=0.):
+
+        super().__init__()
+        self.dim = dim
+        self.window_size = window_size  # Wh, Ww
+        self.num_heads = num_heads
+        head_dim = dim // num_heads
+        self.scale = qk_scale or head_dim**-0.5
+
+        # define a parameter table of relative position bias
+        self.relative_position_bias_table = add_parameter(
+            self,
+            paddle.zeros(((2 * window_size[0] - 1) * (2 * window_size[1] - 1),
+                          num_heads)))  # 2*Wh-1 * 2*Ww-1, nH
+
+        # get pair-wise relative position index for each token inside the window
+        coords_h = paddle.arange(self.window_size[0])
+        coords_w = paddle.arange(self.window_size[1])
+        coords = paddle.stack(paddle.meshgrid(
+            [coords_h, coords_w]))  # 2, Wh, Ww
+        coords_flatten = paddle.flatten(coords, 1)  # 2, Wh*Ww
+        coords_flatten_1 = coords_flatten.unsqueeze(axis=2)
+        coords_flatten_2 = coords_flatten.unsqueeze(axis=1)
+        relative_coords = coords_flatten_1 - coords_flatten_2
+        relative_coords = relative_coords.transpose(
+            [1, 2, 0])  # Wh*Ww, Wh*Ww, 2
+        relative_coords[:, :, 0] += self.window_size[
+            0] - 1  # shift to start from 0
+        relative_coords[:, :, 1] += self.window_size[1] - 1
+        relative_coords[:, :, 0] *= 2 * self.window_size[1] - 1
+        self.relative_position_index = relative_coords.sum(-1)  # Wh*Ww, Wh*Ww
+        self.register_buffer("relative_position_index",
+                             self.relative_position_index)
+
+        self.qkv = nn.Linear(dim, dim * 3, bias_attr=qkv_bias)
+        self.attn_drop = nn.Dropout(attn_drop)
+        self.proj = nn.Linear(dim, dim)
+        self.proj_drop = nn.Dropout(proj_drop)
+
+        trunc_normal_(self.relative_position_bias_table)
+        self.softmax = nn.Softmax(axis=-1)
+
+    def forward(self, x, mask=None):
+        """ Forward function.
+        Args:
+            x: input features with shape of (num_windows*B, N, C)
+            mask: (0/-inf) mask with shape of (num_windows, Wh*Ww, Wh*Ww) or None
+        """
+        # tic = time.time()
+
+        # B_, N, C = x.shape
+        # qkv = self.qkv(x).reshape(
+        #     [B_, N, 3, self.num_heads, C // self.num_heads]).transpose(
+        #         [2, 0, 3, 1, 4])
+        # q, k, v = qkv[0], qkv[1], qkv[2]
+
+        B_, N, C = x.shape
+        qkv = self.qkv(x).reshape(
+            [B_, N, 3, self.num_heads,
+             C // self.num_heads])  # .transpose([2, 0, 3, 1, 4])
+        q, k, v = qkv[:, :, 0], qkv[:, :, 1], qkv[:, :, 2]
+        # # q, k, v = [_x.squeeze(2) for _x in qkv.split(3, axis=2)]
+
+        # print('p WindowAttention qkv: ', qkv.mean().item(), qkv.sum().item(), qkv.shape, time.time() - tic)
+        # tic = time.time()
+
+        q = q * self.scale
+        # attn = paddle.mm(q, k.transpose([0, 1, 3, 2]))
+        attn = paddle.einsum('ijmn,ixmn->imjx', q, k)
+
+        # print('p WindowAttention attn: ', attn.mean().item(), attn.sum().item(), attn.shape, time.time() - tic)
+        # tic = time.time()
+
+        index = self.relative_position_index.reshape([-1])
+        relative_position_bias = paddle.index_select(
+            self.relative_position_bias_table, index)
+        relative_position_bias = relative_position_bias.reshape([
+            self.window_size[0] * self.window_size[1],
+            self.window_size[0] * self.window_size[1], -1
+        ])  # Wh*Ww,Wh*Ww,nH
+        relative_position_bias = relative_position_bias.transpose(
+            [2, 0, 1])  # nH, Wh*Ww, Wh*Ww
+        attn = attn + relative_position_bias.unsqueeze(0)
+
+        if mask is not None:
+            nW = mask.shape[0]
+            attn = attn.reshape([B_ // nW, nW, self.num_heads, N, N
+                                 ]) + mask.unsqueeze(1).unsqueeze(0)
+            attn = attn.reshape([-1, self.num_heads, N, N])
+            attn = self.softmax(attn)
+        else:
+            attn = self.softmax(attn)
+
+        attn = self.attn_drop(attn)
+
+        # print('p WindowAttention attn: ', attn.mean().item(), attn.sum().item(), attn.shape, time.time() - tic)
+        # tic = time.time()
+
+        # x = (attn @ v).transpose(1, 2).reshape([B_, N, C])
+        # x = paddle.mm(attn, v).transpose([0, 2, 1, 3]).reshape([B_, N, C])
+
+        x = paddle.einsum('ijmn,injk->imjk', attn, v).reshape([B_, N, C])
+        # print(attn.shape, v.shape, x.shape)
+
+        # print('p WindowAttention x: ', x.mean().item(), x.sum().item(),  time.time() - tic)
+
+        x = self.proj(x)
+        x = self.proj_drop(x)
+
+        return x
+
+
 class WindowAttention(nn.Layer):
     """ Window based multi-head self attention (W-MSA) module with relative position bias.
     It supports both of shifted and non-shifted window.
@@ -210,7 +342,8 @@ class WindowAttention(nn.Layer):
         q, k, v = qkv[0], qkv[1], qkv[2]
 
         q = q * self.scale
-        attn = paddle.mm(q, k.transpose([0, 1, 3, 2]))
+        # attn = paddle.mm(q, k.transpose([0, 1, 3, 2]))
+        attn = paddle.matmul(q, k, transpose_y=True)
 
         index = self.relative_position_index.reshape([-1])
 
@@ -373,6 +506,41 @@ class SwinTransformerBlock(nn.Layer):
 
 
 class PatchMerging(nn.Layer):
+    def __init__(self, dim, norm_layer=nn.LayerNorm, kernel_size=2,
+                 stride=None) -> None:
+        super().__init__()
+
+        k = kernel_size
+        if stride is None:
+            s = kernel_size
+
+        self.sampler = nn.Unfold(k, strides=s)
+        self.norm = norm_layer(k * k * dim)
+        self.reduction = nn.Linear(
+            k * k * dim, k * k // 2 * dim, bias_attr=False)
+
+    def forward(self, x, h, w):
+        '''
+        x [n, hw, c]
+        '''
+        n, _, c = x.shape
+        x = x.reshape([n, h, w, c]).transpose([0, 3, 1, 2])  # nchw
+
+        # padding
+        pad_input = (h % 2 == 1) or (h % 2 == 1)
+        if pad_input:
+            x = F.pad(x, [0, w % 2, 0, h % 2], data_format='NCHW')
+
+        x = self.sampler(x)  # 
+        x = x.transpose([0, 2, 1])  # n, h/2w/2, 4c
+
+        x = self.norm(x)
+        x = self.reduction(x)
+
+        return x
+
+
+class _PatchMerging(nn.Layer):
     r""" Patch Merging Layer.
     Args:
         dim (int): Number of input channels.
@@ -503,8 +671,11 @@ class BasicLayer(nn.Layer):
         cnt = 0
         for h in h_slices:
             for w in w_slices:
-                img_mask[:, h, w, :] = cnt
-                cnt += 1
+                try:
+                    img_mask[:, h, w, :] = cnt
+                    cnt += 1
+                except:
+                    pass
 
         mask_windows = window_partition(
             img_mask, self.window_size)  # nW, window_size, window_size, 1

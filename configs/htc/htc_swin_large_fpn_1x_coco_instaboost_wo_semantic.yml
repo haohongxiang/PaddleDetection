@@ -3,21 +3,39 @@ _BASE_: [
     '../runtime.yml',
     # '../cascade_rcnn/_base_/cascade_mask_rcnn_r50_fpn.yml',
     # './reader_swin.yml',
-    './optimizer_swin_1x.yml',
+    # './optimizer_swin_1x.yml',
+    # './schedule_1x.yml',
 ]
 
 
-fp16: true
+epoch: 12
 
 LearningRate:
-  base_lr: 0.00005 # 0.0001 bs=16
+  base_lr: 0.00005 # # 0.0001 bs=16
+  schedulers:
+  - !PiecewiseDecay
+    gamma: 0.1
+    milestones: [8, 11]
+  - !LinearWarmup
+    start_factor: 0.1
+    steps: 1000
+
+OptimizerBuilder:
+  # clip_grad_by_norm: 1.0
+  optimizer:
+    type: AdamW
+    weight_decay: 0.05
+    without_weight_decay_params: ['absolute_pos_embed', 'relative_position_bias_table', 'norm']
 
 
-weights: output/htc_swin_tiny_fpn_1x_coco_instaboost_wo_semantic/model_final
+
+
+weights: output/htc_swin_large_fpn_1x_coco_instaboost_wo_semantic/model_final
 
 snapshot_epoch: 4
-log_iter: 100
-convert_sync_bn: false
+log_iter: 20
+convert_sync_bn: True
+use_amp: True
 
 
 architecture: HybridTaskCascade
@@ -45,9 +63,8 @@ SwinTransformer:
   drop_path_rate: 0.2
   patch_norm: true
   out_indices: [0, 1, 2, 3]
-  pretrained: https://bj.bcebos.com/v1/paddledet/models/pretrained/swin_large_patch4_window7_224_22k.params
-
-
+  pretrained: '/paddle/test/swin_large_patch4_window7_224_22k.params'
+  # https://bj.bcebos.com/v1/paddledet/models/pretrained/swin_large_patch4_window7_224_22k.params
 
 
 FPN:
@@ -95,6 +112,8 @@ HybridTaskCascadeHead:
   #   aligned: True
 
   bbox_assigner: BBoxAssigner
+  bbox_loss: GIoULoss
+
   mask_head: HybridTaskMaskHead
   smoothl1loss: True
   smoothl1lossbetanume: 1.0
@@ -109,13 +128,17 @@ BBoxAssigner:
   use_random: True
 
 
+GIoULoss:
+  loss_weight: 10.0
+  reduction: 'mean'
+
+
 # HybridTaskCascadeTwoFCHead:
 #   out_channel: 1024
 
-
 HybridTaskCascadeXConvNormHead:
   num_convs: 4
-  norm_type: 'gn'
+  norm_type: 'bn'
   out_channel: 1024
 
 
@@ -155,22 +178,24 @@ MaskPostProcess:
   binary_thresh: 0.5
 
 # FusedSemanticHead:
-#   semantic_num_class: 80
+#   semantic_num_class: 138
 #   loss_weight: 0.2
-
-
-
-
 
 
 worker_num: 2
 TrainReader:
   sample_transforms:
   - Decode: {}
-  # - RandomResizeCrop: {resizes: [400, 500, 600], cropsizes: [[384, 600], ], prob: 0.5}
-  # - RandomResize: {target_size: [[480, 1333], [512, 1333], [544, 1333], [576, 1333], [608, 1333], [640, 1333], [672, 1333], [704, 1333], [736, 1333], [768, 1333], [800, 1333]], keep_ratio: True, interp: 2}
-  # - RandomDistort: {}
+  - RandomResizeCrop: {resizes: [400, 500, 600], cropsizes: [[384, 600], ], prob: 0.5}
+#   - RandomResize: {target_size: [[480, 1333], [512, 1333], [544, 1333], [576, 1333], [608, 1333], [640, 1333], [672, 1333], [704, 1333], [736, 1333], [768, 1333], [800, 1333], [1200, 1600], [900, 1600], [700, 1400], [1400, 1600]], keep_ratio: True, interp: 2}
+
   - RandomResize: {target_size: [[400, 1600], [432, 1600], [464, 1600], [496, 1600], [528, 1600], [560, 1600], [592, 1600], [624, 1600], [656, 1600], [688, 1600], [720, 1600], [752, 1600], [784, 1600], [816, 1600], [848, 1600], [880, 1600], [912, 1600], [944, 1600], [976, 1600], [1008, 1600], [1040, 1600], [1072, 1600], [1104, 1600], [1136, 1600], [1168, 1600], [1200, 1600], [1232, 1600], [1264, 1600], [1296, 1600], [1328, 1600], [1360, 1600], [1392, 1600], [1440, 1600]], keep_ratio: True, interp: 2}
+
+
+#   - RandomResize: {target_size: [[400, 1600], [432, 1600], [464, 1600], [496, 1600], [528, 1600], [560, 1600], [592, 1600], [624, 1600], [656, 1600], [688, 1600], [720, 1600], [752, 1600], [784, 1600], [816, 1600], [848, 1600], [880, 1600], [912, 1600], [944, 1600], [976, 1600], [1008, 1600], [1040, 1600], [1072, 1600], [1104, 1600], [1136, 1600], [1168, 1600], [1200, 1600], ], keep_ratio: True, interp: 2}
+
+
+  # - RandomDistort: {}
   - RandomFlip: {prob: 0.5}
   - NormalizeImage: {is_scale: true, mean: [0.485,0.456,0.406], std: [0.229, 0.224,0.225]}
   - Permute: {}
