@@ -34,8 +34,9 @@ weights: output/htc_swin_large_fpn_1x_coco_instaboost_wo_semantic/model_final
 
 snapshot_epoch: 4
 log_iter: 20
-convert_sync_bn: True
+# convert_sync_bn: True
 use_amp: True
+norm_type: sync_bn
 
 
 architecture: HybridTaskCascade
