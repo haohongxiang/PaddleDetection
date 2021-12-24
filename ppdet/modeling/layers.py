@@ -462,6 +462,168 @@ class MatrixNMS(object):
 
 @register
 @serializable
+class SoftNMS(object):
+    def __init__(
+            self,
+            score_threshold=.05,
+            nms_top_k=-1,
+            keep_top_k=100,
+            nms_threshold=.5,
+            normalized=True,
+            nms_eta=1.0,
+            return_index=False,
+            return_rois_num=True,
+            method=2,
+            sigma=0.5, ):
+        super(MultiClassNMS, self).__init__()
+        self.score_threshold = score_threshold
+        self.nms_top_k = nms_top_k
+        self.keep_top_k = keep_top_k
+        self.nms_threshold = nms_threshold
+        self.normalized = normalized
+        self.nms_eta = nms_eta
+        self.return_index = return_index
+        self.return_rois_num = return_rois_num
+        self.method = method
+        self.sigma = sigma
+
+    def __call__(self, bboxes, score, background_label=-1):
+        """
+        bboxes (Tensor|List[Tensor]): 1. (Tensor) Predicted bboxes with shape 
+                                         [N, M, 4], N is the batch size and M
+                                         is the number of bboxes
+                                      2. (List[Tensor]) bboxes and bbox_num,
+                                         bboxes have shape of [M, C, 4], C
+                                         is the class number and bbox_num means
+                                         the number of bboxes of each batch with
+                                         shape [N,] 
+        score (Tensor): Predicted scores with shape [N, C, M] or [M, C]
+        background_label (int): Ignore the background label; For example, RCNN
+                                is num_classes and YOLO is -1. 
+        """
+        kwargs = self.__dict__.copy()
+        if isinstance(bboxes, tuple):
+            bboxes, bbox_num = bboxes
+            kwargs.update({'rois_num': bbox_num})
+        if background_label > -1:
+            kwargs.update({'background_label': background_label})
+
+        bboxes = bboxes.numpy()
+        bbox_num = bbox_num.numpy()
+        score = score.numpy()
+
+        print(bboxes.shape, bbox_num.shape, score.shape)
+
+        # class TODO
+        output, nms_rois_num = [], []
+        for i, n in enumerate(bbox_num):
+            idx = slice(sum(bbox_num[:i]), sum(bbox_num[:i]) + n)
+            keep = py_cpu_softnms(
+                bboxes[idx],
+                score[idx],
+                Nt=self.nms_threshold,
+                thresh=self.score_threshold,
+                method=self.method,
+                sigma=self.sigma, )
+
+            output.append(keep)
+            nms_rois_num.append(len(keep))
+
+        output = paddle.to_tensor(np.vstack(output), dtype='float32')
+        nms_rois_num = paddle.to_tensor(nms_rois_num, dtype='int32')
+
+        return output, nms_rois_num, None
+
+
+def py_cpu_softnms(dets, scores, Nt=0.3, sigma=0.5, thresh=0.001, method=2):
+    """reference https://github.com/DocF/Soft-NMS/blob/master/soft_nms.py
+    py_cpu_softnms
+    :param dets:   boexs 坐标矩阵 format [x1, y1, x2, y2]
+    :param sc:     每个 boxes 对应的分数
+    :param Nt:     iou 交叠门限
+    :param sigma:  使用 gaussian 函数的方差
+    :param thresh: 最后的分数门限
+    :param method: 使用的方法
+    :return:       留下的 boxes 的 index
+    """
+
+    # indexes concatenate boxes with the last column
+    N = dets.shape[0]
+    indexes = np.array([np.arange(N)])
+    dets = np.concatenate((dets, indexes.T), axis=1)
+
+    # the order of boxes coordinate is [y1,x1,y2,x2]
+    # y1 = dets[:, 0]
+    # x1 = dets[:, 1]
+    # y2 = dets[:, 2]
+    # x2 = dets[:, 3]
+
+    x1, y1, x2, y2 = dets[:, 0], dets[:, 1], dets[:, 2], dets[:, 3]
+    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
+
+    for i in range(N):
+        # intermediate parameters for later parameters exchange
+        tBD = dets[i, :].copy()
+        tscore = scores[i].copy()
+        tarea = areas[i].copy()
+        pos = i + 1
+
+        #
+        if i != N - 1:
+            maxscore = np.max(scores[pos:], axis=0)
+            maxpos = np.argmax(scores[pos:], axis=0)
+        else:
+            maxscore = scores[-1]
+            maxpos = 0
+        if tscore < maxscore:
+            dets[i, :] = dets[maxpos + i + 1, :]
+            dets[maxpos + i + 1, :] = tBD
+            tBD = dets[i, :]
+
+            scores[i] = scores[maxpos + i + 1]
+            scores[maxpos + i + 1] = tscore
+            tscore = scores[i]
+
+            areas[i] = areas[maxpos + i + 1]
+            areas[maxpos + i + 1] = tarea
+            tarea = areas[i]
+
+        # IoU calculate
+        # xx1 = np.maximum(dets[i, 1], dets[pos:, 1])
+        # yy1 = np.maximum(dets[i, 0], dets[pos:, 0])
+        # xx2 = np.minimum(dets[i, 3], dets[pos:, 3])
+        # yy2 = np.minimum(dets[i, 2], dets[pos:, 2])
+        xx1 = np.maximum(dets[i, 0], dets[pos:, 0])
+        yy1 = np.maximum(dets[i, 1], dets[pos:, 1])
+        xx2 = np.minimum(dets[i, 2], dets[pos:, 2])
+        yy2 = np.minimum(dets[i, 3], dets[pos:, 3])
+
+        w = np.maximum(0.0, xx2 - xx1 + 1)
+        h = np.maximum(0.0, yy2 - yy1 + 1)
+        inter = w * h
+        ovr = inter / (areas[i] + areas[pos:] - inter)
+
+        # Three methods: 1.linear 2.gaussian 3.original NMS
+        if method == 1:  # linear
+            weight = np.ones(ovr.shape)
+            weight[ovr > Nt] = weight[ovr > Nt] - ovr[ovr > Nt]
+        elif method == 2:  # gaussian
+            weight = np.exp(-(ovr * ovr) / sigma)
+        else:  # original NMS
+            weight = np.ones(ovr.shape)
+            weight[ovr > Nt] = 0
+
+        scores[pos:] = weight * scores[pos:]
+
+    # select the boxes and keep the corresponding indexes
+    inds = dets[:, 4][scores > thresh]
+    keep = inds.astype(int)
+
+    return keep
+
+
+@register
+@serializable
 class YOLOBox(object):
     __shared__ = ['num_classes']
 
