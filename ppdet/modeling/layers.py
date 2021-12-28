@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import math
+from cv2 import KeyPoint
 import six
 import numpy as np
 from numbers import Integral
@@ -475,7 +476,7 @@ class SoftNMS(object):
             return_rois_num=True,
             method=2,
             sigma=0.5, ):
-        super(MultiClassNMS, self).__init__()
+        super(SoftNMS, self).__init__()
         self.score_threshold = score_threshold
         self.nms_top_k = nms_top_k
         self.keep_top_k = keep_top_k
@@ -508,29 +509,70 @@ class SoftNMS(object):
         if background_label > -1:
             kwargs.update({'background_label': background_label})
 
-        bboxes = bboxes.numpy()
-        bbox_num = bbox_num.numpy()
-        score = score.numpy()
+        # bboxes = bboxes.numpy()
+        # bbox_num = bbox_num.numpy()
+        # scores = score.numpy()
 
-        print(bboxes.shape, bbox_num.shape, score.shape)
+        try:
+            import torch
+            from pt_soft_nms import soft_nms, batched_soft_nms
+        except:
+            assert RuntimeError(
+                'pip install git+https://github.com/MrParosk/soft_nms.git')
 
-        # class TODO
+        bboxes = torch.tensor(bboxes.numpy(), dtype=torch.float32)
+        bbox_num = torch.tensor(bbox_num.numpy(), dtype=torch.int32)
+        scores = torch.tensor(score.numpy(), dtype=torch.float32)
+        # print(bboxes.shape, bbox_num.shape, scores.shape)
+        # torch.Size([1000, 80, 4]) torch.Size([1]) torch.Size([1000, 80])
+
         output, nms_rois_num = [], []
+
         for i, n in enumerate(bbox_num):
             idx = slice(sum(bbox_num[:i]), sum(bbox_num[:i]) + n)
-            keep = py_cpu_softnms(
-                bboxes[idx],
-                score[idx],
-                Nt=self.nms_threshold,
-                thresh=self.score_threshold,
-                method=self.method,
-                sigma=self.sigma, )
+            _bboxes = bboxes[idx]  # [x1, y1, x2, y2]
+            _scores = scores[idx]  # F.softmax(scores)
 
-            output.append(keep)
+            _labels = torch.argmax(
+                _scores,
+                dim=-1, )
+            _labels = _labels[_labels != background_label]
+            _scores = _scores[range(len(_labels)), _labels]
+            _bboxes = _bboxes[range(len(_labels)), _labels]
+
+            keep = batched_soft_nms(_bboxes, _scores, _labels, self.sigma,
+                                    self.score_threshold)
+            keep = keep[:self.keep_top_k]
+
+            _bboxes = _bboxes[keep]
+            _scores = _scores[keep]
+            _labels = _labels[keep]
+            # [label, confidence, xmin, ymin, xmax, ymax]
+            _preds = torch.cat([_labels[:, None], _scores[:, None], _bboxes],
+                               dim=-1)
+
+            output.append(_preds.numpy())
             nms_rois_num.append(len(keep))
 
         output = paddle.to_tensor(np.vstack(output), dtype='float32')
         nms_rois_num = paddle.to_tensor(nms_rois_num, dtype='int32')
+
+        # class TODO
+        # output, nms_rois_num = [], []
+        # for i, n in enumerate(bbox_num):
+        #     idx = slice(sum(bbox_num[:i]), sum(bbox_num[:i]) + n)
+        #     for c in range(80):
+        #         keep = py_cpu_softnms(
+        #             bboxes[idx],
+        #             score[idx],
+        #             Nt=self.nms_threshold,
+        #             thresh=self.score_threshold,
+        #             method=self.method,
+        #             sigma=self.sigma, )
+        #     output.append(keep)
+        #     nms_rois_num.append(len(keep))
+        # output = paddle.to_tensor(np.vstack(output), dtype='float32')
+        # nms_rois_num = paddle.to_tensor(nms_rois_num, dtype='int32')
 
         return output, nms_rois_num, None
 

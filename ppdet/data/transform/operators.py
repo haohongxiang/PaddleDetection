@@ -447,45 +447,48 @@ class RandomDistort(BaseOperator):
 
 @register_op
 class AutoAugment(BaseOperator):
-    def __init__(self, autoaug_type="v1"):
+    def __init__(self, autoaug_type="v1", prob=0.5):
         """
         Args:
             autoaug_type (str): autoaug type, support v0, v1, v2, v3, test
         """
         super(AutoAugment, self).__init__()
         self.autoaug_type = autoaug_type
+        self.p = prob
 
     def apply(self, sample, context=None):
         """
         Learning Data Augmentation Strategies for Object Detection, see https://arxiv.org/abs/1906.11172
         """
-        im = sample['image']
-        gt_bbox = sample['gt_bbox']
-        if not isinstance(im, np.ndarray):
-            raise TypeError("{}: image is not a numpy array.".format(self))
-        if len(im.shape) != 3:
-            raise ImageError("{}: image is not 3-dimensional.".format(self))
-        if len(gt_bbox) == 0:
-            return sample
+        if random.random() < self.p:
+            im = sample['image']
+            gt_bbox = sample['gt_bbox']
+            if not isinstance(im, np.ndarray):
+                raise TypeError("{}: image is not a numpy array.".format(self))
+            if len(im.shape) != 3:
+                raise ImageError("{}: image is not 3-dimensional.".format(self))
+            if len(gt_bbox) == 0:
+                return sample
 
-        height, width, _ = im.shape
-        norm_gt_bbox = np.ones_like(gt_bbox, dtype=np.float32)
-        norm_gt_bbox[:, 0] = gt_bbox[:, 1] / float(height)
-        norm_gt_bbox[:, 1] = gt_bbox[:, 0] / float(width)
-        norm_gt_bbox[:, 2] = gt_bbox[:, 3] / float(height)
-        norm_gt_bbox[:, 3] = gt_bbox[:, 2] / float(width)
+            height, width, _ = im.shape
+            norm_gt_bbox = np.ones_like(gt_bbox, dtype=np.float32)
+            norm_gt_bbox[:, 0] = gt_bbox[:, 1] / float(height)
+            norm_gt_bbox[:, 1] = gt_bbox[:, 0] / float(width)
+            norm_gt_bbox[:, 2] = gt_bbox[:, 3] / float(height)
+            norm_gt_bbox[:, 3] = gt_bbox[:, 2] / float(width)
 
-        from .autoaugment_utils import distort_image_with_autoaugment
-        im, norm_gt_bbox = distort_image_with_autoaugment(im, norm_gt_bbox,
-                                                          self.autoaug_type)
+            from .autoaugment_utils import distort_image_with_autoaugment
+            im, norm_gt_bbox = distort_image_with_autoaugment(im, norm_gt_bbox,
+                                                              self.autoaug_type)
 
-        gt_bbox[:, 0] = norm_gt_bbox[:, 1] * float(width)
-        gt_bbox[:, 1] = norm_gt_bbox[:, 0] * float(height)
-        gt_bbox[:, 2] = norm_gt_bbox[:, 3] * float(width)
-        gt_bbox[:, 3] = norm_gt_bbox[:, 2] * float(height)
+            gt_bbox[:, 0] = norm_gt_bbox[:, 1] * float(width)
+            gt_bbox[:, 1] = norm_gt_bbox[:, 0] * float(height)
+            gt_bbox[:, 2] = norm_gt_bbox[:, 3] * float(width)
+            gt_bbox[:, 3] = norm_gt_bbox[:, 2] * float(height)
 
-        sample['image'] = im
-        sample['gt_bbox'] = gt_bbox
+            sample['image'] = im
+            sample['gt_bbox'] = gt_bbox
+
         return sample
 
 
