@@ -432,7 +432,7 @@ class Trainer(object):
                 self.status['batch_time'].update(time.time() - iter_tic)
                 self._compose_callback.on_step_end(self.status)
                 if self.use_ema:
-                    self.ema.update(self.model)
+                    self.ema.update()
                 iter_tic = time.time()
 
             if self.cfg.get('unstructured_prune'):

@@ -218,7 +218,7 @@ class CSPResNet(nn.Layer):
     def __init__(self,
                  layers=[3, 6, 6, 3],
                  channels=[64, 128, 256, 512, 1024],
-                 act='silu',
+                 act='swish',
                  return_idx=[0, 1, 2, 3, 4],
                  depth_wise=False):
         super(CSPResNet, self).__init__()
