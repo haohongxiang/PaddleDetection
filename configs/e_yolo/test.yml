@@ -6,7 +6,7 @@ _BASE_: [
 ]
 
 log_iter: 20
-snapshot_epoch: 8
+snapshot_epoch: 2
 weights: output/test/model_final
 find_unused_parameters: True
 
@@ -49,8 +49,7 @@ PPYOLOPAN:
   block_size: 3
   keep_prob: 0.9
   spp: true
-  act: 'gelu'
-  
+  act: 'mish'
   
 PPSimTHead:
   fpn_strides: [32, 16, 8]
@@ -74,7 +73,6 @@ PPSimTHead:
     keep_top_k: 100
     score_threshold: 0.05
     nms_threshold: 0.6
-    
 
 epoch: 36
 

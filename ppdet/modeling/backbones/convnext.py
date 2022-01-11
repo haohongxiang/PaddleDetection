@@ -205,8 +205,8 @@ class ConvNeXt(nn.Layer):
             self.stages.append(stage)
             cur += depths[i]
 
-        self.norm = nn.LayerNorm(dims[-1], epsilon=1e-6) # final norm layer
-        self.head = nn.Linear(dims[-1], num_classes)
+        # self.norm = nn.LayerNorm(dims[-1], epsilon=1e-6) # final norm layer
+        # self.head = nn.Linear(dims[-1], num_classes)
 
         self.return_idx = return_idx
         self.dims = [dims[i] for i in return_idx] # [::-1]
