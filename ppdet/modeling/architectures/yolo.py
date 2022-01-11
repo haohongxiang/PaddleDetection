@@ -94,7 +94,9 @@ class YOLOv3(BaseArch):
 
         else:
             yolo_head_outs = self.yolo_head(neck_feats)
-
+            # return yolo_head_outs
+            # return body_feats
+        
             if self.for_mot:
                 boxes_idx, bbox, bbox_num, nms_keep_idx = self.post_process(
                     yolo_head_outs, self.yolo_head.mask_anchors)

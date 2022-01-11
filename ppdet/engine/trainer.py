@@ -46,8 +46,12 @@ from ppdet.utils import profiler
 from .callbacks import Callback, ComposeCallback, LogPrinter, Checkpointer, WiferFaceEval, VisualDLWriter, SniperProposalsGenerator
 from .export_utils import _dump_infer_config, _prune_input_spec
 
+import paddle.fluid.core as core
+
 from ppdet.utils.logger import setup_logger
 logger = setup_logger('ppdet.engine')
+
+
 
 __all__ = ['Trainer']
 
@@ -394,6 +398,110 @@ class Trainer(object):
             self.loader.dataset.set_epoch(epoch_id)
             model.train()
             iter_tic = time.time()
+            
+
+#             # for step_id, data in enumerate(self.loader):
+#             for step_id in range(len(self.loader)):
+
+#                 if step_id == 100:
+#                     core.nvprof_start()
+#                     core.nvprof_enable_record_event()
+#                     core.nvprof_nvtx_push(str(step_id))
+#                 if step_id == 110:
+#                     core.nvprof_nvtx_pop()
+#                     core.nvprof_stop()
+#                     sys.exit()
+#                 if step_id > 100 and step_id < 110:
+#                     core.nvprof_nvtx_pop()
+#                     core.nvprof_nvtx_push(str(step_id))
+
+
+#                 core.nvprof_nvtx_push('data')
+#                 data = self.loader.next()
+#                 core.nvprof_nvtx_pop()
+
+
+#                 self.status['data_time'].update(time.time() - iter_tic)
+#                 self.status['step_id'] = step_id
+#                 profiler.add_profiler_step(profiler_options)
+#                 self._compose_callback.on_step_begin(self.status)
+#                 data['epoch_id'] = epoch_id
+
+#                 if self.cfg.get('fp16', False):
+#                     with amp.auto_cast(enable=self.cfg.use_gpu):
+#                         # model forward
+#                         outputs = model(data)
+#                         loss = outputs['loss']
+
+#                     # model backward
+#                     scaled_loss = scaler.scale(loss)
+#                     scaled_loss.backward()
+#                     # in dygraph mode, optimizer.minimize is equal to optimizer.step
+#                     scaler.minimize(self.optimizer, scaled_loss)
+#                 else:
+
+
+#                     core.nvprof_nvtx_push('forward')
+
+#                     # model forward
+#                     outputs = model(data)
+#                     loss = outputs['loss']
+
+#                     core.nvprof_nvtx_pop()
+
+
+#                     core.nvprof_nvtx_push('backward')
+
+#                     # model backward
+#                     loss.backward()
+
+#                     core.nvprof_nvtx_pop()
+
+
+#                     core.nvprof_nvtx_push('optimizer')
+
+#                     self.optimizer.step()
+                    
+#                     core.nvprof_nvtx_pop()
+
+
+#                 curr_lr = self.optimizer.get_lr()
+#                 self.lr.step()
+#                 if self.cfg.get('unstructured_prune'):
+#                     self.pruner.step()
+                
+
+#                 core.nvprof_nvtx_push('clear_grad')
+
+#                 self.optimizer.clear_grad()
+
+#                 core.nvprof_nvtx_pop()
+
+
+#                 core.nvprof_nvtx_push('others_GpuMemcpySync')
+
+#                 self.status['learning_rate'] = curr_lr
+
+#                 if self._nranks < 2 or self._local_rank == 0:
+#                     self.status['training_staus'].update(outputs)
+
+#                 self.status['batch_time'].update(time.time() - iter_tic)
+#                 self._compose_callback.on_step_end(self.status)
+
+#                 core.nvprof_nvtx_pop()
+
+
+#                 core.nvprof_nvtx_push('ema')
+
+#                 if self.use_ema:
+#                     # self.ema.update(self.model)
+#                     self.ema.update()
+#                 iter_tic = time.time()
+
+#                 core.nvprof_nvtx_pop()
+                
+                
+
             for step_id, data in enumerate(self.loader):
                 self.status['data_time'].update(time.time() - iter_tic)
                 self.status['step_id'] = step_id
@@ -432,9 +540,11 @@ class Trainer(object):
                 self.status['batch_time'].update(time.time() - iter_tic)
                 self._compose_callback.on_step_end(self.status)
                 if self.use_ema:
-                    self.ema.update()
+                    self.ema.update(self.model)
                 iter_tic = time.time()
 
+                
+                
             if self.cfg.get('unstructured_prune'):
                 self.pruner.update_params()
 

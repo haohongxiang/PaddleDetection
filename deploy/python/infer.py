@@ -155,30 +155,32 @@ class Detector(object):
         # model prediction
         for i in range(repeats):
             self.predictor.run()
-            output_names = self.predictor.get_output_names()
-            boxes_tensor = self.predictor.get_output_handle(output_names[0])
-            np_boxes = boxes_tensor.copy_to_cpu()
-            boxes_num = self.predictor.get_output_handle(output_names[1])
-            np_boxes_num = boxes_num.copy_to_cpu()
-            if self.pred_config.mask:
-                masks_tensor = self.predictor.get_output_handle(output_names[2])
-                np_masks = masks_tensor.copy_to_cpu()
+#             output_names = self.predictor.get_output_names()
+#             boxes_tensor = self.predictor.get_output_handle(output_names[0])
+#             np_boxes = boxes_tensor.copy_to_cpu()
+#             boxes_num = self.predictor.get_output_handle(output_names[1])
+#             np_boxes_num = boxes_num.copy_to_cpu()
+#             if self.pred_config.mask:
+#                 masks_tensor = self.predictor.get_output_handle(output_names[2])
+#                 np_masks = masks_tensor.copy_to_cpu()
 
         if add_timer:
             self.det_times.inference_time_s.end(repeats=repeats)
             self.det_times.postprocess_time_s.start()
 
-        # postprocess
-        results = []
-        if reduce(lambda x, y: x * y, np_boxes.shape) < 6:
-            print('[WARNNING] No object detected.')
-            results = {'boxes': np.zeros([0, 6]), 'boxes_num': [0]}
-        else:
-            results = self.postprocess(
-                np_boxes, np_masks, inputs, np_boxes_num, threshold=threshold)
+#         # postprocess
+#         results = []
+#         if reduce(lambda x, y: x * y, np_boxes.shape) < 6:
+#             print('[WARNNING] No object detected.')
+#             results = {'boxes': np.zeros([0, 6]), 'boxes_num': [0]}
+#         else:
+#             results = self.postprocess(
+#                 np_boxes, np_masks, inputs, np_boxes_num, threshold=threshold)
         if add_timer:
             self.det_times.postprocess_time_s.end()
             self.det_times.img_num += len(image_list)
+        results = {'boxes': np.zeros([0, 6]), 'boxes_num': [0]}
+    
         return results
 
     def get_timer(self):

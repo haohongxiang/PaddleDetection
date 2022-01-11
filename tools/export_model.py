@@ -64,14 +64,14 @@ def run(FLAGS, cfg):
     # build detector
     trainer = Trainer(cfg, mode='test')
 
-    # load weights
-    if cfg.architecture in ['DeepSORT']:
-        if cfg.det_weights != 'None':
-            trainer.load_weights_sde(cfg.det_weights, cfg.reid_weights)
-        else:
-            trainer.load_weights_sde(None, cfg.reid_weights)
-    else:
-        trainer.load_weights(cfg.weights)
+#     # load weights
+#     if cfg.architecture in ['DeepSORT']:
+#         if cfg.det_weights != 'None':
+#             trainer.load_weights_sde(cfg.det_weights, cfg.reid_weights)
+#         else:
+#             trainer.load_weights_sde(None, cfg.reid_weights)
+#     else:
+#         trainer.load_weights(cfg.weights)
 
     # export model
     trainer.export(FLAGS.output_dir)

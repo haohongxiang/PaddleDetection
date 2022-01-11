@@ -1432,12 +1432,14 @@ class PPRefineHead(nn.Layer):
         mask_positive = (assigned_labels != self.num_classes)
         num_pos = mask_positive.sum()
         assigned_scores_sum = assigned_scores.sum()
-        if core.is_compiled_with_dist(
-        ) and parallel_helper._is_parallel_ctx_initialized():
-            paddle.distributed.all_reduce(assigned_scores_sum)
-            assigned_scores_sum = paddle.clip(
-                assigned_scores_sum / paddle.distributed.get_world_size(),
-                min=1)
+        
+#         if core.is_compiled_with_dist(
+#         ) and parallel_helper._is_parallel_ctx_initialized():
+#             paddle.distributed.all_reduce(assigned_scores_sum)
+#             assigned_scores_sum = paddle.clip(
+#                 assigned_scores_sum / paddle.distributed.get_world_size(),
+#                 min=1)
+
         # pos/neg loss
         if num_pos > 0:
             # l1 + iou
