@@ -17,7 +17,7 @@ import paddle.nn as nn
 import paddle.nn.functional as F
 from ppdet.core.workspace import register, serializable
 from ppdet.modeling.layers import DropBlock
-from ..backbones.cspresnet import BasicBlock, EffectiveSELayer
+from ..backbones.cspresnet import BasicBlock
 from ..backbones.darknet import ConvBNLayer
 from ..necks.yolo_fpn import SPP
 from ..shape_spec import ShapeSpec
@@ -26,14 +26,7 @@ __all__ = ['CustomCSPPAN']
 
 
 class CSPStage(nn.Layer):
-    def __init__(self,
-                 block_fn,
-                 ch_in,
-                 ch_out,
-                 n,
-                 attn='ese',
-                 act='leaky',
-                 spp=False):
+    def __init__(self, block_fn, ch_in, ch_out, n, act='leaky', spp=False):
         super(CSPStage, self).__init__()
 
         ch_mid = int(ch_out // 2)
@@ -49,11 +42,6 @@ class CSPStage(nn.Layer):
                 self.convs.add_sublayer(
                     'spp', SPP(ch_mid * 4, ch_mid, 1, [5, 9, 13], act=act))
             next_ch_in = ch_mid
-
-        if attn:
-            self.attn = EffectiveSELayer(ch_mid * 2, act='hardsigmoid')
-        else:
-            self.attn = None
         self.conv3 = ConvBNLayer(ch_mid * 2, ch_out, 1, act=act)
 
     def forward(self, x):
@@ -61,9 +49,6 @@ class CSPStage(nn.Layer):
         y2 = self.conv2(x)
         y2 = self.convs(y2)
         y = paddle.concat([y1, y2], axis=1)
-        if self.attn is not None:
-            y = self.attn(y)
-
         y = self.conv3(y)
         return y
 
@@ -107,7 +92,6 @@ class CustomCSPPAN(nn.Layer):
                                    ch_in if j == 0 else ch_out,
                                    ch_out,
                                    block_num,
-                                   attn='ese',
                                    act=act,
                                    spp=(spp and i == 0)))
 
@@ -153,7 +137,6 @@ class CustomCSPPAN(nn.Layer):
                                    ch_in if j == 0 else ch_out,
                                    ch_out,
                                    block_num,
-                                   attn='ese',
                                    act=act,
                                    spp=False))
             if drop_block:
