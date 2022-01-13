@@ -6,7 +6,7 @@ _BASE_: [
 ]
 
 log_iter: 20
-snapshot_epoch: 2
+snapshot_epoch: 4
 weights: output/test/model_final
 find_unused_parameters: True
 
@@ -32,6 +32,15 @@ ConvNeXt:
   layer_scale_init_value: 1.0
   pretrained: /paddle/workspace/speed/PaddleDetection/convnext_tiny_1k_224_ema.params
 
+ResNet:
+  # index 0 stands for res2
+  depth: 50
+  norm_type: bn
+  freeze_at: 0
+  return_idx: [0,1,2]
+  num_stages: 3
+  
+  
 # CustomCSPPAN:
 #   out_channels: [768, 384, 192]
 #   stage_num: 1
@@ -56,7 +65,7 @@ PPSimTHead:
   grid_cell_scale: 5.0
   grid_cell_offset: 0.5
   loss_weight: {class: 1.0, iou: 2.0}
-  static_assigner_epoch: 60
+  static_assigner_epoch: 4
   use_varifocal_loss: True
   static_assigner:
     name: ATSSAssigner
@@ -73,6 +82,8 @@ PPSimTHead:
     keep_top_k: 100
     score_threshold: 0.05
     nms_threshold: 0.6
+
+
 
 epoch: 36
 
