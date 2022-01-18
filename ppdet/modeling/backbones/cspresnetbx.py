@@ -223,7 +223,7 @@ class CSPResNet(nn.Layer):
                  act='silu',
                  return_idx=[0, 1, 2, 3, 4],
                  depth_wise=False,
-                 return_internal=True):
+                 return_internal=False):
         super(CSPResNet, self).__init__()
 
         self.stem = nn.Sequential(
