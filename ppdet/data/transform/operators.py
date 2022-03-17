@@ -163,13 +163,13 @@ class RandomHSV(BaseOperator):
         r = np.random.uniform(-1, 1, 3) * self.gains + 1
         hue, sat, val = cv2.split(cv2.cvtColor(im, cv2.COLOR_BGR2HSV))
 
-        x = np.arange(0, 256, dtype=np.int16)
+        x = np.arange(0, 256, dtype=r.dtype)
         lut_hue = ((x * r[0]) % 180).astype(np.uint8)
         lut_sat = np.clip(x * r[1], 0, 255).astype(np.uint8)
         lut_val = np.clip(x * r[2], 0, 255).astype(np.uint8)
 
         im_hsv = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat),
-                            cv2.LUT(val, lut_val))).astype(np.uint8)
+                            cv2.LUT(val, lut_val)))
         sample['image'] = cv2.cvtColor(im_hsv, cv2.COLOR_HSV2BGR)
         return sample
 
@@ -458,9 +458,7 @@ class MosaicPerspective(BaseOperator):
 
         if random.random() >= self.mosaic_prob:
             return sample[0]
-
         random.shuffle(sample)
-
         mosaic_img, mosaic_gt_bboxes = self._mosaic_preprocess(sample)
 
         gt_classes = np.concatenate([x['gt_class'] for x in sample], axis=0)
@@ -469,9 +467,9 @@ class MosaicPerspective(BaseOperator):
             self.translate, self.scale, self.shear, self.perspective,
             self.mosaic_border)
 
-        #draws = np.concatenate((mosaic_gt_bboxes, gt_classes), 1)
-        #image_t_vis = visbox(mosaic_img, draws)
-        #cv2.imwrite('%d_padresize.jpg' % sample[0]['im_id'], image_t_vis)
+        # nl = len(mosaic_gt_bboxes)  # number of labels
+        # if nl:
+        #     mosaic_gt_bboxes[:, 0:4] = xyxy2xywhn(labels[:, 1:5], w=img.shape[1], h=img.shape[0], clip=True, eps=1E-3)
 
         sample = sample[0]  # list to one sample
         sample['image'] = mosaic_img.astype(np.uint8)
@@ -2142,7 +2140,7 @@ class Mixup(BaseOperator):
             gt_score2 = np.ones_like(sample[1]['gt_class'])
             gt_score = np.concatenate(
                 (gt_score1 * factor, gt_score2 * (1. - factor)), axis=0)
-            result['gt_score'] = gt_score.astype('float32')
+            result['gt_score'] = gt_score
         if 'is_crowd' in sample[0]:
             is_crowd1 = sample[0]['is_crowd']
             is_crowd2 = sample[1]['is_crowd']
@@ -2427,8 +2425,8 @@ class Pad(BaseOperator):
                 im_h < h and im_w < w
             ), '(h, w) of target size should be greater than (im_h, im_w)'
         else:
-            h = int(np.ceil(im_h / self.size_divisor) * self.size_divisor)
-            w = int(np.ceil(im_w / self.size_divisor) * self.size_divisor)
+            h = np.ceil(im_h / self.size_divisor) * self.size_divisor
+            w = np.ceil(im_w / self.size_divisor) * self.size_divisor
 
         if h == im_h and w == im_w:
             return sample
@@ -3556,7 +3554,8 @@ class LetterBox(BaseOperator):
 
 @register_op
 class DecodeNormResize(BaseOperator):
-    def __init__(self, target_size, keep_ratio=True, to_rgb=False):
+    def __init__(self, target_size, keep_ratio=True, to_rgb=False,
+                 mosaic=False):
         super(DecodeNormResize, self).__init__()
         self.keep_ratio = keep_ratio
         if not isinstance(target_size, (Integral, Sequence)):
@@ -3567,6 +3566,7 @@ class DecodeNormResize(BaseOperator):
             target_size = [target_size, target_size]
         self.target_size = target_size
         self.to_rgb = to_rgb
+        self.mosaic = mosaic
 
     def load_resized_img(self, sample, target_size):
         if 'image' not in sample:
@@ -3600,11 +3600,12 @@ class DecodeNormResize(BaseOperator):
 
         # get resized img
         r = min(target_size[0] / im.shape[0], target_size[1] / im.shape[1])
+        # self.augment = True
         if r != 1:  # if sizes are not equal
             resized_img = cv2.resize(
                 im, (int(im.shape[1] * r), int(im.shape[0] * r)),
-                interpolation=cv2.INTER_AREA
-                if r < 1 else cv2.INTER_LINEAR).astype(np.uint8)
+                interpolation=cv2.INTER_LINEAR
+                if (self.mosaic or r > 1) else cv2.INTER_AREA).astype(np.uint8)
         else:
             resized_img = im
         #print('  im  load_resized_img   ',im.shape, im.sum(), resized_img.shape, resized_img.sum())

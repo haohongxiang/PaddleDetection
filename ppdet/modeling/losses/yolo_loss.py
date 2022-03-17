@@ -264,7 +264,10 @@ class YOLOv5Loss(nn.Layer):
         [[10, 13], [16, 30], [33, 23]]]
         '''
         h, w = targets['image'].shape[2:]
-        nt = int(targets['gt_num'].sum())
+        gt_nums = [len(bbox) for bbox in targets['gt_bbox']]
+        nt = sum(gt_nums)
+
+        # nt = int(targets['gt_num'].sum())
         na = len(anchors)
         tcls, tbox, indices, anch = [], [], [], []
 
@@ -275,7 +278,12 @@ class YOLOv5Loss(nn.Layer):
         batch_size = outputs[0].shape[0]
         gt_labels = []
         for idx in range(batch_size):
-            gt_num = targets['gt_num'][idx]
+            # gt_num = targets['gt_num'][idx]
+            gt_num = gt_nums[idx]
+
+            if gt_num == 0:
+                continue
+
             gt_bbox = targets['gt_bbox'][idx][:gt_num]
             gt_class = targets['gt_class'][idx][:gt_num].unsqueeze(-1) * 1.0
             img_idx = np.repeat(np.array([[idx]]), gt_num, axis=0)
@@ -299,8 +307,9 @@ class YOLOv5Loss(nn.Layer):
                 # [1, 1], [1, -1], [-1, 1], [-1, -1],  # jk,jm,lk,lm
             ],
             dtype=np.float32) * g  # offsets
+
         # TODO
-        anchors = anchors[::-1]
+        # anchors = anchors[::-1]
 
         for i in range(len(anchors)):
             anchor = np.array(anchors[i]) / self.downsample_ratios[i]  #

@@ -73,6 +73,22 @@ class YOLOv3Head(nn.Layer):
             yolo_output = self.add_sublayer(name, conv)
             self.yolo_outputs.append(yolo_output)
 
+        self._initialize_biases()
+
+    def _initialize_biases(
+            self):  # initialize biases into Detect(), cf is class frequency
+        # https://arxiv.org/abs/1708.02002 section 3.3
+        # cf = torch.bincount(torch.tensor(np.concatenate(dataset.labels, 0)[:, 0]).long(), minlength=nc) + 1.
+        import math
+        stride = [8, 16, 32]
+        num_a = 3
+        for i, conv in enumerate(self.yolo_outputs):
+            b = conv.bias.numpy().reshape([3, -1])
+            b[:, 4] += math.log(8 / (640 / stride[i])**2)
+            b[:, 5:] += math.log(0.6 / (num_a - 0.999999))
+            conv.bias.set_value(b.reshape([-1]))
+            # pass
+
     def parse_anchor(self, anchors, anchor_masks):
         self.anchors = [[anchors[i] for i in mask] for mask in anchor_masks]
         self.mask_anchors = []

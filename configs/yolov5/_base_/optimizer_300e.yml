@@ -15,9 +15,9 @@ LearningRate:
   base_lr: 0.01
   schedulers:
   - !YOLOXCosineDecay
-    max_epochs: 150
-    no_aug_epochs: 10
-    min_lr_ratio: 0.05
+    max_epochs: 300
+    no_aug_epochs: 0
+    min_lr_ratio: 0.01
   - !ExpWarmup
     start_lr: 0.
     warmup_epochs: 3
