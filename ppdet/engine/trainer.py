@@ -136,7 +136,7 @@ class Trainer(object):
         if self.mode == 'train':
             steps_per_epoch = len(self.loader)
             self.lr = create('LearningRate')(steps_per_epoch)
-            if 0: #self.cfg.architecture not in ['YOLOX']:
+            if 0:  #self.cfg.architecture not in ['YOLOX']:
                 self.optimizer = create('OptimizerBuilder')(self.lr, self.model)
             else:
                 #self.optimizer = paddle.optimizer.Momentum(
@@ -157,26 +157,41 @@ class Trainer(object):
                 #'''
                 pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
                 for k, v in self.model.named_sublayers():
-                    if hasattr(v, "bias") and isinstance(v.bias, paddle.fluid.framework.ParamBase):
+                    if hasattr(v, "bias") and isinstance(
+                            v.bias, paddle.fluid.framework.ParamBase):
                         pg2.append(v.bias)  # biases
                     if isinstance(v, paddle.nn.BatchNorm2D) or "bn" in k:
                         pg0.append(v.weight)  # no decay
-                    elif hasattr(v, "weight") and isinstance(v.weight, paddle.fluid.framework.ParamBase):
+                    elif hasattr(v, "weight") and isinstance(
+                            v.weight, paddle.fluid.framework.ParamBase):
                         pg1.append(v.weight)  # apply decay
                 optimizer = paddle.optimizer.Momentum(
-                    parameters=[{'params': pg0}], learning_rate=self.lr, grad_clip=None,
-                    momentum=0.937, use_nesterov=True, weight_decay=0.0
-                ) #0.937
+                    parameters=[{
+                        'params': pg0
+                    }],
+                    learning_rate=self.lr,
+                    grad_clip=None,
+                    momentum=0.937,
+                    use_nesterov=True,
+                    weight_decay=0.0)  #0.937
 
-                optimizer._add_param_group(
-                    {"params": pg1, "weight_decay": 0.0005, 'grad_clip': None})
-                    # add pg1 with weight_decay
-                optimizer._add_param_group({"params": pg2, "weight_decay": 0.0, 'grad_clip': None})
-                logger.info(f"optimizer: {type(optimizer).__name__} with parameter groups "
-                    f"{len(pg0)} weight, {len(pg1)} weight (no decay), {len(pg2)} bias")
+                optimizer._add_param_group({
+                    "params": pg1,
+                    "weight_decay": 0.0005,
+                    'grad_clip': None
+                })
+                # add pg1 with weight_decay
+                optimizer._add_param_group({
+                    "params": pg2,
+                    "weight_decay": 0.0,
+                    'grad_clip': None
+                })
+                logger.info(
+                    f"optimizer: {type(optimizer).__name__} with parameter groups "
+                    f"{len(pg0)} weight, {len(pg1)} weight (no decay), {len(pg2)} bias"
+                )
                 self.optimizer = optimizer
                 #'''
-
 
             # Unstructured pruner is only enabled in the train mode.
             if self.cfg.get('unstructured_prune'):
@@ -414,7 +429,7 @@ class Trainer(object):
         # enabel auto mixed precision mode
         if self.cfg.get('amp', False):
             scaler = amp.GradScaler(
-                enable=self.cfg.use_gpu) #, init_loss_scaling=1024)
+                enable=self.cfg.use_gpu)  #, init_loss_scaling=1024)
         else:
             scaler = amp.GradScaler(enable=False)
 
@@ -451,7 +466,7 @@ class Trainer(object):
                 profiler.add_profiler_step(profiler_options)
                 self._compose_callback.on_step_begin(self.status)
                 data['epoch_id'] = epoch_id
-                data['step_id'] = step_id # new add
+                data['step_id'] = step_id  # new add
 
                 if self.cfg.get('amp', False):
                     with amp.auto_cast(enable=self.cfg.use_gpu):
@@ -490,7 +505,7 @@ class Trainer(object):
                     #self.optimizer.clear_grad()
                     scaler.scale(loss).backward()
                     scaler.step(self.optimizer)
-                    scaler.update()                    
+                    scaler.update()
                     '''
                     cnt, non_cnt = 0, 0
                     for name, tensor in model.named_parameters():
@@ -523,7 +538,6 @@ class Trainer(object):
                     '''
                     self.optimizer.clear_grad()
 
-                
                 curr_lr = self.optimizer.get_lr()
                 # self.optimizer.set_lr(curr_lr)
                 self.lr.step()

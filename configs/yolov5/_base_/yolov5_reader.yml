@@ -10,6 +10,7 @@ TrainReader:
     - DecodeNormResize:
         target_size: *input_size
         keep_ratio: True
+        # to_rgb: True
     - BboxPixelXYXY2NormCXCYWH: {}
     - MosaicPerspective: {mosaic_prob: 1.0, target_size: 640} #  # x y w h
     # - LetterBox: {target_size: 640, auto: False, scaleup: False}
@@ -18,15 +19,18 @@ TrainReader:
     - NormalizeImage: {mean: [0, 0, 0], std: [1, 1, 1], is_scale: True}
     - RGBReverse: {}
     - Permute: {}
-  batch_transforms:
-    - Gt2Yolov5Target: 
-        anchor_masks: [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-        anchors: [[10, 13], [16, 30], [33, 23],
-                  [30, 61], [62, 45], [59, 119],
-                  [116, 90], [156, 198], [373, 326]]
-        downsample_ratios: [8, 16, 32]
+
+  # batch_transforms:
+  #   - Gt2Yolov5Target:
+  #       anchor_masks: [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+  #       anchors: [[10, 13], [16, 30], [33, 23],
+  #                 [30, 61], [62, 45], [59, 119],
+  #                 [116, 90], [156, 198], [373, 326]]
+  #       downsample_ratios: [8, 16, 32]
+
   batch_size: 4
-  shuffle: False
+  # shuffle: False
+  shuffle: True
   drop_last: True
   use_shared_memory: True
   collate_batch: True # False TODO

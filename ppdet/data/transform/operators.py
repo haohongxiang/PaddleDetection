@@ -118,17 +118,18 @@ class Albumentations(BaseOperator):
         self.transform = None
         try:
             import albumentations as A
-            self.transform = A.Compose([
-                A.Blur(p=0.01),
-                A.MedianBlur(p=0.01),
-                A.ToGray(p=0.01),
-                A.CLAHE(p=0.01),
-                A.RandomBrightnessContrast(p=0.0),
-                A.RandomGamma(p=0.0),
-                A.ImageCompression(quality_lower=75, p=0.0)],
-                bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels']))
+            self.transform = A.Compose(
+                [
+                    A.Blur(p=0.01), A.MedianBlur(p=0.01), A.ToGray(p=0.01),
+                    A.CLAHE(p=0.01), A.RandomBrightnessContrast(p=0.0),
+                    A.RandomGamma(p=0.0), A.ImageCompression(
+                        quality_lower=75, p=0.0)
+                ],
+                bbox_params=A.BboxParams(
+                    format='yolo', label_fields=['class_labels']))
 
-            logger.info('albumentations works: ' + ', '.join(f'{x}' for x in self.transform.transforms if x.p))
+            logger.info('albumentations works: ' + ', '.join(
+                f'{x}' for x in self.transform.transforms if x.p))
         except ImportError:  # package not installed, skip
             logger.warning('albumentations not installed, so skip.')
             pass
@@ -138,8 +139,10 @@ class Albumentations(BaseOperator):
     def __call__(self, sample, context=None):
         im, labels = sample['image'], sample['gt_bbox']
         if self.transform and random.random() < self.prob:
-            new = self.transform(image=im, bboxes=labels[:, 1:], class_labels=labels[:, 0])
-            im, labels = new['image'], np.array([[c, *b] for c, b in zip(new['class_labels'], new['bboxes'])])
+            new = self.transform(
+                image=im, bboxes=labels[:, 1:], class_labels=labels[:, 0])
+            im, labels = new['image'], np.array(
+                [[c, *b] for c, b in zip(new['class_labels'], new['bboxes'])])
         sample['image'] = im
         sample['gt_bbox'] = labels
         return sample
@@ -150,6 +153,7 @@ class RandomHSV(BaseOperator):
     """
     HSV color-space augmentation
     """
+
     def __init__(self, hgain=0.015, sgain=0.7, vgain=0.4):
         super(RandomHSV, self).__init__()
         self.gains = [hgain, sgain, vgain]
@@ -175,6 +179,7 @@ class MosaicPerspective(BaseOperator):
     """
     Mosaic Data Augmentation and Perspective
     """
+
     def __init__(self,
                  mosaic_prob=1.0,
                  target_size=640,
@@ -214,16 +219,20 @@ class MosaicPerspective(BaseOperator):
     def _mosaic_preprocess(self, sample):
         s = self.target_size
         # select mosaic center (x, y)
-        yc, xc = (int(random.uniform(-x, 2 * s + x)) for x in self.mosaic_border)
+        yc, xc = (int(random.uniform(-x, 2 * s + x))
+                  for x in self.mosaic_border)
         gt_bboxes = [x['gt_bbox'] for x in sample]
         for i in range(len(sample)):
             im = sample[i]['image']
             h, w, c = im.shape
 
             if i == 0:  # top left. background
-                image = np.ones((s * 2, s * 2, c), dtype=np.uint8) * self.fill_value
-                x1a, y1a, x2a, y2a = max(xc - w, 0), max(yc - h, 0), xc, yc  # xmin, ymin, xmax, ymax (large image)
-                x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (y2a - y1a), w, h  # xmin, ymin, xmax, ymax (small image)
+                image = np.ones(
+                    (s * 2, s * 2, c), dtype=np.uint8) * self.fill_value
+                x1a, y1a, x2a, y2a = max(xc - w, 0), max(
+                    yc - h, 0), xc, yc  # xmin, ymin, xmax, ymax (large image)
+                x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (
+                    y2a - y1a), w, h  # xmin, ymin, xmax, ymax (small image)
             elif i == 1:  # top right
                 x1a, y1a, x2a, y2a = xc, max(yc - h, 0), min(xc + w, s * 2), yc
                 x1b, y1b, x2b, y2b = 0, h - (y2a - y1a), min(w, x2a - x1a), h
@@ -231,7 +240,8 @@ class MosaicPerspective(BaseOperator):
                 x1a, y1a, x2a, y2a = max(xc - w, 0), yc, xc, min(s * 2, yc + h)
                 x1b, y1b, x2b, y2b = w - (x2a - x1a), 0, w, min(y2a - y1a, h)
             elif i == 3:  # bottom right
-                x1a, y1a, x2a, y2a = xc, yc, min(xc + w, s * 2), min(s * 2, yc + h)
+                x1a, y1a, x2a, y2a = xc, yc, min(xc + w, s * 2), min(s * 2,
+                                                                     yc + h)
                 x1b, y1b, x2b, y2b = 0, 0, min(w, x2a - x1a), min(y2a - y1a, h)
 
             image[y1a:y2a, x1a:x2a] = im[y1b:y2b, x1b:x2b]
@@ -240,7 +250,8 @@ class MosaicPerspective(BaseOperator):
             gt_bboxes[i] = self.xywhn2xyxy(gt_bboxes[i], w, h, padw, padh)
 
         gt_bboxes = np.concatenate(gt_bboxes, axis=0)
-        gt_bboxes = np.clip(gt_bboxes, 0, s * 2) # clip when using random_perspective()
+        gt_bboxes = np.clip(gt_bboxes, 0,
+                            s * 2)  # clip when using random_perspective()
 
         # copy_paste=0
         return image, gt_bboxes
@@ -288,9 +299,9 @@ class MosaicPerspective(BaseOperator):
         # M = np.eye(3)
         # for cM in [T, S, R, P, C]:
         #     M = np.matmul(M, cM)
-            
-        M = T @ S @ R @ P @ C
-        
+
+        M = T @S @R @P @C
+
         if (self.border[0] != 0) or (self.border[1] != 0) or (
                 M != np.eye(3)).any():
             if self.perspective:
@@ -312,7 +323,7 @@ class MosaicPerspective(BaseOperator):
                 height,
                 area_thr=0.25,
                 perspective=self.perspective)
-        return sample    
+        return sample
 
     def _mixup(self, im, labels, im2, labels2):
         # Applies MixUp augmentation https://arxiv.org/pdf/1710.09412.pdf
@@ -321,10 +332,19 @@ class MosaicPerspective(BaseOperator):
         labels = np.concatenate((labels, labels2), 0)
         return im, labels
 
-    def random_perspective(self, im, gt_classes, gt_box, degrees=10, translate=.1, scale=.1, shear=10, perspective=0.0, border=(0, 0)):
+    def random_perspective(self,
+                           im,
+                           gt_classes,
+                           gt_box,
+                           degrees=10,
+                           translate=.1,
+                           scale=.1,
+                           shear=10,
+                           perspective=0.0,
+                           border=(0, 0)):
         # torchvision.transforms.RandomAffine(degrees=(-10, 10), translate=(0.1, 0.1), scale=(0.9, 1.1), shear=(-10, 10))
         # targets = [cls, xyxy]
-        targets =  np.concatenate((gt_classes, gt_box), 1)
+        targets = np.concatenate((gt_classes, gt_box), 1)
 
         height = im.shape[0] + border[0] * 2  # shape(h,w,c)
         width = im.shape[1] + border[1] * 2
@@ -336,8 +356,10 @@ class MosaicPerspective(BaseOperator):
 
         # Perspective
         P = np.eye(3)
-        P[2, 0] = random.uniform(-perspective, perspective)  # x perspective (about y)
-        P[2, 1] = random.uniform(-perspective, perspective)  # y perspective (about x)
+        P[2, 0] = random.uniform(-perspective,
+                                 perspective)  # x perspective (about y)
+        P[2, 1] = random.uniform(-perspective,
+                                 perspective)  # y perspective (about x)
 
         # Rotation and Scale
         R = np.eye(3)
@@ -349,21 +371,31 @@ class MosaicPerspective(BaseOperator):
 
         # Shear
         S = np.eye(3)
-        S[0, 1] = math.tan(random.uniform(-shear, shear) * math.pi / 180)  # x shear (deg)
-        S[1, 0] = math.tan(random.uniform(-shear, shear) * math.pi / 180)  # y shear (deg)
+        S[0, 1] = math.tan(random.uniform(-shear, shear) * math.pi /
+                           180)  # x shear (deg)
+        S[1, 0] = math.tan(random.uniform(-shear, shear) * math.pi /
+                           180)  # y shear (deg)
 
         # Translation
         T = np.eye(3)
-        T[0, 2] = random.uniform(0.5 - translate, 0.5 + translate) * width  # x translation (pixels)
-        T[1, 2] = random.uniform(0.5 - translate, 0.5 + translate) * height  # y translation (pixels)
+        T[0, 2] = random.uniform(
+            0.5 - translate, 0.5 + translate) * width  # x translation (pixels)
+        T[1, 2] = random.uniform(
+            0.5 - translate, 0.5 + translate) * height  # y translation (pixels)
 
         # Combined rotation matrix
-        M = T @ S @ R @ P @ C  # order of operations (right to left) is IMPORTANT
-        if (border[0] != 0) or (border[1] != 0) or (M != np.eye(3)).any():  # image changed
+        M = T @S @R @P @C  # order of operations (right to left) is IMPORTANT
+        if (border[0] != 0) or (border[1] != 0) or (
+                M != np.eye(3)).any():  # image changed
             if perspective:
-                im = cv2.warpPerspective(im, M, dsize=(width, height), borderValue=(114, 114, 114))
+                im = cv2.warpPerspective(
+                    im, M, dsize=(width, height), borderValue=(114, 114, 114))
             else:  # affine
-                im = cv2.warpAffine(im, M[:2], dsize=(width, height), borderValue=(114, 114, 114))
+                im = cv2.warpAffine(
+                    im,
+                    M[:2],
+                    dsize=(width, height),
+                    borderValue=(114, 114, 114))
 
         # Visualize
         # import matplotlib.pyplot as plt
@@ -377,66 +409,79 @@ class MosaicPerspective(BaseOperator):
             use_segments = False
             if 1:  # warp boxes
                 xy = np.ones((n * 4, 3))
-                xy[:, :2] = targets[:, [1, 2, 3, 4, 1, 4, 3, 2]].reshape(n * 4, 2)  # x1y1, x2y2, x1y2, x2y1
-                xy = xy @ M.T  # transform
-                xy = (xy[:, :2] / xy[:, 2:3] if perspective else xy[:, :2]).reshape(n, 8)  # perspective rescale or affine
+                xy[:, :2] = targets[:, [1, 2, 3, 4, 1, 4, 3, 2]].reshape(
+                    n * 4, 2)  # x1y1, x2y2, x1y2, x2y1
+                xy = xy @M.T  # transform
+                xy = (xy[:, :2] / xy[:, 2:3] if perspective else
+                      xy[:, :2]).reshape(n, 8)  # perspective rescale or affine
 
                 # create new boxes
                 x = xy[:, [0, 2, 4, 6]]
                 y = xy[:, [1, 3, 5, 7]]
-                new = np.concatenate((x.min(1), y.min(1), x.max(1), y.max(1))).reshape(4, n).T
+                new = np.concatenate(
+                    (x.min(1), y.min(1), x.max(1), y.max(1))).reshape(4, n).T
 
                 # clip
                 new[:, [0, 2]] = new[:, [0, 2]].clip(0, width)
                 new[:, [1, 3]] = new[:, [1, 3]].clip(0, height)
 
             # filter candidates
-            i = self.box_candidates(box1=targets[:, 1:5].T * s, box2=new.T, area_thr=0.01 if use_segments else 0.10)
+            i = self.box_candidates(
+                box1=targets[:, 1:5].T * s,
+                box2=new.T,
+                area_thr=0.01 if use_segments else 0.10)
             targets = targets[i]
             targets[:, 1:5] = new[i]
 
         return im, targets[:, 0:1], targets[:, 1:5]
 
-    def box_candidates(self, box1, box2, wh_thr=2, ar_thr=100, area_thr=0.1, eps=1e-16):  # box1(4,n), box2(4,n)
+    def box_candidates(self,
+                       box1,
+                       box2,
+                       wh_thr=2,
+                       ar_thr=100,
+                       area_thr=0.1,
+                       eps=1e-16):  # box1(4,n), box2(4,n)
         # Compute candidate boxes: box1 before augment, box2 after augment, wh_thr (pixels), aspect_ratio_thr, area_ratio
         w1, h1 = box1[2] - box1[0], box1[3] - box1[1]
         w2, h2 = box2[2] - box2[0], box2[3] - box2[1]
         ar = np.maximum(w2 / (h2 + eps), h2 / (w2 + eps))  # aspect ratio
-        return (w2 > wh_thr) & (h2 > wh_thr) & (w2 * h2 / (w1 * h1 + eps) > area_thr) & (ar < ar_thr)  # candidates
+        return (w2 > wh_thr) & (h2 > wh_thr) & (
+            w2 * h2 / (w1 * h1 + eps) > area_thr) & (ar < ar_thr)  # candidates
 
     def __call__(self, sample, context=None):
         # current sample and other 3 samples to a new sample
         if not isinstance(sample, Sequence):
             return sample
-        assert len(sample) == 4 or len(sample) == 9, 'YOLOv5 Mosaic need 4 or 9 samples'
-        
+        assert len(sample) == 4 or len(
+            sample) == 9, 'YOLOv5 Mosaic need 4 or 9 samples'
+
         if random.random() >= self.mosaic_prob:
             return sample[0]
-        
+
+        random.shuffle(sample)
+
         mosaic_img, mosaic_gt_bboxes = self._mosaic_preprocess(sample)
 
         gt_classes = np.concatenate([x['gt_class'] for x in sample], axis=0)
-        mosaic_img, gt_classes, mosaic_gt_bboxes = self.random_perspective(mosaic_img,
-                                                                gt_classes,
-                                                                mosaic_gt_bboxes,
-                                                                self.degrees,
-                                                                self.translate,
-                                                                self.scale,
-                                                                self.shear,
-                                                                self.perspective,
-                                                                self.mosaic_border)
+        mosaic_img, gt_classes, mosaic_gt_bboxes = self.random_perspective(
+            mosaic_img, gt_classes, mosaic_gt_bboxes, self.degrees,
+            self.translate, self.scale, self.shear, self.perspective,
+            self.mosaic_border)
 
         #draws = np.concatenate((mosaic_gt_bboxes, gt_classes), 1)
         #image_t_vis = visbox(mosaic_img, draws)
         #cv2.imwrite('%d_padresize.jpg' % sample[0]['im_id'], image_t_vis)
 
-        sample = sample[0] # list to one sample
+        sample = sample[0]  # list to one sample
         sample['image'] = mosaic_img.astype(np.uint8)
-        sample['gt_bbox'] = mosaic_gt_bboxes #gt_bboxes
+        sample['gt_bbox'] = mosaic_gt_bboxes  #gt_bboxes
         sample['gt_class'] = gt_classes
 
         if 'difficult' in sample:
-            sample.pop('difficult') #difficult = np.concatenate([x['difficult'] for x in sample], axis=0)
+            sample.pop(
+                'difficult'
+            )  #difficult = np.concatenate([x['difficult'] for x in sample], axis=0)
 
         #sample = self._random_affine(sample, self.mosaic_border)
         return sample
@@ -449,14 +494,12 @@ def visbox(image, tlbr_cls_crds):
 
         id_text = 'cls_{}'.format(int(cls_))
         cv2.rectangle(
-            image, intbox[0:2], intbox[2:4], color=(255,255,0), thickness=1)
+            image, intbox[0:2], intbox[2:4], color=(255, 255, 0), thickness=1)
         cv2.putText(
             image,
-            id_text,
-            (intbox[0], intbox[1] - 10),
+            id_text, (intbox[0], intbox[1] - 10),
             cv2.FONT_HERSHEY_PLAIN,
-            1,
-            (0, 0, 255),
+            1, (0, 0, 255),
             thickness=1)
     return image
 
@@ -2552,6 +2595,7 @@ class BboxPixelXYXY2NormCXCYWH(BaseOperator):
     Convert Pixel XYXY format to Norm CXCYWH format.
     [x0, y0, x1, y1] -> [center_x, center_y, width, height]
     """
+
     def __init__(self, clip=True, eps=1E-3):
         super(BboxPixelXYXY2NormCXCYWH, self).__init__()
         self.clip = clip
@@ -3407,13 +3451,14 @@ class LetterBox(BaseOperator):
         stride (float):
     """
 
-    def __init__(self,
-                 target_size=640,
-                 color=(114, 114, 114),
-                 auto=True, # False in trainset
-                 scaleFill=False,
-                 scaleup=True, # False in trainset augement
-                 stride=32):
+    def __init__(
+            self,
+            target_size=640,
+            color=(114, 114, 114),
+            auto=True,  # False in trainset
+            scaleFill=False,
+            scaleup=True,  # False in trainset augement
+            stride=32):
         super(LetterBox, self).__init__()
         if not isinstance(target_size, (Integral, Sequence)):
             raise TypeError(
@@ -3458,7 +3503,9 @@ class LetterBox(BaseOperator):
 
         top, bottom = int(round(padh - 0.1)), int(round(padh + 0.1))
         left, right = int(round(padw - 0.1)), int(round(padw + 0.1))
-        img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color) # add border
+        img = cv2.copyMakeBorder(
+            img, top, bottom, left, right, cv2.BORDER_CONSTANT,
+            value=color)  # add border
         return img, ratio, padw, padh
 
     def apply_bbox(self, x, w=640, h=640, padw=0, padh=0):
@@ -3474,7 +3521,6 @@ class LetterBox(BaseOperator):
         img = sample['image']
         h0, w0 = sample['h'], sample['w']  #sample['im_shape']
         resized_h, resized_w = sample['im_shape']
-
         '''
         resized_ratio = self.img_size / max(h0, w0)
         if resized_ratio != 1:  # if sizes are not equal
@@ -3495,15 +3541,17 @@ class LetterBox(BaseOperator):
         new_h, new_w = img.shape[:2]
         scale_h_ratio = new_h / h0
         scale_w_ratio = new_w / w0
-        sample['scale_factor'] = np.asarray([scale_h_ratio, scale_w_ratio], dtype=np.float32)
-        
+        sample['scale_factor'] = np.asarray(
+            [scale_h_ratio, scale_w_ratio], dtype=np.float32)
+
         # apply bbox only when trainning
         if 'gt_bbox' in sample and len(sample['gt_bbox']) > 0:
             gt_bboxes = sample['gt_bbox']
-            sample['gt_bbox'] = self.apply_bbox(gt_bboxes, ratio[0] * resized_w, ratio[1] * resized_h, padw, padh)
+            sample['gt_bbox'] = self.apply_bbox(gt_bboxes, ratio[0] * resized_w,
+                                                ratio[1] * resized_h, padw,
+                                                padh)
             sample['gt_num'] = len(sample['gt_bbox'])
         return sample
-
 
 
 @register_op
@@ -3523,7 +3571,7 @@ class DecodeNormResize(BaseOperator):
     def load_resized_img(self, sample, target_size):
         if 'image' not in sample:
             img_file = sample['im_file']
-            sample['image'] = cv2.imread(img_file) # BGR
+            sample['image'] = cv2.imread(img_file)  # BGR
             sample.pop('im_file')
         im = sample['image']
 
@@ -3547,23 +3595,23 @@ class DecodeNormResize(BaseOperator):
                 "image width.".format(im.shape[1], sample['w']))
             sample['w'] = im.shape[1]
 
-        sample['im_shape'] = np.array(im.shape[:2], dtype=np.float32) # original shape
+        sample['im_shape'] = np.array(
+            im.shape[:2], dtype=np.float32)  # original shape
 
         # get resized img
         r = min(target_size[0] / im.shape[0], target_size[1] / im.shape[1])
         if r != 1:  # if sizes are not equal
             resized_img = cv2.resize(
-                im,
-                (int(im.shape[1] * r), int(im.shape[0] * r)),
-                interpolation=cv2.INTER_AREA if r < 1 else cv2.INTER_LINEAR
-            ).astype(np.uint8)
+                im, (int(im.shape[1] * r), int(im.shape[0] * r)),
+                interpolation=cv2.INTER_AREA
+                if r < 1 else cv2.INTER_LINEAR).astype(np.uint8)
         else:
             resized_img = im
         #print('  im  load_resized_img   ',im.shape, im.sum(), resized_img.shape, resized_img.sum())
-        
+
         if self.to_rgb:
             resized_img = cv2.cvtColor(resized_img, cv2.COLOR_BGR2RGB)
-        
+
         sample['image'] = resized_img
         sample['scale_factor'] = np.array([r, r], dtype=np.float32)
         return sample, r
@@ -3572,7 +3620,7 @@ class DecodeNormResize(BaseOperator):
         sample, before_r = self.load_resized_img(sample, self.target_size)
         image = sample['image']
         im_shape = image.shape
-        if self.keep_ratio: # always true
+        if self.keep_ratio:  # always true
             im_size_min = np.min(im_shape[0:2])
             im_size_max = np.max(im_shape[0:2])
 
@@ -3601,7 +3649,7 @@ class DecodeNormResize(BaseOperator):
         else:
             sample['scale_factor'] = np.asarray(
                 [im_scale_y, im_scale_x], dtype=np.float32)
-        
+
         # train reader
         if 'gt_bbox' in sample:
             norm_gt_box = sample['gt_bbox']
