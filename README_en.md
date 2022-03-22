@@ -2,13 +2,14 @@
 
 name | mAP | model
 --- | --- | ---
-yolov5-s | - | -
+[yolov5-s](./configs/yolov5/yolov5_s_coco.yml) | - | -
 
 
 ## reference
 - https://github.com/ultralytics/yolov5
+- https://github.com/nemonameless/PaddleDetection/tree/add_yolov5
 
-
+---
 
 
 English | [简体中文](README_cn.md)
