@@ -228,11 +228,8 @@ class YOLOv5Loss(nn.Layer):
         self.no = self.num_classes + 4 + 1
         self.gr = 1.0
 
-        # self.BCEcls = nn.BCEWithLogitsLoss(reduction="none")
-        # self.BCEobj = nn.BCEWithLogitsLoss(reduction="none")
-
-        self.BCEcls = nn.BCEWithLogitsLoss()
-        self.BCEobj = nn.BCEWithLogitsLoss()
+        self.BCEcls = nn.BCEWithLogitsLoss(reduction="none")
+        self.BCEobj = nn.BCEWithLogitsLoss(reduction="none")
 
         self.loss_weights = {
             'box': box_weight,
@@ -265,29 +262,28 @@ class YOLOv5Loss(nn.Layer):
         '''
         h, w = targets['image'].shape[2:]
         gt_nums = [len(bbox) for bbox in targets['gt_bbox']]
-        nt = sum(gt_nums)
-
-        # nt = int(targets['gt_num'].sum())
+        # nt =
+        nt = int(sum(gt_nums))
         na = len(anchors)
         tcls, tbox, indices, anch = [], [], [], []
 
         gain = np.ones(7, dtype=np.float32)  # normalized to gridspace gain
         ai = np.repeat(np.arange(na).reshape(na, 1), nt, axis=1)
-        ai = paddle.to_tensor(ai, dtype='float32').unsqueeze(-1)
+        ai = paddle.to_tensor(ai, dtype='float64').unsqueeze(-1)
 
         batch_size = outputs[0].shape[0]
         gt_labels = []
         for idx in range(batch_size):
-            # gt_num = targets['gt_num'][idx]
             gt_num = gt_nums[idx]
-
             if gt_num == 0:
                 continue
-
+                print('没有gt')
+                print(targets['gt_bbox'][idx])
+                print(targets['gt_class'][idx])
             gt_bbox = targets['gt_bbox'][idx][:gt_num]
-            gt_class = targets['gt_class'][idx][:gt_num].unsqueeze(-1) * 1.0
+            gt_class = targets['gt_class'][idx][:gt_num] * 1.0
             img_idx = np.repeat(np.array([[idx]]), gt_num, axis=0)
-            img_idx = paddle.to_tensor(img_idx, dtype='float32')
+            img_idx = paddle.to_tensor(img_idx, dtype='float64')
             gt_labels.append(
                 paddle.concat(
                     (img_idx, gt_class, gt_bbox), axis=-1))
@@ -307,10 +303,7 @@ class YOLOv5Loss(nn.Layer):
                 # [1, 1], [1, -1], [-1, 1], [-1, -1],  # jk,jm,lk,lm
             ],
             dtype=np.float32) * g  # offsets
-
-        # TODO
         # anchors = anchors[::-1]
-
         for i in range(len(anchors)):
             anchor = np.array(anchors[i]) / self.downsample_ratios[i]  #
             gain[2:6] = np.array(
@@ -362,22 +355,23 @@ class YOLOv5Loss(nn.Layer):
         return tcls, tbox, indices, anch
 
     def yolov5_loss(self, pi, t_cls, t_box, t_indices, t_anchor, balance):
+        loss = dict()
         b, a, gj, gi = t_indices  # image, anchor, gridy, gridx
         n = b.shape[0]  # number of targets
-
-        loss = dict()
-        loss['loss_box'] = paddle.to_tensor([0.])
-        loss['loss_obj'] = paddle.to_tensor([0.])
-        loss['loss_cls'] = paddle.to_tensor([0.])
-
-        tobj = paddle.zeros_like(pi[:, :, :, :, 0])  # [4, 3, 80, 80]
+        tobj = paddle.zeros_like(pi[:, :, :, :, 0])
         tobj.stop_gradient = True
+        loss_box = paddle.to_tensor([0.])
+        loss_cls = paddle.to_tensor([0.])
+        if n:
+            # if n <= 0:
+            #     # print('---------------------------------------------------')
+            #     loss['loss_box'] = paddle.to_tensor([0.])
+            #     loss['loss_obj'] = paddle.to_tensor([0.])
+            #     loss['loss_cls'] = paddle.to_tensor([0.])
+            #     return loss
 
-        if n > 0:
-            # loss['loss_box'] = paddle.to_tensor([0.])
-            # loss['loss_obj'] = paddle.to_tensor([0.])
-            # loss['loss_cls'] = paddle.to_tensor([0.])
-            # return loss
+            # tobj = paddle.zeros_like(pi[:, :, :, :, 0])  # [4, 3, 80, 80]
+            # tobj.stop_gradient = True
 
             ps = pi[b, a, gj, gi]  # TODO, fix in paddle 2.2.1
             # [4, 3, 80, 80, 85] -> [21, 85]
@@ -393,8 +387,7 @@ class YOLOv5Loss(nn.Layer):
             loss_box = (1.0 - iou).mean()
 
             # Objectness
-            score_iou = iou.clip(0)
-            score_iou.stop_gradient = True
+            score_iou = iou.detach().clip(0)
             tobj[b, a, gj, gi] = (1.0 - self.gr
                                   ) + self.gr * score_iou  # iou ratio
 
@@ -402,26 +395,21 @@ class YOLOv5Loss(nn.Layer):
             t = paddle.full_like(ps[:, 5:], self.cn)
             t[range(n), t_cls] = self.cp
             t.stop_gradient = True
-            loss_cls = self.BCEcls(ps[:, 5:], t)  # .mean()
+            loss_cls = self.BCEcls(ps[:, 5:], t).mean()
 
-            loss['loss_box'] += loss_box
-            loss['loss_cls'] += loss_cls
+        obji = self.BCEobj(pi[:, :, :, :, 4], tobj).mean()  # [4, 3, 80, 80]
+        # print(pi[:, :, :, :, 4].mean(), tobj.mean())
 
-        obji = self.BCEobj(pi[:, :, :, :, 4], tobj)  # .mean() # [4, 3, 80, 80]
+        loss_obj = obji * balance
 
-        loss['loss_obj'] += obji * balance
+        loss['loss_box'] = loss_box * self.loss_weights['box']
+        loss['loss_obj'] = loss_obj * self.loss_weights['obj']
+        loss['loss_cls'] = loss_cls * self.loss_weights['cls']
 
         return loss
 
     def forward(self, outputs, targets, anchors):
         assert len(outputs) == len(anchors)
-
-        # targets = {}
-        # targets['image'] = paddle.rand([1, 3, 320, 320])
-        # targets['gt_num'] = np.array([3, ])
-        # targets['gt_bbox'] = paddle.to_tensor(bbox)
-        # targets['gt_class'] = paddle.zeros([1, 3,])
-
         batch_size = outputs[0].shape[0]
         yolo_losses = dict()
         #print('pred shape', [x.shape for x in outputs])
@@ -450,9 +438,9 @@ class YOLOv5Loss(nn.Layer):
 
             for k, v in yolo_loss.items():
                 if k in yolo_losses:
-                    yolo_losses[k] += v * self.loss_weights[k]
+                    yolo_losses[k] += v
                 else:
-                    yolo_losses[k] = v * self.loss_weights[k]
+                    yolo_losses[k] = v
 
         loss = 0
         for k, v in yolo_losses.items():

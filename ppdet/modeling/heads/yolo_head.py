@@ -72,7 +72,6 @@ class YOLOv3Head(nn.Layer):
             conv.skip_quant = True
             yolo_output = self.add_sublayer(name, conv)
             self.yolo_outputs.append(yolo_output)
-
         self._initialize_biases()
 
     def _initialize_biases(
@@ -88,6 +87,13 @@ class YOLOv3Head(nn.Layer):
             b[:, 5:] += math.log(0.6 / (num_a - 0.999999))
             conv.bias.set_value(b.reshape([-1]))
             # pass
+
+        # m = self.model[-1]  # Detect() module
+        # for mi, s in zip(m.m, m.stride):  # from
+        #     b = mi.bias.view(m.na, -1)  # conv.bias(255) to (3,85)
+        #     b.data[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
+        #     b.data[:, 5:] += math.log(0.6 / (m.nc - 0.999999)) if cf is None else torch.log(cf / cf.sum())  # cls
+        #     mi.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
 
     def parse_anchor(self, anchors, anchor_masks):
         self.anchors = [[anchors[i] for i in mask] for mask in anchor_masks]

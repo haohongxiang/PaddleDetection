@@ -11,7 +11,7 @@ depth_factor: 0.33
 width_factor: 0.50
 
 log_iter: 20
-snapshot_epoch: 1
+snapshot_epoch: 8
 
 input_height: &input_height 640
 input_width: &input_width 640
@@ -57,7 +57,14 @@ EvalReader:
     - LetterBox: {target_size: 640, auto: True, scaleup: True}
     - NormalizeImage: {mean: [0, 0, 0], std: [1, 1, 1], is_scale: True}
     - Permute: {}
-  batch_size: 8
+  batch_size: 1
+# EvalReader:
+#   sample_transforms:
+#     - Decode: {}
+#     - Resize: {target_size: *input_size, keep_ratio: True}
+#     - PadImage: {target_size: *input_size, fill_value: 114}
+#     - Permute: {}
+#   batch_size: 1
 
 
 TestReader:

@@ -504,10 +504,11 @@ class CenterNetPostProcess(TTFBox):
         boxes_shape = bboxes.shape[:]
         scale_expand = paddle.expand(scale_expand, shape=boxes_shape)
         bboxes = paddle.divide(bboxes, scale_expand)
-        results = paddle.concat([clses, scores, bboxes], axis=1)
         if self.for_mot:
+            results = paddle.concat([bboxes, scores, clses], axis=1)
             return results, inds, topk_clses
         else:
+            results = paddle.concat([clses, scores, bboxes], axis=1)
             return results, paddle.shape(results)[0:1], topk_clses
 
 
@@ -742,7 +743,7 @@ class YOLOv5PostProcess(object):
         self.max_bbox_num = paddle.to_tensor(np.array([max_det], dtype='int32'))
 
     def scale_coords(self, coords, im_shape, scale_factor):
-        img0_shape = im_shape[0].numpy()  
+        img0_shape = im_shape[0].numpy()
         scale_h_ratio = scale_factor[:, 0].numpy()
         scale_w_ratio = scale_factor[:, 1].numpy()
         ratio = min(scale_h_ratio, scale_w_ratio)
@@ -761,7 +762,8 @@ class YOLOv5PostProcess(object):
         """
         Decode the bbox and do NMS in YOLOX.
         """
-        bboxes_maxwh, score, out_clses, out_scores, out_boxes = self.decode(yolo_head_outs, anchors)
+        bboxes_maxwh, score, out_clses, out_scores, out_boxes = self.decode(
+            yolo_head_outs, anchors)
         bbox_pred_maxwh, bbox_num, nms_keep_idx = self.nms(bboxes_maxwh, score)
         '''
         if len(nms_keep_idx) == 0:
@@ -772,11 +774,11 @@ class YOLOv5PostProcess(object):
         bbox_coords = paddle.gather_nd(out_boxes, nms_keep_idx)
         bbox_coords = self.scale_coords(bbox_coords, im_shape, scale_factor)
         # num_id, score, xmin, ymin, xmax, ymax
-        bbox_pred = paddle.concat((bbox_clses, bbox_scores, bbox_coords), axis=-1)
+        bbox_pred = paddle.concat(
+            (bbox_clses, bbox_scores, bbox_coords), axis=-1)
         '''
         if bbox_pred.shape[0] > self.max_det:
             bbox_pred = bbox_pred[:self.max_det]
             bbox_num = self.max_bbox_num
         '''
         return bbox_pred, bbox_num
-        
