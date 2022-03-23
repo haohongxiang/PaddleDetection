@@ -491,10 +491,9 @@ class Trainer(object):
                     xi = [0, nw]
                     for j, x in enumerate(self.optimizer._param_groups):
                         # bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
-                        # x['learning_rate'] = np.interp(ni, xi, [0.1 if j == 2 else 0.0, lf(epoch_id)])
-                        # if 'momentum' in x:
-                        #     x['momentum'] = np.interp(ni, xi, [0.8, 0.937])
-                        pass
+                        # if 'learning_rate' in x:
+                        x['learning_rate'] = np.interp(
+                            ni, xi, [0.1 if j == 2 else 0.0, lf(epoch_id)])
 
                     self.optimizer._momentum = np.interp(ni, xi, [0.8, 0.937])
                     self.optimizer._default_dict['momentum'] = np.interp(
@@ -503,6 +502,11 @@ class Trainer(object):
                 else:
                     self.optimizer._momentum = 0.937
                     self.optimizer._default_dict['momentum'] = 0.937
+
+                    for j, x in enumerate(self.optimizer._param_groups):
+                        # x['learning_rate'] = self.optimizer.get_lr()
+                        if 'learning_rate' in x:
+                            x.pop('learning_rate')
 
                 self.status['data_time'].update(time.time() - iter_tic)
                 self.status['step_id'] = step_id
