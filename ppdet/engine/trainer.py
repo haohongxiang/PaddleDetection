@@ -193,6 +193,19 @@ class Trainer(object):
                 self.optimizer = optimizer
                 #'''
 
+                # ni = len(self.loader) * epoch_id + step_id 
+                # nw = 3 * len(self.loader)
+                # # # Warmup
+                # if ni <= nw:
+                #     xi = [0, nw]
+                #     for j, x in enumerate(self.optimizer._param_groups):
+                #         # bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
+                #         x['learning_rate'] = np.interp(ni, xi, [0.1 if j == 2 else 0.0, lf(epoch_id)])
+                #         if 'momentum' in x:
+                #             x['momentum'] = np.interp(ni, xi, [0.8, 0.937])
+
+                # set_lr(self, value)
+
             # Unstructured pruner is only enabled in the train mode.
             if self.cfg.get('unstructured_prune'):
                 self.pruner = create('UnstructuredPruner')(self.model,
@@ -453,6 +466,14 @@ class Trainer(object):
 
         self._compose_callback.on_train_begin(self.status)
 
+        import math
+
+        def one_cycle(y1=0.0, y2=1.0, steps=100):
+            # lambda function for sinusoidal ramp from y1 to y2 https://arxiv.org/pdf/1812.01187.pdf
+            return lambda x: ((1 - math.cos(x * math.pi / steps)) / 2) * (y2 - y1) + y1
+
+        lf = one_cycle(1, 0.1, 300)
+
         for epoch_id in range(self.start_epoch, self.cfg.epoch):
             self.status['mode'] = 'train'
             self.status['epoch_id'] = epoch_id
@@ -460,7 +481,29 @@ class Trainer(object):
             self.loader.dataset.set_epoch(epoch_id)
             model.train()
             iter_tic = time.time()
+
             for step_id, data in enumerate(self.loader):
+
+                ni = len(self.loader) * epoch_id + step_id
+                nw = 3 * len(self.loader)
+                # # Warmup
+                if ni <= nw:
+                    xi = [0, nw]
+                    for j, x in enumerate(self.optimizer._param_groups):
+                        # bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
+                        # x['learning_rate'] = np.interp(ni, xi, [0.1 if j == 2 else 0.0, lf(epoch_id)])
+                        # if 'momentum' in x:
+                        #     x['momentum'] = np.interp(ni, xi, [0.8, 0.937])
+                        pass
+
+                    self.optimizer._momentum = np.interp(ni, xi, [0.8, 0.937])
+                    self.optimizer._default_dict['momentum'] = np.interp(
+                        ni, xi, [0.8, 0.937])
+
+                else:
+                    self.optimizer._momentum = 0.937
+                    self.optimizer._default_dict['momentum'] = 0.937
+
                 self.status['data_time'].update(time.time() - iter_tic)
                 self.status['step_id'] = step_id
                 profiler.add_profiler_step(profiler_options)
