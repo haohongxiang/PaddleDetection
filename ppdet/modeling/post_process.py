@@ -780,4 +780,3 @@ class YOLOv5PostProcess(object):
             bbox_num = self.max_bbox_num
         '''
         return bbox_pred, bbox_num
-        

@@ -82,3 +82,12 @@ ppdet/version.py
 
 # NPU meta folder
 kernel_meta/
+
+
+*.pdparams
+*.bak
+*.DS_Store
+*.pdparams
+*log*
+*opt*
+yes*

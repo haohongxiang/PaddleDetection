@@ -19,6 +19,7 @@ from . import category
 from . import keypoint_coco
 from . import mot
 from . import sniper_coco
+from . import mydata
 
 from .coco import *
 from .voc import *
@@ -27,3 +28,4 @@ from .category import *
 from .keypoint_coco import *
 from .mot import *
 from .sniper_coco import SniperCOCODataSet
+from .mydata import MyDataSet

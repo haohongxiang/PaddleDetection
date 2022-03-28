@@ -259,22 +259,29 @@ class YOLOv5Loss(nn.Layer):
         [[10, 13], [16, 30], [33, 23]]]
         '''
         h, w = targets['image'].shape[2:]
-        nt = int(targets['gt_num'].sum())
+        gt_nums = [len(bbox) for bbox in targets['gt_bbox']]
+        # nt =
+        nt = int(sum(gt_nums))
         na = len(anchors)
         tcls, tbox, indices, anch = [], [], [], []
         
         gain = np.ones(7, dtype=np.float32)  # normalized to gridspace gain
         ai = np.repeat(np.arange(na).reshape(na, 1), nt, axis=1)
-        ai = paddle.to_tensor(ai, dtype='float32').unsqueeze(-1)
+        ai = paddle.to_tensor(ai, dtype='float64').unsqueeze(-1)
         
         batch_size = outputs[0].shape[0]
         gt_labels = []
         for idx in range(batch_size):
-            gt_num = targets['gt_num'][idx]
+            gt_num = gt_nums[idx]
+            if gt_num==0:
+                continue
+                print('没有gt')
+                print(targets['gt_bbox'][idx])
+                print(targets['gt_class'][idx])
             gt_bbox = targets['gt_bbox'][idx][:gt_num]
-            gt_class = targets['gt_class'][idx][:gt_num].unsqueeze(-1)*1.0
+            gt_class = targets['gt_class'][idx][:gt_num]*1.0
             img_idx = np.repeat(np.array([[idx]]), gt_num, axis=0)
-            img_idx = paddle.to_tensor(img_idx, dtype='float32')
+            img_idx = paddle.to_tensor(img_idx, dtype='float64')
             gt_labels.append(paddle.concat((img_idx, gt_class, gt_bbox), axis=-1))
         gt_labels = paddle.concat(gt_labels)
         targets_labels = paddle.concat((paddle.tile(gt_labels.unsqueeze(0), [na,1,1]), ai), axis=2)
@@ -285,7 +292,7 @@ class YOLOv5Loss(nn.Layer):
                             [1, 0], [0, 1], [-1, 0], [0, -1],  # j,k,l,m
                             # [1, 1], [1, -1], [-1, 1], [-1, -1],  # jk,jm,lk,lm
                             ], dtype=np.float32) * g  # offsets
-        anchors = anchors[::-1]
+        # anchors = anchors[::-1]
         for i in range(len(anchors)):
             anchor = np.array(anchors[i]) / self.downsample_ratios[i] #
             gain[2:6] = np.array(outputs[i].shape, dtype=np.float32)[[3, 2, 3, 2]]  # xyxy gain
@@ -331,39 +338,48 @@ class YOLOv5Loss(nn.Layer):
 
     def yolov5_loss(self, pi, t_cls, t_box, t_indices, t_anchor, balance):
         loss = dict()
-        b, a, gj, gi = t_indices # image, anchor, gridy, gridx
-        n = b.shape[0] # number of targets
-        if n <= 0 :
-            loss['loss_box'] = paddle.to_tensor([0.])
-            loss['loss_obj'] = paddle.to_tensor([0.])
-            loss['loss_cls'] = paddle.to_tensor([0.])
-            return loss
-
-        tobj = paddle.zeros_like(pi[:, :, :, :, 0]) # [4, 3, 80, 80]
+        b, a, gj, gi = t_indices  # image, anchor, gridy, gridx
+        n = b.shape[0]  # number of targets
+        tobj = paddle.zeros_like(pi[:, :, :, :, 0])
         tobj.stop_gradient = True
+        loss_box = paddle.to_tensor([0.])
+        loss_cls = paddle.to_tensor([0.])
+        if n:
+            # if n <= 0:
+            #     # print('---------------------------------------------------')
+            #     loss['loss_box'] = paddle.to_tensor([0.])
+            #     loss['loss_obj'] = paddle.to_tensor([0.])
+            #     loss['loss_cls'] = paddle.to_tensor([0.])
+            #     return loss
 
-        ps = pi[b, a, gj, gi] # TODO, fix in paddle 2.2.1
-        # [4, 3, 80, 80, 85] -> [21, 85]
+            # tobj = paddle.zeros_like(pi[:, :, :, :, 0])  # [4, 3, 80, 80]
+            # tobj.stop_gradient = True
 
-        # Regression
-        pxy = F.sigmoid(ps[:, :2]) * 2 - 0.5
-        pwh = (F.sigmoid(ps[:, 2:4]) * 2) ** 2 * t_anchor
-        pbox = paddle.concat((pxy, pwh), 1)  # predicted box # [21, 4]
-        iou = bbox_iou(pbox.T, t_box.T, x1y1x2y2=False, ciou=True)  # iou(prediction, target)
-        iou.stop_gradient = True
-        loss_box = (1.0 - iou).mean()
+            ps = pi[b, a, gj, gi]  # TODO, fix in paddle 2.2.1
+            # [4, 3, 80, 80, 85] -> [21, 85]
 
-        # Objectness
-        score_iou = iou.clip(0)
-        tobj[b, a, gj, gi] = (1.0 - self.gr) + self.gr * score_iou # iou ratio
-        obji = self.BCEobj(pi[:, :, :, :, 4], tobj).mean() # [4, 3, 80, 80]
+            # Regression
+            pxy = F.sigmoid(ps[:, :2]) * 2 - 0.5
+            pwh = (F.sigmoid(ps[:, 2:4]) * 2) ** 2 * t_anchor
+            pbox = paddle.concat((pxy, pwh), 1)  # predicted box # [21, 4]
+            iou = bbox_iou(pbox.T, t_box.T, x1y1x2y2=False, ciou=True)  # iou(prediction, target)
+            # iou.stop_gradient = True
+            loss_box = (1.0 - iou).mean()
+
+            # Objectness
+            score_iou = iou.detach().clip(0)
+            tobj[b, a, gj, gi] = (1.0 - self.gr) + self.gr * score_iou  # iou ratio
+
+            # Classification
+            t = paddle.full_like(ps[:, 5:], self.cn)
+            t[range(n), t_cls] = self.cp
+            t.stop_gradient = True
+            loss_cls = self.BCEcls(ps[:, 5:], t).mean()
+
+        obji = self.BCEobj(pi[:, :, :, :, 4], tobj).mean()  # [4, 3, 80, 80]
+        # print(pi[:, :, :, :, 4].mean(), tobj.mean())
+
         loss_obj = obji * balance
-
-        # Classification
-        t = paddle.full_like(ps[:, 5:], self.cn)
-        t[range(n), t_cls] = self.cp
-        t.stop_gradient = True
-        loss_cls = self.BCEcls(ps[:, 5:], t).mean()
 
         loss['loss_box'] = loss_box * self.loss_weights['box']
         loss['loss_obj'] = loss_obj * self.loss_weights['obj']

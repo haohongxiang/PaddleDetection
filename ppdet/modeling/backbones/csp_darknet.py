@@ -57,7 +57,7 @@ class BaseConv(nn.Layer):
             bias_attr=bias,
         )
         #self.bn = nn.BatchNorm2D(out_channels, momentum=0.03, epsilon=1e-3)
-        self.bn = nn.BatchNorm2D(out_channels) #, momentum=0.03, epsilon=1e-3)
+        self.bn = nn.BatchNorm2D(out_channels,momentum=0.97, epsilon=1e-3) #, momentum=0.03, epsilon=1e-3)
         self.act = get_activation(act)
 
     def forward(self, x):

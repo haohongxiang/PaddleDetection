@@ -26,6 +26,8 @@ import paddle.regularizer as regularizer
 
 from ppdet.core.workspace import register, serializable
 
+from copy import deepcopy
+
 __all__ = ['LearningRate', 'OptimizerBuilder']
 
 from ppdet.utils.logger import setup_logger
@@ -476,3 +478,68 @@ class ModelEMA(object):
             self.reset()
 
         return state_dict
+
+
+class YOLOv5EMA(object):
+    """
+    Exponential Weighted Average for Deep Neutal Networks
+    Args:
+        model (nn.Layer): Detector of model.
+        decay (int):  The decay used for updating ema parameter.
+            Ema's parameter are updated with the formula:
+           `ema_param = decay * ema_param + (1 - decay) * cur_param`.
+            Defaults is 0.9998.
+        use_thres_step (bool): Whether set decay by thres_step or not
+        cycle_epoch (int): The epoch of interval to reset ema_param and
+            step. Defaults is -1, which means not reset. Its function is to
+            add a regular effect to ema, which is set according to experience
+            and is effective when the total training epoch is large.
+    """
+
+    def __init__(self,
+                 model,
+                 decay=0.9998,
+                 cycle_epoch=-1):
+        self.step = 0
+        self.epoch = 0
+        self.decay = lambda x: decay * (1 - math.exp(-x / 2000))
+        self.state_dict = dict()
+        for k, v in model.state_dict().items():
+            self.state_dict[k] = paddle.zeros_like(v)
+        self.cycle_epoch = cycle_epoch
+
+
+        self._model_state = {
+            k: weakref.ref(p)
+            for k, p in model.state_dict().items()
+        }
+
+    def reset(self):
+        self.step = 0
+        self.epoch = 0
+        for k, v in self.state_dict.items():
+            self.state_dict[k] = paddle.zeros_like(v)
+
+    def update(self, model=None):
+        self.step += 1
+        decay = self.decay(self.step)
+        if model is not None:
+            model_dict = model.state_dict()
+        else:
+            model_dict = {k: p() for k, p in self._model_state.items()}
+            assert all(
+                [v is not None for _, v in model_dict.items()]), 'python gc.'
+
+        for k, v in self.state_dict.items():
+            if v.dtype in [paddle.float32, paddle.float64, paddle.float16]:
+                v = decay * v + (1 - decay) * model_dict[k]
+                v.stop_gradient = True
+                self.state_dict[k] = v
+
+
+    def apply(self):
+        self.epoch += 1
+        if self.cycle_epoch > 0 and self.epoch == self.cycle_epoch:
+            self.reset()
+
+        return deepcopy(self.state_dict)
