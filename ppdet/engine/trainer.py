@@ -51,8 +51,9 @@ logger = setup_logger('ppdet.engine')
 
 __all__ = ['Trainer']
 
-MOT_ARCH = ['DeepSORT', 'JDE', 'FairMOT']
+MOT_ARCH = ['DeepSORT', 'JDE', 'FairMOT', 'ByteTrack']
 
+from ppdet.modeling.initializer import reset_initialized_parameter
 
 class Trainer(object):
     def __init__(self, cfg, mode='train'):
@@ -72,6 +73,10 @@ class Trainer(object):
         if cfg.architecture == 'DeepSORT' and self.mode == 'train':
             logger.error('DeepSORT has no need of training on mot dataset.')
             sys.exit(1)
+
+        if cfg.architecture == 'FairMOT' and self.mode == 'eval':
+            images = self.parse_mot_images(cfg)
+            self.dataset.set_images(images)
 
         if self.mode == 'train':
             self.loader = create('{}Reader'.format(self.mode.capitalize()))(
@@ -94,6 +99,8 @@ class Trainer(object):
             self.model = self.cfg.model
             self.is_loaded_weights = True
         #print(self.model)
+#         reset_initialized_parameter(self.model)
+#         self.model.yolo_head._initialize_biases()
 
         #normalize params for deploy
         if 'slim' in cfg and cfg['slim_type'] == 'OFA':
@@ -115,23 +122,27 @@ class Trainer(object):
         # EvalDataset build with BatchSampler to evaluate in single device
         # TODO: multi-device evaluate
         if self.mode == 'eval':
-            self._eval_batch_sampler = paddle.io.BatchSampler(
-                self.dataset, batch_size=self.cfg.EvalReader['batch_size'])
-            reader_name = '{}Reader'.format(self.mode.capitalize())
-            # If metric is VOC, need to be set collate_batch=False.
-            if cfg.metric == 'VOC':
-                cfg[reader_name]['collate_batch'] = False
-            self.loader = create(reader_name)(self.dataset, cfg.worker_num,
-                                              self._eval_batch_sampler)
+            if cfg.architecture == 'FairMOT':
+                self.loader = create('EvalMOTReader')(self.dataset, 0)
+            else:
+                self._eval_batch_sampler = paddle.io.BatchSampler(
+                    self.dataset, batch_size=self.cfg.EvalReader['batch_size'])
+                reader_name = '{}Reader'.format(self.mode.capitalize())
+                # If metric is VOC, need to be set collate_batch=False.
+                if cfg.metric == 'VOC':
+                    cfg[reader_name]['collate_batch'] = False
+                self.loader = create(reader_name)(self.dataset, cfg.worker_num,
+                                                  self._eval_batch_sampler)
         # TestDataset build after user set images, skip loader creation here
 
         # build optimizer in train mode
         if self.mode == 'train':
             steps_per_epoch = len(self.loader)
             self.lr = create('LearningRate')(steps_per_epoch)
-            if 0: #self.cfg.architecture not in ['YOLOX']:
+            if 0:  #self.cfg.architecture not in ['YOLOX']:
                 self.optimizer = create('OptimizerBuilder')(self.lr, self.model)
             else:
+                self.optimizer = create('OptimizerBuilder')(self.lr, self.model)
                 #self.optimizer = paddle.optimizer.Momentum(
                 #    parameters=self.model.parameters(), learning_rate=0.001,
                 #    momentum=0.9, use_nesterov=True)#, weight_decay=paddle.regularizer.L2Decay(0.0005))
@@ -148,28 +159,111 @@ class Trainer(object):
                 #momentum=0.9) #, use_nesterov=True) #, weight_decay=paddle.regularizer.L2Decay(0.0005))
                 '''
                 #'''
+                from paddle import optimizer
                 pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
                 for k, v in self.model.named_sublayers():
-                    if hasattr(v, "bias") and isinstance(v.bias, paddle.fluid.framework.ParamBase):
+                    if hasattr(v, "bias") and isinstance(
+                            v.bias, paddle.fluid.framework.ParamBase):
                         pg2.append(v.bias)  # biases
                     if isinstance(v, paddle.nn.BatchNorm2D) or "bn" in k:
                         pg0.append(v.weight)  # no decay
-                    elif hasattr(v, "weight") and isinstance(v.weight, paddle.fluid.framework.ParamBase):
+                    elif hasattr(v, "weight") and isinstance(
+                            v.weight, paddle.fluid.framework.ParamBase):
                         pg1.append(v.weight)  # apply decay
-                optimizer = paddle.optimizer.Momentum(
-                    parameters=[{'params': pg0}], learning_rate=self.lr, grad_clip=None,
-                    momentum=0.937, use_nesterov=True, weight_decay=0.0
-                ) #0.937
 
-                optimizer._add_param_group(
-                    {"params": pg1, "weight_decay": 0.0005, 'grad_clip': None})
-                    # add pg1 with weight_decay
-                optimizer._add_param_group({"params": pg2, "weight_decay": 0.0, 'grad_clip': None})
-                logger.info(f"optimizer: {type(optimizer).__name__} with parameter groups "
-                    f"{len(pg0)} weight, {len(pg1)} weight (no decay), {len(pg2)} bias")
-                self.optimizer = optimizer
+
+                # TODO
+                lr_b_l = []
+                lr_w_and_bn_l = []
+                boundary = []
+                lrf = 0.01
+                lr0 = 0.01
+                epoches = 300
+                cosine_lr = False
+                import math
+
+                if cosine_lr:
+                    def one_cycle(y1=0.0, y2=1.0, steps=100):
+                        # lambda function for sinusoidal ramp from y1 to y2 https://arxiv.org/pdf/1812.01187.pdf
+                        return lambda x: ((1 - math.cos(x * math.pi / steps)) / 2) * (y2 - y1) + y1
+
+
+                    lf = one_cycle(1, lrf, epoches)
+
+                else:
+                    lf = lambda x: (1 - x / epoches) * (1.0 - lrf) + lrf  # linear
+                nw = 3 * len(self.loader)
+                for epoch_id in range(0, 4):
+                    for step_id in range(len(self.loader)):
+                        ni = len(self.loader) * epoch_id + step_id
+                        # # Warmup
+                        if ni <= nw:
+                            if ni > 0:
+                                boundary.append(ni)
+                            xi = [0, nw]
+                            for j in range(3):
+                                # bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
+                                # if 'learning_rate' in x:
+                                lr = np.interp(
+                                    ni, xi, [0.1 if j == 2 else 0.0, lr0 * lf(epoch_id)])
+                                if j == 2:
+                                    lr_b_l.append(float(lr))
+                                elif j==0:
+                                    lr_w_and_bn_l.append(float(lr))
+                                else:
+                                    pass
+                        if ni > nw:
+                            break
+                self.lr_bn = optimizer.lr.PiecewiseDecay(boundary, lr_w_and_bn_l)
+                self.optimizer_bn = paddle.optimizer.Momentum(
+                    parameters=[{
+                        'params': pg0
+                    }],
+                    learning_rate=self.lr_bn,
+                    grad_clip=None,
+                    momentum=0.937,
+                    use_nesterov=True,
+                    weight_decay=0.0)  # 0.937
+                self.lr_w = optimizer.lr.PiecewiseDecay(boundary, lr_w_and_bn_l)
+                self.optimizer_w = paddle.optimizer.Momentum(
+                    parameters=[{
+                        'params': pg1
+                    }],
+                    learning_rate=self.lr_w,
+                    grad_clip=None,
+                    momentum=0.937,
+                    use_nesterov=True,
+                    weight_decay=0.0005)  #0.937
+                # add pg1 with weight_decay
+                self.lr_b = optimizer.lr.PiecewiseDecay(boundary, lr_b_l)
+                self.optimizer_b = paddle.optimizer.Momentum(
+                    parameters=[{
+                        'params': pg2
+                    }],
+                    learning_rate=self.lr_b,
+                    grad_clip=None,
+                    momentum=0.937,
+                    use_nesterov=True,
+                    weight_decay=0.0)  #0.937
+                # logger.info(
+                #     f"optimizer: {type(optimizer).__name__} with parameter groups "
+                #     f"{len(pg0)} weight, {len(pg1)} weight (no decay), {len(pg2)} bias"
+                # )
+                # self.optimizer = optimizer
                 #'''
 
+                # ni = len(self.loader) * epoch_id + step_id
+                # nw = 3 * len(self.loader)
+                # # # Warmup
+                # if ni <= nw:
+                #     xi = [0, nw]
+                #     for j, x in enumerate(self.optimizer._param_groups):
+                #         # bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
+                #         x['learning_rate'] = np.interp(ni, xi, [0.1 if j == 2 else 0.0, lf(epoch_id)])
+                #         if 'momentum' in x:
+                #             x['momentum'] = np.interp(ni, xi, [0.8, 0.937])
+
+                # set_lr(self, value)
 
             # Unstructured pruner is only enabled in the train mode.
             if self.cfg.get('unstructured_prune'):
@@ -380,10 +474,12 @@ class Trainer(object):
             self.start_epoch = load_weight(self.model.student_model, weights,
                                            self.optimizer)
         else:
-            self.start_epoch = load_weight(self.model, weights, self.optimizer)
+            self.start_epoch = load_weight(self.model, weights, self.optimizer,
+                                           self.ema if self.use_ema else None)
         logger.debug("Resume weights of epoch {}".format(self.start_epoch))
 
     def train(self, validate=False):
+
         assert self.mode == 'train', "Model not in 'train' mode"
         Init_mark = False
 
@@ -403,10 +499,11 @@ class Trainer(object):
             model = paddle.DataParallel(
                 self.model, find_unused_parameters=find_unused_parameters)
 
-        # initial fp16
-        if self.cfg.get('fp16', False):
+        # enabel auto mixed precision mode
+        if self.cfg.get('amp', False):
+#         if True:
             scaler = amp.GradScaler(
-                enable=self.cfg.use_gpu) #, init_loss_scaling=1024)
+                enable=self.cfg.use_gpu)  #, init_loss_scaling=1024)
         else:
             scaler = amp.GradScaler(enable=False)
 
@@ -430,6 +527,14 @@ class Trainer(object):
 
         self._compose_callback.on_train_begin(self.status)
 
+        # import math
+        #
+        # def one_cycle(y1=0.0, y2=1.0, steps=100):
+        #     # lambda function for sinusoidal ramp from y1 to y2 https://arxiv.org/pdf/1812.01187.pdf
+        #     return lambda x: ((1 - math.cos(x * math.pi / steps)) / 2) * (y2 - y1) + y1
+        #
+        # lf = one_cycle(1, 0.1, 300)
+
         for epoch_id in range(self.start_epoch, self.cfg.epoch):
             self.status['mode'] = 'train'
             self.status['epoch_id'] = epoch_id
@@ -437,15 +542,47 @@ class Trainer(object):
             self.loader.dataset.set_epoch(epoch_id)
             model.train()
             iter_tic = time.time()
+
             for step_id, data in enumerate(self.loader):
+
+                ni = len(self.loader) * epoch_id + step_id
+                nw = 3 * len(self.loader)
+                # # Warmup
+                if ni <= nw:
+                    xi = [0, nw]
+                    # for j, x in enumerate(self.optimizer._param_groups):
+                    #     # bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
+                    #     # if 'learning_rate' in x:
+                    #     x['learning_rate'] = np.interp(
+                    #         ni, xi, [0.1 if j == 2 else 0.0, lf(epoch_id)])
+
+                    self.optimizer_b._momentum = np.interp(ni, xi, [0.8, 0.937])
+                    self.optimizer_b._default_dict['momentum'] = np.interp(
+                        ni, xi, [0.8, 0.937])
+                    self.optimizer_bn._momentum = np.interp(ni, xi, [0.8, 0.937])
+                    self.optimizer_bn._default_dict['momentum'] = np.interp(
+                        ni, xi, [0.8, 0.937])
+                    self.optimizer_w._momentum = np.interp(ni, xi, [0.8, 0.937])
+                    self.optimizer_w._default_dict['momentum'] = np.interp(
+                        ni, xi, [0.8, 0.937])
+
+                else:
+                    self.optimizer._momentum = 0.937
+                    self.optimizer._default_dict['momentum'] = 0.937
+                    #
+                    # for j, x in enumerate(self.optimizer._param_groups):
+                    #     # x['learning_rate'] = self.optimizer.get_lr()
+                    #     if 'learning_rate' in x:
+                    #         x.pop('learning_rate')
+
                 self.status['data_time'].update(time.time() - iter_tic)
                 self.status['step_id'] = step_id
                 profiler.add_profiler_step(profiler_options)
                 self._compose_callback.on_step_begin(self.status)
                 data['epoch_id'] = epoch_id
-                data['step_id'] = step_id # new add
+                data['step_id'] = step_id  # new add
 
-                if self.cfg.get('fp16', False):
+                if self.cfg.get('amp', False):
                     with amp.auto_cast(enable=self.cfg.use_gpu):
                         # model forward
                         outputs = model(data)
@@ -481,8 +618,13 @@ class Trainer(object):
                     loss = outputs['loss']
                     #self.optimizer.clear_grad()
                     scaler.scale(loss).backward()
-                    scaler.step(self.optimizer)
-                    scaler.update()                    
+                    if ni <= nw:
+                        scaler.step(self.optimizer_b)
+                        scaler.step(self.optimizer_bn)
+                        scaler.step(self.optimizer_w)
+                    else:
+                        scaler.step(self.optimizer)
+                    scaler.update()
                     '''
                     cnt, non_cnt = 0, 0
                     for name, tensor in model.named_parameters():
@@ -513,12 +655,22 @@ class Trainer(object):
                             print(name, grad.shape, grad.sum()*100)
                     #print(' named_parameters cnt ', cnt, non_cnt)
                     '''
-                    self.optimizer.clear_grad()
-
-                
-                curr_lr = self.optimizer.get_lr()
-                # self.optimizer.set_lr(curr_lr)
-                self.lr.step()
+                    if ni <= nw:
+                        self.optimizer_b.clear_grad()
+                        self.optimizer_bn.clear_grad()
+                        self.optimizer_w.clear_grad()
+                    else:
+                        self.optimizer.clear_grad()
+                if ni <= nw:
+                    curr_lr = self.optimizer_w.get_lr()
+                    # self.optimizer.set_lr(curr_lr)
+                    self.lr_b.step()
+                    self.lr_bn.step()
+                    self.lr_w.step()
+                else:
+                    curr_lr = self.optimizer.get_lr()
+                    # self.optimizer.set_lr(curr_lr)
+                    self.lr.step()
                 if self.cfg.get('unstructured_prune'):
                     self.pruner.step()
                 #self.optimizer.clear_grad()
@@ -530,21 +682,23 @@ class Trainer(object):
                 self.status['batch_time'].update(time.time() - iter_tic)
                 self._compose_callback.on_step_end(self.status)
                 if self.use_ema:
-                    self.ema.update(self.model)
+                    self.ema.update()
                 iter_tic = time.time()
 
-            # apply ema weight on model
-            if self.use_ema:
-                weight = copy.deepcopy(self.model.state_dict())
-                self.model.set_dict(self.ema.apply())
             if self.cfg.get('unstructured_prune'):
                 self.pruner.update_params()
 
+            is_snapshot = (self._nranks < 2 or self._local_rank == 0) \
+                       and ((epoch_id + 1) % self.cfg.snapshot_epoch == 0 or epoch_id == self.end_epoch - 1)
+            if is_snapshot and self.use_ema:
+                # apply ema weight on model
+                weight = copy.deepcopy(self.model.state_dict())
+                self.model.set_dict(self.ema.apply())
+                self.status['weight'] = weight
+
             self._compose_callback.on_epoch_end(self.status)
 
-            if validate and (self._nranks < 2 or self._local_rank == 0) \
-                    and ((epoch_id + 1) % self.cfg.snapshot_epoch == 0 \
-                             or epoch_id == self.end_epoch - 1):
+            if validate and is_snapshot:
                 if not hasattr(self, '_eval_loader'):
                     # build evaluation dataset and loader
                     self._eval_dataset = self.cfg.EvalDataset
@@ -565,13 +719,15 @@ class Trainer(object):
                     Init_mark = True
                     self._init_metrics(validate=validate)
                     self._reset_metrics()
+
                 with paddle.no_grad():
                     self.status['save_best_model'] = True
                     self._eval_with_loader(self._eval_loader)
 
-            # restore origin weight on model
-            if self.use_ema:
+            if is_snapshot and self.use_ema:
+                # reset original weight
                 self.model.set_dict(weight)
+                self.status.pop('weight')
 
         self._compose_callback.on_train_end(self.status)
 
@@ -631,7 +787,7 @@ class Trainer(object):
         clsid2catid, catid2name = get_categories(
             self.cfg.metric, anno_file=anno_file)
 
-        # Run Infer 
+        # Run Infer
         self.status['mode'] = 'test'
         self.model.eval()
         if self.cfg.get('print_flops', False):
@@ -732,13 +888,26 @@ class Trainer(object):
 
         if hasattr(self.model, 'deploy'):
             self.model.deploy = True
-        export_post_process = self.cfg.get('export_post_process', False)
-        if hasattr(self.model, 'export_post_process'):
-            self.model.export_post_process = export_post_process
-            image_shape = [None] + image_shape[1:]
+
+        for layer in self.model.sublayers():
+            if hasattr(layer, 'convert_to_deploy'):
+                layer.convert_to_deploy()
+
+        export_post_process = self.cfg['export'].get(
+            'post_process', False) if hasattr(self.cfg, 'export') else True
+        export_nms = self.cfg['export'].get('nms', False) if hasattr(
+            self.cfg, 'export') else True
+        export_benchmark = self.cfg['export'].get(
+            'benchmark', False) if hasattr(self.cfg, 'export') else False
         if hasattr(self.model, 'fuse_norm'):
             self.model.fuse_norm = self.cfg['TestReader'].get('fuse_normalize',
                                                               False)
+        if hasattr(self.model, 'export_post_process'):
+            self.model.export_post_process = export_post_process if not export_benchmark else False
+        if hasattr(self.model, 'export_nms'):
+            self.model.export_nms = export_nms if not export_benchmark else False
+        if export_post_process and not export_benchmark:
+            image_shape = [None] + image_shape[1:]
 
         # Save infer cfg
         _dump_infer_config(self.cfg,
@@ -847,3 +1016,29 @@ class Trainer(object):
         flops = flops(self.model, input_spec) / (1000**3)
         logger.info(" Model FLOPs : {:.6f}G. (image shape is {})".format(
             flops, input_data['image'][0].unsqueeze(0).shape))
+
+    def parse_mot_images(self, cfg):
+        import glob
+        # for quant
+        dataset_dir = cfg['EvalMOTDataset'].dataset_dir
+        data_root = cfg['EvalMOTDataset'].data_root
+        data_root = '{}/{}'.format(dataset_dir, data_root)
+        seqs = os.listdir(data_root)
+        seqs.sort()
+        all_images = []
+        for seq in seqs:
+            infer_dir = os.path.join(data_root, seq)
+            assert infer_dir is None or os.path.isdir(infer_dir), \
+                "{} is not a directory".format(infer_dir)
+            images = set()
+            exts = ['jpg', 'jpeg', 'png', 'bmp']
+            exts += [ext.upper() for ext in exts]
+            for ext in exts:
+                images.update(glob.glob('{}/*.{}'.format(infer_dir, ext)))
+            images = list(images)
+            images.sort()
+            assert len(images) > 0, "no image found in {}".format(infer_dir)
+            all_images.extend(images)
+            logger.info("Found {} inference images in total.".format(
+                len(images)))
+        return all_images
