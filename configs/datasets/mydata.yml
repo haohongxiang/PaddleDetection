@@ -1,0 +1,19 @@
+metric: COCO
+num_classes: 1
+
+TrainDataset:
+  !MyDataSet
+    image_dir: train
+    anno_path: annotations/train.json
+    dataset_dir: /Users/changqinyao/Downloads/my_data
+    data_fields: ['image', 'gt_bbox', 'gt_class', 'is_crowd']
+
+EvalDataset:
+  !MyDataSet
+    image_dir: val
+    anno_path: annotations/val.json
+    dataset_dir: /Users/changqinyao/Downloads/my_data
+
+TestDataset:
+  !ImageFolder
+    anno_path: annotations/val.json

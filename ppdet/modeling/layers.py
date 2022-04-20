@@ -577,6 +577,7 @@ class YOLOv5Box(object):
         # [1, nx, ny, 2]-> [na, nx, ny, 2]
 
         anchor_ = np.array(anchor).reshape([-1, 1, 1, 2])
+#         print(anchor_)
         anchor_grid = anchor_.repeat(ny, axis=-3).repeat(nx, axis=-2)
         anchor_grid = paddle.to_tensor(anchor_grid.astype(np.float32))
 
@@ -610,8 +611,10 @@ class YOLOv5Box(object):
     def __call__(self, yolo_head_out, anchors):
         boxes_scores_list = []
         num_levels = len(yolo_head_out)
+#         print(yolo_head_out[0].shape)
         self.strides = [self.downsample_ratio // 2**i for i in range(num_levels)][::-1]
-        self.anchors = anchors[::-1]
+        self.anchors = anchors
+#         print(self.anchors)
 
         for i, head_out in enumerate(yolo_head_out):
             boxes_scores = self.postprocessing_by_level(head_out, self.strides[i], self.anchors[i])
@@ -650,6 +653,7 @@ class YOLOv5Box(object):
         yolo_scores = paddle.reshape(out_scores, shape=[1, 1, len(out_scores)])
 
         return yolo_boxes_maxwh, yolo_scores, out_clses, out_scores, out_boxes
+
 
 
 @register

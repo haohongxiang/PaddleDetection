@@ -159,13 +159,13 @@ class RandomHSV(BaseOperator):
         r = np.random.uniform(-1, 1, 3) * self.gains + 1
         hue, sat, val = cv2.split(cv2.cvtColor(im, cv2.COLOR_BGR2HSV))
 
-        x = np.arange(0, 256, dtype=np.int16)
+        x = np.arange(0, 256, dtype=r.dtype)
         lut_hue = ((x * r[0]) % 180).astype(np.uint8)
         lut_sat = np.clip(x * r[1], 0, 255).astype(np.uint8)
         lut_val = np.clip(x * r[2], 0, 255).astype(np.uint8)
 
         im_hsv = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat),
-                            cv2.LUT(val, lut_val))).astype(np.uint8)
+                            cv2.LUT(val, lut_val)))
         sample['image'] = cv2.cvtColor(im_hsv, cv2.COLOR_HSV2BGR)
         return sample
 
@@ -221,7 +221,7 @@ class MosaicPerspective(BaseOperator):
             h, w, c = im.shape
 
             if i == 0:  # top left. background
-                image = np.ones((s * 2, s * 2, c), dtype=np.uint8) * self.fill_value
+                image = np.full((s * 2, s * 2, c), self.fill_value,dtype=np.uint8) 
                 x1a, y1a, x2a, y2a = max(xc - w, 0), max(yc - h, 0), xc, yc  # xmin, ymin, xmax, ymax (large image)
                 x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (y2a - y1a), w, h  # xmin, ymin, xmax, ymax (small image)
             elif i == 1:  # top right
@@ -245,74 +245,74 @@ class MosaicPerspective(BaseOperator):
         # copy_paste=0
         return image, gt_bboxes
 
-    def _random_affine(self, sample, border):
-        self.border = border
-        im = sample['image']
-        height = im.shape[0] + self.border[0] * 2
-        width = im.shape[1] + self.border[1] * 2
+#     def _random_affine(self, sample, border):
+#         self.border = border
+#         im = sample['image']
+#         height = im.shape[0] + self.border[0] * 2
+#         width = im.shape[1] + self.border[1] * 2
 
-        # center
-        C = np.eye(3)
-        C[0, 2] = -im.shape[1] / 2
-        C[1, 2] = -im.shape[0] / 2
+#         # center
+#         C = np.eye(3)
+#         C[0, 2] = -im.shape[1] / 2
+#         C[1, 2] = -im.shape[0] / 2
 
-        # perspective
-        P = np.eye(3)
-        P[2, 0] = random.uniform(-self.perspective, self.perspective)
-        P[2, 1] = random.uniform(-self.perspective, self.perspective)
+#         # perspective
+#         P = np.eye(3)
+#         P[2, 0] = random.uniform(-self.perspective, self.perspective)
+#         P[2, 1] = random.uniform(-self.perspective, self.perspective)
 
-        # Rotation and scale
-        R = np.eye(3)
-        a = random.uniform(-self.degrees, self.degrees)
-        s = random.uniform(1 - self.scale, 1 + self.scale)
-        R[:2] = cv2.getRotationMatrix2D(angle=a, center=(0, 0), scale=s)
+#         # Rotation and scale
+#         R = np.eye(3)
+#         a = random.uniform(-self.degrees, self.degrees)
+#         s = random.uniform(1 - self.scale, 1 + self.scale)
+#         R[:2] = cv2.getRotationMatrix2D(angle=a, center=(0, 0), scale=s)
 
-        # Shear
-        S = np.eye(3)
-        # shear x (deg)
-        S[0, 1] = math.tan(
-            random.uniform(-self.shear, self.shear) * math.pi / 180)
-        # shear y (deg)
-        S[1, 0] = math.tan(
-            random.uniform(-self.shear, self.shear) * math.pi / 180)
+#         # Shear
+#         S = np.eye(3)
+#         # shear x (deg)
+#         S[0, 1] = math.tan(
+#             random.uniform(-self.shear, self.shear) * math.pi / 180)
+#         # shear y (deg)
+#         S[1, 0] = math.tan(
+#             random.uniform(-self.shear, self.shear) * math.pi / 180)
 
-        # Translation
-        T = np.eye(3)
-        T[0, 2] = random.uniform(0.5 - self.translate,
-                                 0.5 + self.translate) * width
-        T[1, 2] = random.uniform(0.5 - self.translate,
-                                 0.5 + self.translate) * height
+#         # Translation
+#         T = np.eye(3)
+#         T[0, 2] = random.uniform(0.5 - self.translate,
+#                                  0.5 + self.translate) * width
+#         T[1, 2] = random.uniform(0.5 - self.translate,
+#                                  0.5 + self.translate) * height
 
-        # matmul
-        # M = T @ S @ R @ P @ C
-        # M = np.eye(3)
-        # for cM in [T, S, R, P, C]:
-        #     M = np.matmul(M, cM)
+#         # matmul
+#         # M = T @ S @ R @ P @ C
+#         # M = np.eye(3)
+#         # for cM in [T, S, R, P, C]:
+#         #     M = np.matmul(M, cM)
             
-        M = T @ S @ R @ P @ C
+#         M = T @ S @ R @ P @ C
         
-        if (self.border[0] != 0) or (self.border[1] != 0) or (
-                M != np.eye(3)).any():
-            if self.perspective:
-                im = cv2.warpPerspective(
-                    im, M, dsize=(width, height), borderValue=self.fill_value)
-            else:
-                im = cv2.warpAffine(
-                    im,
-                    M[:2],
-                    dsize=(width, height),
-                    borderValue=self.fill_value)
+#         if (self.border[0] != 0) or (self.border[1] != 0) or (
+#                 M != np.eye(3)).any():
+#             if self.perspective:
+#                 im = cv2.warpPerspective(
+#                     im, M, dsize=(width, height), borderValue=self.fill_value)
+#             else:
+#                 im = cv2.warpAffine(
+#                     im,
+#                     M[:2],
+#                     dsize=(width, height),
+#                     borderValue=self.fill_value)
 
-        sample['image'] = im
-        if sample['gt_bbox'].shape[0] > 0:
-            sample = transform_bbox(
-                sample,
-                M,
-                width,
-                height,
-                area_thr=0.25,
-                perspective=self.perspective)
-        return sample    
+#         sample['image'] = im
+#         if sample['gt_bbox'].shape[0] > 0:
+#             sample = transform_bbox(
+#                 sample,
+#                 M,
+#                 width,
+#                 height,
+#                 area_thr=0.25,
+#                 perspective=self.perspective)
+#         return sample    
 
     def _mixup(self, im, labels, im2, labels2):
         # Applies MixUp augmentation https://arxiv.org/pdf/1710.09412.pdf
@@ -412,7 +412,7 @@ class MosaicPerspective(BaseOperator):
         
         if random.random() >= self.mosaic_prob:
             return sample[0]
-        
+        random.shuffle(sample)
         mosaic_img, mosaic_gt_bboxes = self._mosaic_preprocess(sample)
 
         gt_classes = np.concatenate([x['gt_class'] for x in sample], axis=0)
@@ -426,12 +426,13 @@ class MosaicPerspective(BaseOperator):
                                                                 self.perspective,
                                                                 self.mosaic_border)
 
-        #draws = np.concatenate((mosaic_gt_bboxes, gt_classes), 1)
-        #image_t_vis = visbox(mosaic_img, draws)
-        #cv2.imwrite('%d_padresize.jpg' % sample[0]['im_id'], image_t_vis)
+        nl = len(mosaic_gt_bboxes)  # number of labels
+        eps = 1E-3
+        if nl:
+            mosaic_gt_bboxes[:, 0:4] = self.clip_coords(mosaic_gt_bboxes[:, 0:4], (mosaic_img.shape[0] - eps,mosaic_img.shape[1] - eps))
 
         sample = sample[0] # list to one sample
-        sample['image'] = mosaic_img.astype(np.uint8)
+        sample['image'] = mosaic_img
         sample['gt_bbox'] = mosaic_gt_bboxes #gt_bboxes
         sample['gt_class'] = gt_classes
 
@@ -440,6 +441,12 @@ class MosaicPerspective(BaseOperator):
 
         #sample = self._random_affine(sample, self.mosaic_border)
         return sample
+    
+    def clip_coords(self,boxes, shape):
+        # Clip bounding xyxy bounding boxes to image shape (height, width
+        boxes[:, [0, 2]] = boxes[:, [0, 2]].clip(0, shape[1])  # x1, x2
+        boxes[:, [1, 3]] = boxes[:, [1, 3]].clip(0, shape[0])  # y1, y2
+        return boxes
 
 
 def visbox(image, tlbr_cls_crds):
@@ -741,8 +748,8 @@ class NormalizeImage(BaseOperator):
         if self.is_scale:
             im = im / 255.0
 
-        im -= mean
-        im /= std
+#         im -= mean
+#         im /= std
 
         sample['image'] = im
         return sample
@@ -1033,7 +1040,7 @@ class RandomFlip(BaseOperator):
             sample: the image, bounding box and segmentation part
                     in sample are flipped.
         """
-        if np.random.uniform(0, 1) < self.prob:
+        if random.random() < self.prob:
             im = sample['image']
             height, width = im.shape[:2]
             im = self.apply_image(im)
@@ -2552,7 +2559,7 @@ class BboxPixelXYXY2NormCXCYWH(BaseOperator):
     Convert Pixel XYXY format to Norm CXCYWH format.
     [x0, y0, x1, y1] -> [center_x, center_y, width, height]
     """
-    def __init__(self, clip=True, eps=1E-3):
+    def __init__(self, clip=False, eps=1E-3):
         super(BboxPixelXYXY2NormCXCYWH, self).__init__()
         self.clip = clip
         self.eps = eps
@@ -3508,7 +3515,7 @@ class LetterBox(BaseOperator):
 
 @register_op
 class DecodeNormResize(BaseOperator):
-    def __init__(self, target_size, keep_ratio=True, to_rgb=False):
+    def __init__(self, target_size, keep_ratio=True, to_rgb=False, mosaic=False):
         super(DecodeNormResize, self).__init__()
         self.keep_ratio = keep_ratio
         if not isinstance(target_size, (Integral, Sequence)):
@@ -3519,6 +3526,7 @@ class DecodeNormResize(BaseOperator):
             target_size = [target_size, target_size]
         self.target_size = target_size
         self.to_rgb = to_rgb
+        self.mosaic = mosaic
 
     def load_resized_img(self, sample, target_size):
         if 'image' not in sample:
@@ -3551,12 +3559,12 @@ class DecodeNormResize(BaseOperator):
 
         # get resized img
         r = min(target_size[0] / im.shape[0], target_size[1] / im.shape[1])
+        # self.augment = True
         if r != 1:  # if sizes are not equal
             resized_img = cv2.resize(
                 im,
                 (int(im.shape[1] * r), int(im.shape[0] * r)),
-                interpolation=cv2.INTER_AREA if r < 1 else cv2.INTER_LINEAR
-            ).astype(np.uint8)
+                interpolation=cv2.INTER_LINEAR if (self.mosaic or r > 1) else cv2.INTER_AREA)
         else:
             resized_img = im
         #print('  im  load_resized_img   ',im.shape, im.sum(), resized_img.shape, resized_img.sum())
@@ -3570,41 +3578,78 @@ class DecodeNormResize(BaseOperator):
 
     def apply(self, sample, context=None):
         sample, before_r = self.load_resized_img(sample, self.target_size)
-        image = sample['image']
-        im_shape = image.shape
-        if self.keep_ratio: # always true
-            im_size_min = np.min(im_shape[0:2])
-            im_size_max = np.max(im_shape[0:2])
+#         image = sample['image']
+#         im_shape = image.shape
+#         if self.keep_ratio: # always true
+#             im_size_min = np.min(im_shape[0:2])
+#             im_size_max = np.max(im_shape[0:2])
 
-            target_size_min = np.min(self.target_size)
-            target_size_max = np.max(self.target_size)
+#             target_size_min = np.min(self.target_size)
+#             target_size_max = np.max(self.target_size)
 
-            im_scale = min(target_size_min / im_size_min,
-                           target_size_max / im_size_max)
+#             im_scale = min(target_size_min / im_size_min,
+#                            target_size_max / im_size_max)
 
-            resize_h = im_scale * float(im_shape[0])
-            resize_w = im_scale * float(im_shape[1])
+#             resize_h = im_scale * float(im_shape[0])
+#             resize_w = im_scale * float(im_shape[1])
 
-            im_scale_x = im_scale
-            im_scale_y = im_scale
-        else:
-            resize_h, resize_w = self.target_size
-            im_scale_y = resize_h / im_shape[0]
-            im_scale_x = resize_w / im_shape[1]
+#             im_scale_x = im_scale
+#             im_scale_y = im_scale
+#         else:
+#             resize_h, resize_w = self.target_size
+#             im_scale_y = resize_h / im_shape[0]
+#             im_scale_x = resize_w / im_shape[1]
 
-        sample['im_shape'] = np.asarray([resize_h, resize_w], dtype=np.float32)
-        if 'scale_factor' in sample:
-            scale_factor = sample['scale_factor']
-            sample['scale_factor'] = np.asarray(
-                [scale_factor[0] * im_scale_y, scale_factor[1] * im_scale_x],
-                dtype=np.float32)
-        else:
-            sample['scale_factor'] = np.asarray(
-                [im_scale_y, im_scale_x], dtype=np.float32)
+#         sample['im_shape'] = np.asarray([resize_h, resize_w], dtype=np.float32)
+#         if 'scale_factor' in sample:
+#             scale_factor = sample['scale_factor']
+#             sample['scale_factor'] = np.asarray(
+#                 [scale_factor[0] * im_scale_y, scale_factor[1] * im_scale_x],
+#                 dtype=np.float32)
+#         else:
+#             sample['scale_factor'] = np.asarray(
+#                 [im_scale_y, im_scale_x], dtype=np.float32)
         
         # train reader
         if 'gt_bbox' in sample:
-            norm_gt_box = sample['gt_bbox']
+#             norm_gt_box = sample['gt_bbox']
             sample['gt_bbox'] *= before_r
 
+        return sample
+
+    
+@register_op
+class PadImage(BaseOperator):
+    def __init__(self, target_size, fill_value=114):
+        super(PadImage, self).__init__()
+        if isinstance(target_size, Integral):
+            target_size = [target_size, target_size]
+        self.target_size = target_size
+        self.fill_value = fill_value
+        self.legacy = False
+
+    def pad_resize(self, img, input_size, fill_value=114):
+        if len(img.shape) == 3:
+            padded_img = np.ones((input_size[0], input_size[1], 3), dtype=np.uint8) * 114
+        else:
+            padded_img = np.ones(input_size, dtype=np.uint8) * 114
+
+        r = min(input_size[0] / img.shape[0], input_size[1] / img.shape[1])
+        resized_img = cv2.resize(
+            img,
+            (int(img.shape[1] * r), int(img.shape[0] * r)),
+            interpolation=cv2.INTER_LINEAR,
+        ).astype(np.uint8)
+        #print(' PadImage  resized_img  preproc ', resized_img.shape, resized_img.sum())
+        padded_img[: int(img.shape[0] * r), : int(img.shape[1] * r)] = resized_img
+        #print(' PadImage  padded_img .... ', padded_img.shape, padded_img.sum())
+
+        padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
+        return padded_img, r
+
+    def apply(self, sample, context=None):
+        image, ratio = self.pad_resize(sample['image'], self.target_size)
+        sample['image'] = image
+        scale_y, scale_x = sample['scale_factor']
+        sample['scale_factor'] = np.array([scale_y * ratio, scale_x * ratio], dtype=np.float32)
         return sample

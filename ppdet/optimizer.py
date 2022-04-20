@@ -26,9 +26,12 @@ import paddle.regularizer as regularizer
 
 from ppdet.core.workspace import register, serializable
 
+from copy import deepcopy
+
 __all__ = ['LearningRate', 'OptimizerBuilder']
 
 from ppdet.utils.logger import setup_logger
+
 logger = setup_logger(__name__)
 
 
@@ -100,8 +103,8 @@ class OneCycle(object):
             for i in range(int(boundary[-1]), max_iters):
                 boundary.append(i)
 
-                decayed_lr = base_lr * 0.5 * (1 - 
-                    math.cos(i * math.pi / max_iters)) * (0.2 - 1) + 1
+                decayed_lr = base_lr * 0.5 * (1 -
+                                              math.cos(i * math.pi / max_iters)) * (0.2 - 1) + 1
                 value.append(decayed_lr)
             return optimizer.lr.PiecewiseDecay(boundary, value)
 
@@ -111,7 +114,7 @@ class OneCycle(object):
 @serializable
 class YOLOXCosineDecay(object):
     """
-    Cosine learning rate decay with no_aug_iter in YOLOX, 
+    Cosine learning rate decay with no_aug_iter in YOLOX,
     Args:
         max_epochs (int): max epochs for the training process.
             if you commbine cosine decay with warmup, it is recommended that
@@ -131,14 +134,15 @@ class YOLOXCosineDecay(object):
                  value=None,
                  step_per_epoch=None):
         assert base_lr is not None, "either base LR or values should be provided"
-        assert self.no_aug_epochs <= self.max_epochs, "no_aug_epochs is {}, should be smaller than max_epochs {}".format(self.no_aug_epochs, self.max_epochs)
+        assert self.no_aug_epochs <= self.max_epochs, "no_aug_epochs is {}, should be smaller than max_epochs {}".format(
+            self.no_aug_epochs, self.max_epochs)
         assert self.no_aug_epochs > 0, "YOLOXCosineDecay should set no_aug_epochs > 0"
 
         max_iters = self.max_epochs * int(step_per_epoch)
         no_aug_iters = self.no_aug_epochs * int(step_per_epoch)
 
         if boundary is not None and value is not None and self.use_warmup:
-            warmup_iters = int(boundary[-1]) # len(boundary)
+            warmup_iters = int(boundary[-1])  # len(boundary)
 
             min_lr = base_lr * self.min_lr_ratio
             for i in range(warmup_iters + 1, max_iters):
@@ -175,7 +179,7 @@ class PiecewiseDecay(object):
         if type(gamma) is not list:
             self.gamma = []
             for i in range(len(milestones)):
-                self.gamma.append(gamma / 10**i)
+                self.gamma.append(gamma / 10 ** i)
         else:
             self.gamma = gamma
         self.milestones = milestones
@@ -194,7 +198,7 @@ class PiecewiseDecay(object):
             boundary = [int(step_per_epoch) * i for i in self.milestones]
             value = [base_lr]  # during step[0, boundary[0]] is base_lr
 
-        # self.values is setted directly in config 
+        # self.values is setted directly in config
         if self.values is not None:
             assert len(self.milestones) + 1 == len(self.values)
             return optimizer.lr.PiecewiseDecay(boundary, self.values)
@@ -253,7 +257,7 @@ class BurninWarmup(object):
         value = []
         burnin = min(self.steps, step_per_epoch)
         for i in range(burnin + 1):
-            factor = (i * 1.0 / burnin)**4
+            factor = (i * 1.0 / burnin) ** 4
             lr = base_lr * factor
             value.append(lr)
             if i > 0:
@@ -301,7 +305,7 @@ class LearningRate(object):
 
     def __init__(self,
                  base_lr=0.01,
-                 schedulers=[PiecewiseDecay(), LinearWarmup()]):
+                 schedulers=[PiecewiseDecay()]):
         super(LearningRate, self).__init__()
         self.base_lr = base_lr
         self.schedulers = schedulers
@@ -312,11 +316,12 @@ class LearningRate(object):
             return self.schedulers[0](base_lr=self.base_lr,
                                       step_per_epoch=step_per_epoch)
 
-        # TODO: split warmup & decay 
+        # TODO: split warmup & decay
         # warmup
-        boundary, value = self.schedulers[1](self.base_lr, step_per_epoch)
+        # boundary, value = self.schedulers[1](self.base_lr, step_per_epoch)
+        boundary_iter = 3*step_per_epoch
         # decay
-        decay_lr = self.schedulers[0](self.base_lr, boundary, value,
+        decay_lr = self.schedulers[0](self.base_lr, boundary_iter,
                                       step_per_epoch)
         return decay_lr
 
@@ -370,7 +375,7 @@ class OptimizerBuilder():
             for group in param_groups:
                 assert isinstance(group,
                                   dict) and 'params' in group and isinstance(
-                                      group['params'], list), ''
+                    group['params'], list), ''
                 _params = {
                     n: p
                     for n, p in model.named_parameters()
@@ -378,7 +383,9 @@ class OptimizerBuilder():
                 }
                 _group = group.copy()
                 _group.update({'params': list(_params.values())})
-                logger.info('There are {} params have weight_decay of {}, they are {}.'.format(len(_params), group['weight_decay'], group['params']))
+                logger.info('There are {} params have weight_decay of {}, they are {}.'.format(len(_params),
+                                                                                               group['weight_decay'],
+                                                                                               group['params']))
 
                 params.append(_group)
                 visited.extend(list(_params.keys()))
@@ -402,6 +409,82 @@ class OptimizerBuilder():
                   **optim_args)
 
 
+# class ModelEMA(object):
+#     """
+#     Exponential Weighted Average for Deep Neutal Networks
+#     Args:
+#         model (nn.Layer): Detector of model.
+#         decay (int):  The decay used for updating ema parameter.
+#             Ema's parameter are updated with the formula:
+#            `ema_param = decay * ema_param + (1 - decay) * cur_param`.
+#             Defaults is 0.9998.
+#         use_thres_step (bool): Whether set decay by thres_step or not
+#         cycle_epoch (int): The epoch of interval to reset ema_param and
+#             step. Defaults is -1, which means not reset. Its function is to
+#             add a regular effect to ema, which is set according to experience
+#             and is effective when the total training epoch is large.
+#     """
+
+#     def __init__(self,
+#                  model,
+#                  decay=0.9998,
+#                  use_thres_step=False,
+#                  cycle_epoch=-1):
+#         self.step = 0
+#         self.epoch = 0
+#         self.decay = decay
+#         self.state_dict = dict()
+#         for k, v in model.state_dict().items():
+#             self.state_dict[k] = paddle.zeros_like(v)
+#         self.use_thres_step = use_thres_step
+#         self.cycle_epoch = cycle_epoch
+
+#         self._model_state = {
+#             k: weakref.ref(p)
+#             for k, p in model.state_dict().items()
+#         }
+
+#     def reset(self):
+#         self.step = 0
+#         self.epoch = 0
+#         for k, v in self.state_dict.items():
+#             self.state_dict[k] = paddle.zeros_like(v)
+
+#     def update(self, model=None):
+#         if self.use_thres_step:
+#             decay = min(self.decay, (1 + self.step) / (10 + self.step))
+#         else:
+#             decay = self.decay
+#         self._decay = decay
+
+#         if model is not None:
+#             model_dict = model.state_dict()
+#         else:
+#             model_dict = {k: p() for k, p in self._model_state.items()}
+#             assert all(
+#                 [v is not None for _, v in model_dict.items()]), 'python gc.'
+
+#         for k, v in self.state_dict.items():
+#             v = decay * v + (1 - decay) * model_dict[k]
+#             v.stop_gradient = True
+#             self.state_dict[k] = v
+#         self.step += 1
+
+#     def apply(self):
+#         if self.step == 0:
+#             return self.state_dict
+#         state_dict = dict()
+#         for k, v in self.state_dict.items():
+#             v = v / (1 - self._decay**self.step)
+#             v.stop_gradient = True
+#             state_dict[k] = v
+#         self.epoch += 1
+#         if self.cycle_epoch > 0 and self.epoch == self.cycle_epoch:
+#             self.reset()
+
+#         return state_dict
+
+
 class ModelEMA(object):
     """
     Exponential Weighted Average for Deep Neutal Networks
@@ -411,25 +494,24 @@ class ModelEMA(object):
             Ema's parameter are updated with the formula:
            `ema_param = decay * ema_param + (1 - decay) * cur_param`.
             Defaults is 0.9998.
-        use_thres_step (bool): Whether set decay by thres_step or not 
-        cycle_epoch (int): The epoch of interval to reset ema_param and 
+        use_thres_step (bool): Whether set decay by thres_step or not
+        cycle_epoch (int): The epoch of interval to reset ema_param and
             step. Defaults is -1, which means not reset. Its function is to
-            add a regular effect to ema, which is set according to experience 
+            add a regular effect to ema, which is set according to experience
             and is effective when the total training epoch is large.
     """
 
     def __init__(self,
                  model,
-                 decay=0.9998,
+                 decay=0.9999,
                  use_thres_step=False,
                  cycle_epoch=-1):
         self.step = 0
         self.epoch = 0
-        self.decay = decay
+        self.decay = lambda x: decay * (1 - math.exp(-x / 2000))
         self.state_dict = dict()
         for k, v in model.state_dict().items():
             self.state_dict[k] = paddle.zeros_like(v)
-        self.use_thres_step = use_thres_step
         self.cycle_epoch = cycle_epoch
 
         self._model_state = {
@@ -444,12 +526,8 @@ class ModelEMA(object):
             self.state_dict[k] = paddle.zeros_like(v)
 
     def update(self, model=None):
-        if self.use_thres_step:
-            decay = min(self.decay, (1 + self.step) / (10 + self.step))
-        else:
-            decay = self.decay
-        self._decay = decay
-
+        self.step += 1
+        decay = self.decay(self.step)
         if model is not None:
             model_dict = model.state_dict()
         else:
@@ -458,21 +536,42 @@ class ModelEMA(object):
                 [v is not None for _, v in model_dict.items()]), 'python gc.'
 
         for k, v in self.state_dict.items():
-            v = decay * v + (1 - decay) * model_dict[k]
-            v.stop_gradient = True
-            self.state_dict[k] = v
-        self.step += 1
+            if v.dtype in [paddle.float32, paddle.float64, paddle.float16]:
+                v = decay * v + (1 - decay) * model_dict[k]
+                v.stop_gradient = True
+                self.state_dict[k] = v
 
     def apply(self):
-        if self.step == 0:
-            return self.state_dict
-        state_dict = dict()
-        for k, v in self.state_dict.items():
-            v = v / (1 - self._decay**self.step)
-            v.stop_gradient = True
-            state_dict[k] = v
         self.epoch += 1
         if self.cycle_epoch > 0 and self.epoch == self.cycle_epoch:
             self.reset()
 
-        return state_dict
+        return deepcopy(self.state_dict)
+
+
+@serializable
+class YOLOV5LRDecay(object):
+    def __init__(self, max_epochs=300, min_lr_ratio=0.01, use_warmup=True,):
+        self.max_epochs = max_epochs
+        self.min_lr_ratio = min_lr_ratio
+        self.use_warmup = use_warmup
+
+    def __call__(self,
+                 base_lr=None,
+                 boundary_iter=None,
+                 step_per_epoch=None):
+        assert base_lr is not None, "either base LR or values should be provided"
+
+        max_iters = self.max_epochs * int(step_per_epoch)
+        boundary = []
+        value = []
+        # if boundary is not None and value is not None:
+        # warmup_iters = int(boundary[-1])  # len(boundary)
+
+        for i in range(boundary_iter + 1, max_iters):
+            if i-boundary_iter-1>0:
+                boundary.append(i-boundary_iter-1)
+            epoch_i = i // step_per_epoch
+            decayed_lr = base_lr * ((1 - epoch_i / self.max_epochs) * (1.0 - self.min_lr_ratio) + self.min_lr_ratio)
+            value.append(decayed_lr)
+        return optimizer.lr.PiecewiseDecay(boundary, value)
