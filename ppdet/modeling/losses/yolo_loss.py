@@ -613,7 +613,10 @@ class PPYOLOv5Loss(nn.Layer):
 
             ps = pi[b, a, gj, gi]  # TODO, fix in paddle 2.2.1
             # [4, 3, 80, 80, 85] -> [21, 85]
-
+#             if(len(ps)):
+            if len(ps.shape)==1:
+                print('ps产生了一维')
+                ps = ps.unsqueeze(0)
             # Regression
             pxy = F.sigmoid(ps[:, :2]) * 2 - 0.5
             pwh = (F.sigmoid(ps[:, 2:4]) * 2) ** 2 * t_anchor
@@ -633,7 +636,7 @@ class PPYOLOv5Loss(nn.Layer):
             t.stop_gradient = True
             loss_cls = self.BCEcls(ps[:, 5:], t).mean()
 
-        obji = self.BCEobj(pi[:, :, :, :, 4], tobj).mean()  # [4, 3, 80, 80]
+        obji = self.BCEobj(pi[:, :, :, :, 4], tobj).mean() # [4, 3, 80, 80]
         # print(pi[:, :, :, :, 4].mean(), tobj.mean())
 
         loss_obj = obji * balance
