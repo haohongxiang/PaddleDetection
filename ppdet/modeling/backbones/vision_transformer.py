@@ -11,14 +11,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import math
 
 import paddle
 import paddle.nn as nn
 import paddle.nn.functional as F
 import numpy as np
-from paddle.nn.initializer import TruncatedNormal, Constant, Normal
+from paddle.nn.initializer import Constant
 
 # from paddleseg.cvlibs import manager
 # from paddleseg.utils import utils, logger
@@ -350,6 +349,7 @@ class VisionTransformer(nn.Layer):
                  epsilon=1e-5,
                  final_norm=False,
                  pretrained=None,
+                 out_indices=[3, 5, 7, 11],
                  **args):
         super().__init__()
         self.img_size = img_size
@@ -405,8 +405,11 @@ class VisionTransformer(nn.Layer):
         self.pretrained = pretrained
         self.init_weight()
 
-        self.out_indices = (0, 1, 2, 3)
-        self.out_channels = [int(embed_dim * 2**i) for i in range(6)]
+        self.out_indices = out_indices
+        self.out_channels = [embed_dim for _ in range(depth)]
+        self.out_strides = [patch_size for _ in range(depth)]
+
+        self.norm = Identity()
 
     def init_weight(self):
         # utils.load_pretrained_model(self, self.pretrained)
@@ -424,23 +427,27 @@ class VisionTransformer(nn.Layer):
                     pretrained)
             else:  #model in local path
                 path = pretrained
-            self.set_state_dict(paddle.load(path))
+            # self.set_state_dict(paddle.load(path))
 
-        # load_state_dict = paddle.load(model_path)
-        # model_state_dict = self.state_dict()
-        # pos_embed_name = "pos_embed"
-        # if pos_embed_name in load_state_dict.keys():
-        #     load_pos_embed = paddle.to_tensor(
-        #         load_state_dict[pos_embed_name], dtype="float32")
-        #     if self.pos_embed.shape != load_pos_embed.shape:
-        #         pos_size = int(math.sqrt(load_pos_embed.shape[1] - 1))
-        #         model_state_dict[pos_embed_name] = self.resize_pos_embed(
-        #             load_pos_embed, (pos_size, pos_size),
-        #             (self.pos_h, self.pos_w))
-        #         self.set_dict(model_state_dict)
-        #         # logger.info(
-        #         #     "Load pos_embed and resize it from {} to {} .".format(
-        #         #         load_pos_embed.shape, self.pos_embed.shape))
+            load_state_dict = paddle.load(path)
+            model_state_dict = self.state_dict()
+            pos_embed_name = "pos_embed"
+            if pos_embed_name in load_state_dict.keys():
+                load_pos_embed = paddle.to_tensor(
+                    load_state_dict[pos_embed_name], dtype="float32")
+                if self.pos_embed.shape != load_pos_embed.shape:
+                    pos_size = int(math.sqrt(load_pos_embed.shape[1] - 1))
+                    model_state_dict[pos_embed_name] = self.resize_pos_embed(
+                        load_pos_embed, (pos_size, pos_size),
+                        (self.pos_h, self.pos_w))
+
+                    self.set_state_dict(model_state_dict)
+                    print("Load pos_embed and resize it from {} to {} .".format(
+                        load_pos_embed.shape, self.pos_embed.shape))
+
+                    # logger.info(
+                    #     "Load pos_embed and resize it from {} to {} .".format(
+                    #         load_pos_embed.shape, self.pos_embed.shape))
 
     def resize_pos_embed(self, pos_embed, old_hw, new_hw):
         """
@@ -465,7 +472,9 @@ class VisionTransformer(nn.Layer):
         return pos_embed
 
     def forward(self, x):
-        x = self.patch_embed(x)
+
+        x = self.patch_embed(x['image'] if isinstance(x, dict) else x)
+
         x_shape = paddle.shape(x)  # b * c * h * w
 
         cls_tokens = self.cls_token.expand((x_shape[0], -1, -1))
@@ -482,15 +491,27 @@ class VisionTransformer(nn.Layer):
         rel_pos_bias = self.rel_pos_bias(
         ) if self.rel_pos_bias is not None else None
 
-        res = []
+        feats = []
         for idx, blk in enumerate(self.blocks):
             x = blk(x, rel_pos_bias)
             ###########del by xy
             #if self.final_norm and idx == len(self.blocks) - 1:
             #    x = self.norm(x)
-            res.append(x[:, 1:, :])
+            feats.append(x[:, 1:, :])
 
-        return res, x_shape
+# TODO make sure `norm` here is right ?
+        B, _, Hp, Wp = x_shape
+        feats = [feats[i] for i in self.out_indices]
+        for i, feat in enumerate(feats):
+            feats[i] = paddle.reshape(
+                paddle.transpose(
+                    self.norm(feat), perm=[0, 2, 1]),
+                shape=[B, -1, Hp, Wp])
+
+        # TODO make sure feats convert to fpn input format
+        pass
+
+        return feats
 
     def get_num_layers(self):
         return len(self.blocks)
@@ -500,10 +521,9 @@ class VisionTransformer(nn.Layer):
 
     @property
     def out_shape(self):
-        out_strides = [4, 8, 16, 32]
         return [
             ShapeSpec(
-                channels=self.out_channels[i], stride=out_strides[i])
+                channels=self.out_channels[i], stride=self.out_strides[i])
             for i in self.out_indices
         ]
 

@@ -4,7 +4,7 @@ _BASE_: [
   '_base_/optimizer_swin_1x.yml',
   '_base_/faster_rcnn_swin_reader.yml',
 ]
-weights: output/vit_faster_rcnn/model_final
+weights: output/vit_base_16_faster_rcnn/model_final
 
 
 use_gpu: false
@@ -19,6 +19,7 @@ FasterRCNN:
   bbox_head: BBoxHead
   bbox_post_process: BBoxPostProcess
 
+
 VisionTransformer:
   patch_size: 16
   embed_dim: 768
@@ -26,7 +27,13 @@ VisionTransformer:
   num_heads: 12
   mlp_ratio: 4
   qkv_bias: True
-  epsilon: 0.000001
+  drop_rate: 0.0
+  drop_path_rate: 0.1
+  init_values: 0.1
+  final_norm: True
+  use_rel_pos_bias: False #
+  epsilon: 0.000001 # 1e-6
+  out_indices: [3, 5, 7, 11]
 
 
 FPN:
