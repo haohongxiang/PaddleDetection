@@ -547,9 +547,9 @@ class VisionTransformer(nn.Layer):
                 shape=[B, -1, Hp, Wp])
 
         # TODO make sure feats convert to fpn input format
-        ops = [self.fpn1, self.fpn2, self.fpn3, self.fpn4]
+        fpns = [self.fpn1, self.fpn2, self.fpn3, self.fpn4]
         for i in range(len(feats)):
-            feats[i] = ops[i](feats[i])
+            feats[i] = fpns[i](feats[i])
 
         return feats
 

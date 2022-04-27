@@ -157,18 +157,42 @@ class Trainer(object):
             self.lr = create('LearningRate')(steps_per_epoch)
             # self.optimizer = create('OptimizerBuilder')(self.lr, self.model)
 
+            total_iters = self.cfg.epoch * len(self.loader)
+            base_lr = self.cfg.base_lr
+            final_lr = getattr(self.cfg, 'final_lr', 0)
+            start_warmup_value = getattr(self.cfg, 'start_warmup_value', 0)
+
+            weight_decay = getattr(self.cfg, 'weight_decay', 0.05)
+            layer_decay = getattr(self.cfg, 'layer_decay', 0.65)
+
+            warmup_epoches = getattr(self.cfg, 'warmup_epoches', 0)
+            warmup_iters = int(len(self.loader) * warmup_epoches)
+            warmup_iters = self.cfg.warmup_iters if hasattr(
+                self.cfg, 'warmup_iters') else warmup_iters
+
+            print('total_iters: ', total_iters)
+            print('base_lr: ', base_lr)
+            print('final_lr: ', final_lr)
+            print('start_warmup_value: ', start_warmup_value)
+            print('weight_decay: ', weight_decay)
+            print('layer_decay: ', layer_decay)
+            print('warmup_iters: ', warmup_iters)
+
             # TODO
             self.optimizer = create_optimizer(
                 self.model,
                 num_layers=self.model.backbone.num_layers,
-                skip_decay_list=self.model.backbone.no_weight_decay)
-            total_iters = self.cfg.epoches * len(self.loader)
+                skip_decay_list=self.model.backbone.no_weight_decay,
+                lr=base_lr,
+                weight_decay=weight_decay,
+                layer_decay=layer_decay, )
+
             self.lr_scheduler_values = polynomial_scheduler(
-                base_value=1e-4,
-                final_value=0.,
+                base_value=base_lr,
+                final_value=final_lr,
                 total_iters=total_iters,
-                start_warmup_value=0,
-                warmup_iters=1500)
+                start_warmup_value=start_warmup_value,
+                warmup_iters=warmup_iters)
 
             # Unstructured pruner is only enabled in the train mode.
             if self.cfg.get('unstructured_prune'):

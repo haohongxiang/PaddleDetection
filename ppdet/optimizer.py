@@ -651,15 +651,20 @@ def polynomial_scheduler(base_value,
 # optimizer.set_lr(lr_scheduler_values[iter])
 
 
-def create_optimizer(model,
-                     filter_bias_and_bn=True,
-                     num_layers=None,
-                     skip_decay_list=None,
-                     decay_dict=None):
+def create_optimizer(
+        model,
+        filter_bias_and_bn=True,
+        num_layers=None,
+        skip_decay_list=None,
+        decay_dict=None,
+        lr=1e-4,
+        weight_decay=0.05,
+        betas=(0.9, 0.999),
+        layer_decay=0.65, ):
     # opt_lower = args.opt.lower()
     # opt_lower = 'adamw'
 
-    weight_decay = 0.05
+    weight_decay = weight_decay
 
     if weight_decay and filter_bias_and_bn:
         skip = {}
@@ -680,7 +685,7 @@ def create_optimizer(model,
         parameters = model.parameters()
 
     # opt_args = dict(learning_rate=args.lr, weight_decay=weight_decay)
-    opt_args = dict(learning_rate=1e-4, weight_decay=weight_decay)
+    opt_args = dict(learning_rate=lr, weight_decay=weight_decay)
 
     opt_args['parameters'] = parameters
     if decay_dict is not None:
@@ -692,10 +697,10 @@ def create_optimizer(model,
     #     opt_args['beta1'] = args.opt_betas[0]
     #     opt_args['beta2'] = args.opt_betas[1]
 
-    opt_args['beta1'] = 0.9
-    opt_args['beta2'] = 0.999
+    opt_args['beta1'] = betas[0]
+    opt_args['beta2'] = betas[1]
 
-    layer_decay = 0.65
+    layer_decay = layer_decay
 
     opt_args['layerwise_decay'] = layer_decay
     name_dict = dict()
