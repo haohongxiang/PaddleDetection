@@ -410,6 +410,9 @@ class VisionTransformer(nn.Layer):
         self.out_strides = [patch_size for _ in range(depth)]
 
         self.norm = Identity()
+        self.init_fpn(
+            embed_dim=embed_dim,
+            patch_size=patch_size, )
 
     def init_weight(self):
         # utils.load_pretrained_model(self, self.pretrained)
@@ -448,6 +451,41 @@ class VisionTransformer(nn.Layer):
                     # logger.info(
                     #     "Load pos_embed and resize it from {} to {} .".format(
                     #         load_pos_embed.shape, self.pos_embed.shape))
+
+    def init_fpn(self, embed_dim=768, patch_size=16, out_with_norm=False):
+        if patch_size == 16:
+            self.fpn1 = nn.Sequential(
+                nn.Conv2DTranspose(
+                    embed_dim, embed_dim, kernel_size=2, stride=2),
+                nn.SyncBatchNorm(
+                    embed_dim, momentum=0.1),
+                nn.GELU(),
+                nn.Conv2DTranspose(
+                    embed_dim, embed_dim, kernel_size=2, stride=2), )
+
+            self.fpn2 = nn.Sequential(
+                nn.Conv2DTranspose(
+                    embed_dim, embed_dim, kernel_size=2, stride=2), )
+
+            self.fpn3 = Identity()
+
+            self.fpn4 = nn.MaxPool2D(kernel_size=2, stride=2)
+        elif patch_size == 8:
+            self.fpn1 = nn.Sequential(
+                nn.Conv2DTranspose(
+                    embed_dim, embed_dim, kernel_size=2, stride=2), )
+
+            self.fpn2 = Identity()
+
+            self.fpn3 = nn.Sequential(nn.MaxPool2D(kernel_size=2, stride=2), )
+
+            self.fpn4 = nn.Sequential(nn.MaxPool2D(kernel_size=4, stride=4), )
+
+        #########add by xy
+        if not out_with_norm:
+            self.norm = Identity()
+        else:
+            self.norm = nn.LayerNorm(embed_dim, epsilon=1e-6)
 
     def resize_pos_embed(self, pos_embed, old_hw, new_hw):
         """
@@ -499,7 +537,7 @@ class VisionTransformer(nn.Layer):
             #    x = self.norm(x)
             feats.append(x[:, 1:, :])
 
-# TODO make sure `norm` here is right ?
+        # TODO make sure `norm` here is right ?
         B, _, Hp, Wp = x_shape
         feats = [feats[i] for i in self.out_indices]
         for i, feat in enumerate(feats):
@@ -509,13 +547,17 @@ class VisionTransformer(nn.Layer):
                 shape=[B, -1, Hp, Wp])
 
         # TODO make sure feats convert to fpn input format
-        pass
+        ops = [self.fpn1, self.fpn2, self.fpn3, self.fpn4]
+        for i in range(len(feats)):
+            feats[i] = ops[i](feats[i])
 
         return feats
 
-    def get_num_layers(self):
+    @property
+    def num_layers(self):
         return len(self.blocks)
 
+    @property
     def no_weight_decay(self):
         return {'pos_embed', 'cls_token'}
 

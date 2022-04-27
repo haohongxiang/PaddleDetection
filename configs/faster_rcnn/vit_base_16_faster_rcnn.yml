@@ -7,8 +7,9 @@ _BASE_: [
 weights: output/vit_base_16_faster_rcnn/model_final
 
 
-use_gpu: false
+epoches: 12
 
+use_gpu: false
 
 architecture: FasterRCNN
 

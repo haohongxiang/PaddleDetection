@@ -50,6 +50,9 @@ from .callbacks import Callback, ComposeCallback, LogPrinter, Checkpointer, Wife
 from .export_utils import _dump_infer_config, _prune_input_spec
 
 from ppdet.utils.logger import setup_logger
+
+from ppdet.optimizer import create_optimizer, polynomial_scheduler
+
 logger = setup_logger('ppdet.engine')
 
 __all__ = ['Trainer']
@@ -152,7 +155,20 @@ class Trainer(object):
         if self.mode == 'train':
             steps_per_epoch = len(self.loader)
             self.lr = create('LearningRate')(steps_per_epoch)
-            self.optimizer = create('OptimizerBuilder')(self.lr, self.model)
+            # self.optimizer = create('OptimizerBuilder')(self.lr, self.model)
+
+            # TODO
+            self.optimizer = create_optimizer(
+                self.model,
+                num_layers=self.model.backbone.num_layers,
+                skip_decay_list=self.model.backbone.no_weight_decay)
+            total_iters = self.cfg.epoches * len(self.loader)
+            self.lr_scheduler_values = polynomial_scheduler(
+                base_value=1e-4,
+                final_value=0.,
+                total_iters=total_iters,
+                start_warmup_value=0,
+                warmup_iters=1500)
 
             # Unstructured pruner is only enabled in the train mode.
             if self.cfg.get('unstructured_prune'):
@@ -427,6 +443,10 @@ class Trainer(object):
                 self._compose_callback.on_step_begin(self.status)
                 data['epoch_id'] = epoch_id
 
+                # TODO
+                self.optimizer.set_lr(self.lr_scheduler_values[epoch_id * len(
+                    self.loader) + step_id])
+
                 if self.cfg.get('amp', False):
                     with amp.auto_cast(enable=self.cfg.use_gpu):
                         # model forward
@@ -445,8 +465,12 @@ class Trainer(object):
                     # model backward
                     loss.backward()
                     self.optimizer.step()
+
                 curr_lr = self.optimizer.get_lr()
-                self.lr.step()
+
+                # TODO
+                # self.lr.step()
+
                 if self.cfg.get('unstructured_prune'):
                     self.pruner.step()
                 self.optimizer.clear_grad()
