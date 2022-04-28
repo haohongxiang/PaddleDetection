@@ -25,8 +25,8 @@ from paddle.nn.initializer import Constant
 # from ppdet.modeling.backbones.transformer_utils import to_2tuple, DropPath, Identity
 from .transformer_utils import to_2tuple, DropPath, Identity
 
-# from ppdet.modeling.shape_spec import ShapeSpec
-# from ppdet.core.workspace import register, serializable
+from ppdet.modeling.shape_spec import ShapeSpec
+from ppdet.core.workspace import register, serializable
 
 zeros_ = Constant(value=0.)
 
@@ -373,12 +373,14 @@ def get_sinusoid_encoding_table(n_position, d_hid, token=False):
 # @manager.BACKBONES.add_component
 
 
+@register
+@serializable
 class VisionTransformer(nn.Layer):
     """ Vision Transformer with support for patch input
     """
 
     def __init__(self,
-                 img_size=224,
+                 img_size=[672, 1092],
                  patch_size=16,
                  in_chans=3,
                  embed_dim=768,
