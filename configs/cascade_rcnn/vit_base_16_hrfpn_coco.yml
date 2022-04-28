@@ -1,39 +1,21 @@
 _BASE_: [
   '../datasets/coco_detection.yml',
   '../runtime.yml',
-  # '_base_/optimizer_swin_1x.yml',
-  '_base_/faster_rcnn_swin_reader.yml',
+  '_base_/optimizer_1x.yml',
+  # '_base_/cascade_rcnn_r50_fpn.yml',
+  '_base_/cascade_fpn_reader.yml',
 ]
-weights: output/vit_base_16_faster_rcnn/model_final
+weights: output/vit_base_16_hrfpn_coco/model_final
 
-snapshot_epoch: 2
-
-epoch: 12
-base_lr: 0.0001
-final_lr: 0.0
-warmup_iters: 1500
-
-weight_decay: 0.05
-layer_decay: 0.65
+architecture: CascadeRCNN
 
 
-worker_num: 2
-TrainReader:
-  batch_size: 1
-
-
-
-use_gpu: true
-
-
-
-architecture: FasterRCNN
-
-FasterRCNN:
+CascadeRCNN:
   backbone: VisionTransformer
-  neck: FPN
+  neck: HRFPN
   rpn_head: RPNHead
-  bbox_head: BBoxHead
+  bbox_head: CascadeHead
+  # post process
   bbox_post_process: BBoxPostProcess
 
 
@@ -51,9 +33,9 @@ VisionTransformer:
   use_rel_pos_bias: False #
   epsilon: 0.000001 # 1e-6
   out_indices: [3, 5, 7, 11]
+  pretrained: ~
 
-
-FPN:
+HRFPN:
   out_channel: 256
 
 RPNHead:
@@ -71,7 +53,7 @@ RPNHead:
     min_size: 0.0
     nms_thresh: 0.7
     pre_nms_top_n: 2000
-    post_nms_top_n: 1000
+    post_nms_top_n: 2000
     topk_after_collect: True
   test_proposal:
     min_size: 0.0
@@ -80,8 +62,8 @@ RPNHead:
     post_nms_top_n: 1000
 
 
-BBoxHead:
-  head: TwoFCHead
+CascadeHead:
+  head: CascadeTwoFCHead
   roi_extractor:
     resolution: 7
     sampling_ratio: 0
@@ -93,13 +75,16 @@ BBoxAssigner:
   bg_thresh: 0.5
   fg_thresh: 0.5
   fg_fraction: 0.25
+  cascade_iou: [0.5, 0.6, 0.7]
   use_random: True
 
-TwoFCHead:
+CascadeTwoFCHead:
   out_channel: 1024
 
 BBoxPostProcess:
-  decode: RCNNBox
+  decode:
+    name: RCNNBox
+    prior_box_var: [30.0, 30.0, 15.0, 15.0]
   nms:
     name: MultiClassNMS
     keep_top_k: 100

@@ -405,9 +405,10 @@ class VisionTransformer(nn.Layer):
         self.pretrained = pretrained
         self.init_weight()
 
+        assert len(out_indices) <= 4, ''
         self.out_indices = out_indices
-        self.out_channels = [embed_dim for _ in range(depth)]
-        self.out_strides = [patch_size for _ in range(depth)]
+        self.out_channels = [embed_dim for _ in range(len(out_indices))]
+        self.out_strides = [4, 8, 16, 32][-len(out_indices):]
 
         self.norm = Identity()
         self.init_fpn(
@@ -565,8 +566,8 @@ class VisionTransformer(nn.Layer):
     def out_shape(self):
         return [
             ShapeSpec(
-                channels=self.out_channels[i], stride=self.out_strides[i])
-            for i in self.out_indices
+                channels=c, stride=s)
+            for c, s in zip(self.out_channels, self.out_strides)
         ]
 
 
