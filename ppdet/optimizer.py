@@ -646,6 +646,80 @@ def polynomial_scheduler(base_value,
     return schedule
 
 
+def multistep_scheduler(base_value,
+                        epochs,
+                        niter_per_epoch,
+                        milestones,
+                        gamma=0.1,
+                        final_value=0,
+                        total_iter=0,
+                        start_warmup_value=0,
+                        warmup_iters=0):
+    '''polynomial_scheduler
+    '''
+
+    warmup_schedule = np.array([])
+    print("Set warmup steps = %d" % warmup_iters)
+    if warmup_iters > 0:
+        warmup_schedule = np.linspace(start_warmup_value, base_value,
+                                      warmup_iters)
+
+    # iters = epochs * niter_per_epoch - warmup_iters
+
+    scheduler = paddle.optimizer.lr.MultiStepDecay(
+        base_value, milestones, gamma=gamma, last_epoch=-1, verbose=False)
+
+    # scheduler = paddle.optimizer.lr.PiecewiseDecay(
+    #     learning_rate=base_value,
+    #     decay_steps=iters,
+    #     end_lr=final_value,
+    #     verbose=False)
+
+    values = []
+    for _ in range(epochs):
+        _v = scheduler.get_lr()
+        _values = [_v for _ in range(niter_per_epoch)]
+        scheduler.step()
+
+        values.extend(_values)
+
+    schedule = np.concatenate((warmup_schedule, values))
+
+    print(len(schedule), epochs * niter_per_epoch)
+
+    assert len(schedule) == epochs * niter_per_epoch, ''
+    return schedule
+
+
+def cosine_scheduler(base_value,
+                     final_value,
+                     epochs,
+                     niter_per_ep,
+                     warmup_epochs=0,
+                     start_warmup_value=0,
+                     warmup_steps=-1):
+    warmup_schedule = np.array([])
+    warmup_iters = warmup_epochs * niter_per_ep
+    if warmup_steps > 0:
+        warmup_iters = warmup_steps
+    print("Set warmup steps = %d" % warmup_iters)
+    if warmup_iters > 0:
+        warmup_schedule = np.linspace(start_warmup_value, base_value,
+                                      warmup_iters)
+
+    iters = np.arange(epochs * niter_per_ep - warmup_iters)
+
+    schedule = np.array([
+        final_value + 0.5 * (base_value - final_value) *
+        (1 + math.cos(math.pi * i / (len(iters)))) for i in iters
+    ])
+
+    schedule = np.concatenate((warmup_schedule, schedule))
+
+    assert len(schedule) == epochs * niter_per_ep
+    return schedule
+
+
 # optimizer = create_optimizer(model, skip_list=skip_weight_decay_list, num_layers=num_layers, decay_dict=decay_dict)  
 # lr_scheduler_values = polynomial_scheduler(base_value=1e-4, final_value=0., total_iters=iters, start_warmup_value=0, warmup_iters=1500) 
 # optimizer.set_lr(lr_scheduler_values[iter])

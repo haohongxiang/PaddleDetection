@@ -51,7 +51,7 @@ from .export_utils import _dump_infer_config, _prune_input_spec
 
 from ppdet.utils.logger import setup_logger
 
-from ppdet.optimizer import create_optimizer, polynomial_scheduler
+from ppdet.optimizer import create_optimizer, polynomial_scheduler, multistep_scheduler
 
 logger = setup_logger('ppdet.engine')
 
@@ -187,12 +187,18 @@ class Trainer(object):
                 weight_decay=weight_decay,
                 layer_decay=layer_decay, )
 
-            self.lr_scheduler_values = polynomial_scheduler(
-                base_value=base_lr,
-                final_value=final_lr,
-                total_iters=total_iters,
-                start_warmup_value=start_warmup_value,
-                warmup_iters=warmup_iters)
+            # self.lr_scheduler_values = polynomial_scheduler(
+            #     base_value=base_lr,
+            #     final_value=final_lr,
+            #     total_iters=total_iters,
+            #     start_warmup_value=start_warmup_value,
+            #     warmup_iters=warmup_iters)
+            milestones = self.cfg.milestones
+            self.lr_scheduler_values = multistep_scheduler(
+                base_lr,
+                epochs=self.cfg.epoch,
+                niter_per_epoch=steps_per_epoch,
+                milestones=milestones)
 
             # Unstructured pruner is only enabled in the train mode.
             if self.cfg.get('unstructured_prune'):

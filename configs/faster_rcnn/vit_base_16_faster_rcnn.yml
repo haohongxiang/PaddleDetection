@@ -6,15 +6,19 @@ _BASE_: [
 ]
 weights: output/vit_base_16_faster_rcnn/model_final
 
+
 snapshot_epoch: 2
 
+
 epoch: 12
-base_lr: 0.0001
-final_lr: 0.0
-warmup_iters: 1500
+base_lr: 0.0003
+milestones: [8, 11]
+# final_lr: 0.0
+# warmup_iters: 1500
+
 
 weight_decay: 0.05
-layer_decay: 0.65
+layer_decay: 0.75
 
 
 worker_num: 2
@@ -22,8 +26,8 @@ TrainReader:
   batch_size: 1
 
 
-
 use_gpu: true
+norm_type: sync_bn
 
 
 
@@ -45,12 +49,12 @@ VisionTransformer:
   mlp_ratio: 4
   qkv_bias: True
   drop_rate: 0.0
-  drop_path_rate: 0.1
+  drop_path_rate: 0.2 #
   init_values: 0.1
-  final_norm: True
   use_rel_pos_bias: False #
   epsilon: 0.000001 # 1e-6
   out_indices: [3, 5, 7, 11]
+  pretrained: ~
 
 
 FPN:
@@ -81,12 +85,20 @@ RPNHead:
 
 
 BBoxHead:
-  head: TwoFCHead
+  # head: TwoFCHead
+  head: XConvNormHead
   roi_extractor:
     resolution: 7
     sampling_ratio: 0
     aligned: True
   bbox_assigner: BBoxAssigner
+  bbox_loss: GIoULoss
+
+
+GIoULoss:
+  loss_weight: 10.
+  reduction: 'mean'
+
 
 BBoxAssigner:
   batch_size_per_im: 512
@@ -95,8 +107,12 @@ BBoxAssigner:
   fg_fraction: 0.25
   use_random: True
 
-TwoFCHead:
-  out_channel: 1024
+# TwoFCHead:
+#   out_channel: 1024
+
+XConvNormHead:
+  num_convs: 4
+  norm_type: bn
 
 BBoxPostProcess:
   decode: RCNNBox
