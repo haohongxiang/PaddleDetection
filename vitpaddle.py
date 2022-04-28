@@ -22,8 +22,7 @@ from paddle.nn.initializer import Constant
 # from paddleseg.cvlibs import manager
 # from paddleseg.utils import utils, logger
 
-# from ppdet.modeling.backbones.transformer_utils import to_2tuple, DropPath, Identity
-from .transformer_utils import to_2tuple, DropPath, Identity
+from ppdet.modeling.backbones.transformer_utils import to_2tuple, DropPath, Identity
 
 # from ppdet.modeling.shape_spec import ShapeSpec
 # from ppdet.core.workspace import register, serializable

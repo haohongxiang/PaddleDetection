@@ -170,6 +170,8 @@ class Trainer(object):
             warmup_iters = self.cfg.warmup_iters if hasattr(
                 self.cfg, 'warmup_iters') else warmup_iters
 
+            warmup_ratio = getattr(self.cfg, 'warmup_ratio', 0)
+
             print('total_iters: ', total_iters)
             print('base_lr: ', base_lr)
             print('final_lr: ', final_lr)
@@ -177,6 +179,7 @@ class Trainer(object):
             print('weight_decay: ', weight_decay)
             print('layer_decay: ', layer_decay)
             print('warmup_iters: ', warmup_iters)
+            print('warmup_ratio: ', warmup_ratio)
 
             # TODO
             self.optimizer = create_optimizer(
@@ -193,11 +196,14 @@ class Trainer(object):
             #     total_iters=total_iters,
             #     start_warmup_value=start_warmup_value,
             #     warmup_iters=warmup_iters)
+
             milestones = self.cfg.milestones
             self.lr_scheduler_values = multistep_scheduler(
                 base_lr,
                 epochs=self.cfg.epoch,
                 niter_per_epoch=steps_per_epoch,
+                start_warmup_value=warmup_ratio * base_lr,
+                warmup_iters=warmup_iters,
                 milestones=milestones)
 
             # Unstructured pruner is only enabled in the train mode.

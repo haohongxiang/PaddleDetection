@@ -683,7 +683,12 @@ def multistep_scheduler(base_value,
 
         values.extend(_values)
 
-    schedule = np.concatenate((warmup_schedule, values))
+    for i in range(warmup_iters):
+        values[i] = warmup_schedule[i]
+
+    schedule = values
+
+    # schedule = np.concatenate((warmup_schedule, values))
 
     print(len(schedule), epochs * niter_per_epoch)
 

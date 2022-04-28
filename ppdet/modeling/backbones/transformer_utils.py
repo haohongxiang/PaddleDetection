@@ -9,6 +9,8 @@ __all__ = [
 
 
 def to_2tuple(x):
+    if isinstance(x, (list, tuple)):
+        return x
     return tuple([x] * 2)
 
 
