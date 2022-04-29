@@ -400,6 +400,8 @@ class VisionTransformer(nn.Layer):
                  final_norm=False,
                  pretrained=None,
                  out_indices=[3, 5, 7, 11],
+                 use_abs_pos_emb=False,
+                 use_sincos_pos_emb=True,
                  **args):
         super().__init__()
         self.img_size = img_size
@@ -418,9 +420,22 @@ class VisionTransformer(nn.Layer):
             shape=(1, 1, embed_dim),
             default_initializer=paddle.nn.initializer.Constant(value=0.))
 
-        self.pos_embed = self.create_parameter(
-            shape=(1, self.pos_w * self.pos_h + 1, embed_dim),
-            default_initializer=paddle.nn.initializer.TruncatedNormal(std=.02))
+        if use_abs_pos_emb:
+            self.pos_embed = self.create_parameter(
+                shape=(1, self.pos_w * self.pos_h + 1, embed_dim),
+                default_initializer=paddle.nn.initializer.TruncatedNormal(
+                    std=.02))
+        elif use_sincos_pos_emb:
+            pos_embed = self.build_2d_sincos_position_embedding(embed_dim)
+            self.pos_embed = self.create_parameter(shape=pos_embed.shape)
+            self.pos_embed.set_value(pos_embed.numpy())
+            self.pos_embed.stop_gradient = True
+        else:
+            self.pos_embed = None
+
+        # self.pos_embed = self.create_parameter(
+        #     shape=(1, self.pos_w * self.pos_h + 1, embed_dim),
+        #     default_initializer=paddle.nn.initializer.TruncatedNormal(std=.02))
 
         self.pos_drop = nn.Dropout(p=drop_rate)
 
@@ -563,6 +578,7 @@ class VisionTransformer(nn.Layer):
             1, self.patch_embed.num_patches_w, self.patch_embed.num_patches_h,
             dim
         ]).transpose((0, 3, 1, 2))
+
         patch_pos_embed = nn.functional.interpolate(
             patch_pos_embed.reshape([
                 1, self.patch_embed.num_patches_w,
@@ -600,10 +616,42 @@ class VisionTransformer(nn.Layer):
 
         return pos_embed
 
-    def build_2d_sincos_position_embedding(self,
-                                           embed_dim=768,
-                                           temperature=10000.,
-                                           decode=False):
+    def build_2d_sincos_position_embedding(
+            self,
+            embed_dim=768,
+            temperature=10000., ):
+        h, w = self.patch_embed.patch_shape
+        grid_w = paddle.arange(w, dtype=paddle.float32)
+        grid_h = paddle.arange(h, dtype=paddle.float32)
+        grid_w, grid_h = paddle.meshgrid(grid_w, grid_h)
+        assert embed_dim % 4 == 0, 'Embed dimension must be divisible by 4 for 2D sin-cos position embedding'
+        pos_dim = embed_dim // 4
+        omega = paddle.arange(pos_dim, dtype=paddle.float32) / pos_dim
+        omega = 1. / (temperature**omega)
+
+        # out_w = paddle.einsum('m,d->md', [grid_w.flatten(), omega])
+        # out_h = paddle.einsum('m,d->md', [grid_h.flatten(), omega])
+
+        out_w = grid_w.flatten()[..., None] @omega[None]
+        out_h = grid_h.flatten()[..., None] @omega[None]
+
+        pos_emb = paddle.concat(
+            [
+                paddle.sin(out_w), paddle.cos(out_w), paddle.sin(out_h),
+                paddle.cos(out_h)
+            ],
+            axis=1)[None, :, :]
+
+        pe_token = paddle.zeros([1, 1, embed_dim], dtype=paddle.float32)
+        pos_embed = paddle.concat([pe_token, pos_emb], axis=1)
+        # pos_embed.stop_gradient = True
+
+        return pos_embed
+
+    def _build_2d_sincos_position_embedding(self,
+                                            embed_dim=768,
+                                            temperature=10000.,
+                                            decode=False):
         h, w = self.patch_embed.patch_shape
         grid_w = paddle.arange(w, dtype=paddle.float32)
         grid_h = paddle.arange(h, dtype=paddle.float32)

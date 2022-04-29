@@ -20,7 +20,7 @@ find_unused_parameters: True
 epoch: 12
 base_lr: 0.0003
 milestones: [8, 11]
-warmup_iters: 500 # 2 x 8
+warmup_iters: 2000 # 2 x 8 500
 warmup_ratio: 0.001
 
 
@@ -55,11 +55,12 @@ VisionTransformer:
   drop_rate: 0.0
   drop_path_rate: 0.2 # 0.1
   init_values: 0.1
-  final_norm: True
+  final_norm: False
   use_rel_pos_bias: False #
+  use_sincos_pos_emb: True
   epsilon: 0.000001 # 1e-6
   out_indices: [3, 5, 7, 11]
-  pretrained: ~
+  pretrained: ../params/init.params
 
 HRFPN:
   out_channel: 256
@@ -98,7 +99,7 @@ CascadeHead:
   bbox_assigner: BBoxAssigner
   bbox_loss: GIoULoss
   num_cascade_stages: 3
-  bbox_weight: [[10., 10., 5., 5.], [20.0, 20.0, 10.0, 10.0], [30.0, 30.0, 15.0, 15.0]],
+  bbox_weight: [[10., 10., 5., 5.], [20.0, 20.0, 10.0, 10.0], [30.0, 30.0, 15.0, 15.0]]
 
 
 BBoxAssigner:
