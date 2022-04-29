@@ -37,7 +37,8 @@ class HRFPN(nn.Layer):
                  out_channel=256,
                  share_conv=False,
                  extra_stage=1,
-                 spatial_scales=[1. / 4, 1. / 8, 1. / 16, 1. / 32]):
+                 spatial_scales=[1. / 4, 1. / 8, 1. / 16, 1. / 32],
+                 use_bias=False):
         super(HRFPN, self).__init__()
         in_channel = sum(in_channels)
         self.in_channel = in_channel
@@ -48,11 +49,13 @@ class HRFPN(nn.Layer):
         self.spatial_scales = spatial_scales
         self.num_out = len(self.spatial_scales)
 
+        bias_attr = False if use_bias is False else None
+
         self.reduction = nn.Conv2D(
             in_channels=in_channel,
             out_channels=out_channel,
             kernel_size=1,
-            bias_attr=False)
+            bias_attr=bias_attr)
 
         if share_conv:
             self.fpn_conv = nn.Conv2D(
@@ -60,7 +63,7 @@ class HRFPN(nn.Layer):
                 out_channels=out_channel,
                 kernel_size=3,
                 padding=1,
-                bias_attr=False)
+                bias_attr=bias_attr)
         else:
             self.fpn_conv = []
             for i in range(self.num_out):
@@ -72,7 +75,7 @@ class HRFPN(nn.Layer):
                         out_channels=out_channel,
                         kernel_size=3,
                         padding=1,
-                        bias_attr=False))
+                        bias_attr=bias_attr))
                 self.fpn_conv.append(conv)
 
     def forward(self, body_feats):
@@ -89,12 +92,17 @@ class HRFPN(nn.Layer):
 
         # concat
         out = paddle.concat(outs, axis=1)
+
+        # print('out, ', out)
+
         assert out.shape[
             1] == self.in_channel, 'in_channel should be {}, be received {}'.format(
                 out.shape[1], self.in_channel)
 
         # reduction
         out = self.reduction(out)
+
+        # print('reduction, ', out)
 
         # conv
         outs = [out]
