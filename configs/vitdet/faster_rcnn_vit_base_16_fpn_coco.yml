@@ -2,8 +2,9 @@ _BASE_: [
   '../datasets/coco_detection.yml',
   '../runtime.yml',
   # '_base_/optimizer_swin_1x.yml',
-  '_base_/faster_rcnn_swin_reader.yml',
+  '../faster_rcnn/_base_/faster_rcnn_swin_reader.yml',
 ]
+
 weights: output/vit_base_16_faster_rcnn/model_final
 
 
@@ -14,7 +15,7 @@ epoch: 12
 base_lr: 0.0003
 milestones: [8, 11]
 # final_lr: 0.0
-warmup_iters: 500
+# warmup_iters: 1500
 
 
 weight_decay: 0.05
@@ -29,7 +30,6 @@ TrainReader:
 use_gpu: true
 norm_type: sync_bn
 
-find_unused_parameters: True
 
 
 architecture: FasterRCNN
@@ -55,7 +55,8 @@ VisionTransformer:
   use_rel_pos_bias: False #
   epsilon: 0.000001 # 1e-6
   out_indices: [3, 5, 7, 11]
-  # pretrained: ../params/pretrain_mae_vit_base_mask_0.75_400e.params
+  # pretrained: ~
+  pretrained: ../params/init.params
 
 
 FPN:
@@ -94,6 +95,7 @@ BBoxHead:
     aligned: True
   bbox_assigner: BBoxAssigner
   bbox_loss: GIoULoss
+
 
 GIoULoss:
   loss_weight: 10.
