@@ -63,6 +63,7 @@ VisionTransformer:
 
 HRFPN:
   out_channel: 256
+  use_bias: True
 
 RPNHead:
   anchor_generator:
@@ -79,7 +80,7 @@ RPNHead:
     min_size: 0.0
     nms_thresh: 0.7
     pre_nms_top_n: 2000
-    post_nms_top_n: 2000
+    post_nms_top_n: 2000 # 1000
     topk_after_collect: True
   test_proposal:
     min_size: 0.0
@@ -96,6 +97,9 @@ CascadeHead:
     aligned: True
   bbox_assigner: BBoxAssigner
   bbox_loss: GIoULoss
+  num_cascade_stages: 3
+  bbox_weight: [[10., 10., 5., 5.], [20.0, 20.0, 10.0, 10.0], [30.0, 30.0, 15.0, 15.0]]
+
 
 BBoxAssigner:
   batch_size_per_im: 512
@@ -119,9 +123,12 @@ GIoULoss:
 BBoxPostProcess:
   decode:
     name: RCNNBox
-    prior_box_var: [30.0, 30.0, 15.0, 15.0]
+    prior_box_var: [30.0, 30.0, 15.0, 15.0] #
   nms:
     name: MultiClassNMS
     keep_top_k: 100
     score_threshold: 0.05
     nms_threshold: 0.5
+
+# 0.033, 0.033, 0.067, 0.067
+# https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/bbox/coder/delta_xywh_bbox_coder.py

@@ -503,7 +503,6 @@ class Trainer(object):
                     self.optimizer.step()
 
                 curr_lr = self.optimizer.get_lr()
-
                 # TODO
                 # self.lr.step()
 

@@ -93,6 +93,7 @@ BBoxHead:
     sampling_ratio: 0
     aligned: True
   bbox_assigner: BBoxAssigner
+
   bbox_loss: GIoULoss
 
 GIoULoss:
