@@ -232,7 +232,7 @@ class CascadeHeadL(BBoxHead):
             deltas = self.bbox_delta_list[i](bbox_feat)  # MX320
 
             # TODO
-            if not self.reg_class_agnostic:
+            if not self.reg_class_agnostic and i < self.num_cascade_stages - 1:
                 deltas = deltas.reshape([-1, self.num_classes, 4])
                 # deltas = deltas.reshape([-1, 4, self.num_classes]).transpose([0, 2, 1])
                 labels = scores[:, :-1].argmax(axis=-1)
