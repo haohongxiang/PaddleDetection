@@ -90,7 +90,7 @@ RPNHead:
     post_nms_top_n: 1000
 
 
-CascadeHead:
+CascadeHeadL:
   head: CascadeXConvNormHead
   roi_extractor:
     resolution: 7

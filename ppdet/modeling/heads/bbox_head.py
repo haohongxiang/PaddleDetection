@@ -321,9 +321,13 @@ class BBoxHead(nn.Layer):
         if self.bbox_loss is not None:
             reg_delta = self.bbox_transform(reg_delta)
             reg_target = self.bbox_transform(reg_target)
-            loss_bbox_reg = self.bbox_loss(
-                reg_delta, reg_target).sum() / tgt_labels.shape[0]
+
+            loss_bbox_reg = self.bbox_loss(reg_delta, reg_target).sum() / (
+                tgt_labels.shape[0] + 1e-7)
             loss_bbox_reg *= self.num_classes
+
+            # loss_bbox_reg = self.bbox_loss(reg_delta, reg_target)
+
         else:
             loss_bbox_reg = paddle.abs(reg_delta - reg_target).sum(
             ) / tgt_labels.shape[0]

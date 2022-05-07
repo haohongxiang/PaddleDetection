@@ -743,23 +743,32 @@ def create_optimizer(
     # opt_lower = args.opt.lower()
     # opt_lower = 'adamw'
 
-    weight_decay = weight_decay
+    # weight_decay = weight_decay
 
     if weight_decay and filter_bias_and_bn:
-        skip = {}
-        if skip_decay_list is not None:
-            skip = skip_decay_list
-        elif hasattr(model, 'no_weight_decay'):
-            skip = model.no_weight_decay()
+        # skip = {}
+        # if skip_decay_list is not None:
+        #     skip = skip_decay_list
+        # elif hasattr(model, 'no_weight_decay'):
+        #     skip = model.no_weight_decay()
+
+        # decay_dict = {
+        #     param.name: not (len(param.shape) == 1 or name.endswith(".bias") or
+        #                      name in skip_decay_list)
+        #     for name, param in model.named_parameters()
+        # }
 
         decay_dict = {
             param.name: not (len(param.shape) == 1 or name.endswith(".bias") or
-                             name in skip_decay_list)
+                             #  name in skip_decay_list)
+                             any([_n in name for _n in skip_decay_list]))
             for name, param in model.named_parameters()
         }
 
         parameters = [param for param in model.parameters()]
-        weight_decay = 0.
+        # TODO
+        # weight_decay = 0.
+
     else:
         parameters = model.parameters()
 
@@ -779,7 +788,7 @@ def create_optimizer(
     opt_args['beta1'] = betas[0]
     opt_args['beta2'] = betas[1]
 
-    layer_decay = layer_decay
+    # layer_decay = layer_decay
 
     opt_args['layerwise_decay'] = layer_decay
     name_dict = dict()
