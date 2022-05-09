@@ -18,13 +18,13 @@ find_unused_parameters: True
 
 # 1x optimizer
 epoch: 12
-base_lr: 0.0003
+base_lr: 0.0001 # 0.0003
 milestones: [8, 11]
 warmup_iters: 2000 # 2 x 8 500
 warmup_ratio: 0.001
 
 
-weight_decay: 0.05
+weight_decay: 0.05 # 0.0
 layer_decay: 0.75
 
 
@@ -99,8 +99,8 @@ CascadeHeadL:
   bbox_assigner: BBoxAssigner
   bbox_loss: GIoULoss
   num_cascade_stages: 3
-  # bbox_weight: [[10., 10., 5., 5.], [20.0, 20.0, 10.0, 10.0], [30.0, 30.0, 15.0, 15.0]]
   reg_class_agnostic: False
+  # stage_loss_weights: [1, 0.5, 0.25]
 
 BBoxAssigner:
   batch_size_per_im: 512
@@ -115,6 +115,7 @@ BBoxAssigner:
 
 CascadeXConvNormHead:
     norm_type: bn
+
 
 GIoULoss:
   loss_weight: 10.

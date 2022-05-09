@@ -23,7 +23,7 @@ from .roi_extractor import RoIAlign
 from ..shape_spec import ShapeSpec
 from ..bbox_utils import delta2bbox, clip_bbox, nonempty_bbox
 
-__all__ = ['CascadeTwoFCHead', 'CascadeXConvNormHead', 'CascadeHead']
+__all__ = ['CascadeTwoFCHead', 'CascadeXConvNormHead', 'CascadeHeadL']
 
 
 @register
@@ -100,7 +100,6 @@ class CascadeXConvNormHead(nn.Layer):
         super(CascadeXConvNormHead, self).__init__()
         self.in_channel = in_channel
         self.out_channel = out_channel
-
         self.head_list = []
         for stage in range(num_cascade_stage):
             head_per_stage = self.add_sublayer(
@@ -160,7 +159,9 @@ class CascadeHeadL(BBoxHead):
                               [30.0, 30.0, 15.0, 15.0]],
                  num_cascade_stages=3,
                  reg_class_agnostic=False,
-                 bbox_loss=None):
+                 bbox_loss=None,
+                 stage_loss_weights=[1 / 3., 1 / 3., 1 / 3.]):
+
         nn.Layer.__init__(self, )
         self.head = head
         self.roi_extractor = roi_extractor
@@ -172,6 +173,7 @@ class CascadeHeadL(BBoxHead):
         self.bbox_weight = bbox_weight
         self.num_cascade_stages = num_cascade_stages
         self.bbox_loss = bbox_loss
+        self.stage_loss_weights = stage_loss_weights
 
         self.reg_class_agnostic = reg_class_agnostic
         num_bbox_delta = 4 if reg_class_agnostic else 4 * num_classes
@@ -252,8 +254,13 @@ class CascadeHeadL(BBoxHead):
                     loss[k + "_stage{}".format(
                         stage)] = v / self.num_cascade_stages
 
+                # for k, v in loss_stage.items():
+                #     loss[k + "_stage{}".format(stage)] = v * self.stage_loss_weights[stage]
+
             return loss, bbox_feat
+
         else:
+
             scores, deltas, self.refined_rois = self.get_prediction(
                 head_out_list)
             return (deltas, scores), self.head
