@@ -250,12 +250,13 @@ class CascadeHeadL(BBoxHead):
                 loss_stage = self.get_loss(scores, deltas, targets, rois,
                                            self.bbox_weight[stage])
                 # TODO
+                # for k, v in loss_stage.items():
+                #     loss[k + "_stage{}".format(
+                #         stage)] = v / self.num_cascade_stages
+
                 for k, v in loss_stage.items():
                     loss[k + "_stage{}".format(
-                        stage)] = v / self.num_cascade_stages
-
-                # for k, v in loss_stage.items():
-                #     loss[k + "_stage{}".format(stage)] = v * self.stage_loss_weights[stage]
+                        stage)] = v * self.stage_loss_weights[stage]
 
             return loss, bbox_feat
 
