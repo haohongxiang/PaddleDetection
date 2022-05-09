@@ -11,7 +11,7 @@ weights: output/cascade_rcnn_vit_base_16_hrfpn_coco/model_final
 
 snapshot_epoch: 1
 
-use_gpu: true
+use_gpu: false
 norm_type: sync_bn
 find_unused_parameters: True
 
@@ -40,7 +40,7 @@ CascadeRCNN:
   backbone: VisionTransformer
   neck: HRFPN
   rpn_head: RPNHead
-  bbox_head: CascadeHead
+  bbox_head: CascadeHeadL
   # post process
   bbox_post_process: BBoxPostProcess
 
@@ -60,7 +60,7 @@ VisionTransformer:
   use_sincos_pos_emb: True
   epsilon: 0.000001 # 1e-6
   out_indices: [3, 5, 7, 11]
-  pretrained: ../params/init.params
+  # pretrained: ../params/init.params
 
 HRFPN:
   out_channel: 256
