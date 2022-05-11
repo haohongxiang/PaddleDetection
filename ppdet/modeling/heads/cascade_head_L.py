@@ -25,110 +25,6 @@ from ..bbox_utils import delta2bbox, clip_bbox, nonempty_bbox
 
 __all__ = ['CascadeHeadL']
 
-# from .cascade_head import CascadeTwoFCHead, CascadeXConvNormHead
-
-# @register
-# class CascadeTwoFCHead(nn.Layer):
-#     __shared__ = ['num_cascade_stage']
-#     """
-#     Cascade RCNN bbox head  with Two fc layers to extract feature
-
-#     Args:
-#         in_channel (int): Input channel which can be derived by from_config
-#         out_channel (int): Output channel
-#         resolution (int): Resolution of input feature map, default 7
-#         num_cascade_stage (int): The number of cascade stage, default 3
-#     """
-
-#     def __init__(self,
-#                  in_channel=256,
-#                  out_channel=1024,
-#                  resolution=7,
-#                  num_cascade_stage=3):
-#         super(CascadeTwoFCHead, self).__init__()
-
-#         self.in_channel = in_channel
-#         self.out_channel = out_channel
-
-#         self.head_list = []
-#         for stage in range(num_cascade_stage):
-#             head_per_stage = self.add_sublayer(
-#                 str(stage), TwoFCHead(in_channel, out_channel, resolution))
-#             self.head_list.append(head_per_stage)
-
-#     @classmethod
-#     def from_config(cls, cfg, input_shape):
-#         s = input_shape
-#         s = s[0] if isinstance(s, (list, tuple)) else s
-#         return {'in_channel': s.channels}
-
-#     @property
-#     def out_shape(self):
-#         return [ShapeSpec(channels=self.out_channel, )]
-
-#     def forward(self, rois_feat, stage=0):
-#         out = self.head_list[stage](rois_feat)
-#         return out
-
-# @register
-# class CascadeXConvNormHead(nn.Layer):
-#     __shared__ = ['norm_type', 'freeze_norm', 'num_cascade_stage']
-#     """
-#     Cascade RCNN bbox head with serveral convolution layers
-
-#     Args:
-#         in_channel (int): Input channels which can be derived by from_config
-#         num_convs (int): The number of conv layers
-#         conv_dim (int): The number of channels for the conv layers
-#         out_channel (int): Output channels
-#         resolution (int): Resolution of input feature map
-#         norm_type (string): Norm type, bn, gn, sync_bn are available, 
-#             default `gn`
-#         freeze_norm (bool): Whether to freeze the norm
-#         num_cascade_stage (int): The number of cascade stage, default 3
-#     """
-
-#     def __init__(self,
-#                  in_channel=256,
-#                  num_convs=4,
-#                  conv_dim=256,
-#                  out_channel=1024,
-#                  resolution=7,
-#                  norm_type='gn',
-#                  freeze_norm=False,
-#                  num_cascade_stage=3):
-#         super(CascadeXConvNormHead, self).__init__()
-#         self.in_channel = in_channel
-#         self.out_channel = out_channel
-#         self.head_list = []
-#         for stage in range(num_cascade_stage):
-#             head_per_stage = self.add_sublayer(
-#                 str(stage),
-#                 XConvNormHead(
-#                     in_channel,
-#                     num_convs,
-#                     conv_dim,
-#                     out_channel,
-#                     resolution,
-#                     norm_type,
-#                     freeze_norm,
-#                     stage_name='stage{}_'.format(stage)))
-#             self.head_list.append(head_per_stage)
-
-#     @classmethod
-#     def from_config(cls, cfg, input_shape):
-#         s = input_shape
-#         s = s[0] if isinstance(s, (list, tuple)) else s
-#         return {'in_channel': s.channels}
-
-#     @property
-#     def out_shape(self):
-#         return [ShapeSpec(channels=self.out_channel, )]
-
-#     def forward(self, rois_feat, stage=0):
-#         out = self.head_list[stage](rois_feat)
-#         return out
-
 
 @register
 class CascadeHeadL(BBoxHead):
@@ -303,6 +199,119 @@ class CascadeHeadL(BBoxHead):
     def get_refined_rois(self, ):
         return self.refined_rois
 
+
+# @register
+# class TESTCONVHK(nn.Layer):
+#     def __init__(self, cin, cout, k=3, s=1, p=0) -> None:
+#         super().__init__()
+#         self.conv = nn.Conv2D(cin, cout, kernel_size=k, stride=1, padding=p)
+
+#     def forward(self, data):
+#         return self.conv(data)
+
+# from .cascade_head import CascadeTwoFCHead, CascadeXConvNormHead
+
+# @register
+# class CascadeTwoFCHead(nn.Layer):
+#     __shared__ = ['num_cascade_stage']
+#     """
+#     Cascade RCNN bbox head  with Two fc layers to extract feature
+
+#     Args:
+#         in_channel (int): Input channel which can be derived by from_config
+#         out_channel (int): Output channel
+#         resolution (int): Resolution of input feature map, default 7
+#         num_cascade_stage (int): The number of cascade stage, default 3
+#     """
+
+#     def __init__(self,
+#                  in_channel=256,
+#                  out_channel=1024,
+#                  resolution=7,
+#                  num_cascade_stage=3):
+#         super(CascadeTwoFCHead, self).__init__()
+
+#         self.in_channel = in_channel
+#         self.out_channel = out_channel
+
+#         self.head_list = []
+#         for stage in range(num_cascade_stage):
+#             head_per_stage = self.add_sublayer(
+#                 str(stage), TwoFCHead(in_channel, out_channel, resolution))
+#             self.head_list.append(head_per_stage)
+
+#     @classmethod
+#     def from_config(cls, cfg, input_shape):
+#         s = input_shape
+#         s = s[0] if isinstance(s, (list, tuple)) else s
+#         return {'in_channel': s.channels}
+
+#     @property
+#     def out_shape(self):
+#         return [ShapeSpec(channels=self.out_channel, )]
+
+#     def forward(self, rois_feat, stage=0):
+#         out = self.head_list[stage](rois_feat)
+#         return out
+
+# @register
+# class CascadeXConvNormHead(nn.Layer):
+#     __shared__ = ['norm_type', 'freeze_norm', 'num_cascade_stage']
+#     """
+#     Cascade RCNN bbox head with serveral convolution layers
+
+#     Args:
+#         in_channel (int): Input channels which can be derived by from_config
+#         num_convs (int): The number of conv layers
+#         conv_dim (int): The number of channels for the conv layers
+#         out_channel (int): Output channels
+#         resolution (int): Resolution of input feature map
+#         norm_type (string): Norm type, bn, gn, sync_bn are available, 
+#             default `gn`
+#         freeze_norm (bool): Whether to freeze the norm
+#         num_cascade_stage (int): The number of cascade stage, default 3
+#     """
+
+#     def __init__(self,
+#                  in_channel=256,
+#                  num_convs=4,
+#                  conv_dim=256,
+#                  out_channel=1024,
+#                  resolution=7,
+#                  norm_type='gn',
+#                  freeze_norm=False,
+#                  num_cascade_stage=3):
+#         super(CascadeXConvNormHead, self).__init__()
+#         self.in_channel = in_channel
+#         self.out_channel = out_channel
+#         self.head_list = []
+#         for stage in range(num_cascade_stage):
+#             head_per_stage = self.add_sublayer(
+#                 str(stage),
+#                 XConvNormHead(
+#                     in_channel,
+#                     num_convs,
+#                     conv_dim,
+#                     out_channel,
+#                     resolution,
+#                     norm_type,
+#                     freeze_norm,
+#                     stage_name='stage{}_'.format(stage)))
+#             self.head_list.append(head_per_stage)
+
+#     @classmethod
+#     def from_config(cls, cfg, input_shape):
+#         s = input_shape
+#         s = s[0] if isinstance(s, (list, tuple)) else s
+#         return {'in_channel': s.channels}
+
+#     @property
+#     def out_shape(self):
+#         return [ShapeSpec(channels=self.out_channel, )]
+
+#     def forward(self, rois_feat, stage=0):
+#         out = self.head_list[stage](rois_feat)
+#         return out
 
 # import torch
 # import torch.nn as nn

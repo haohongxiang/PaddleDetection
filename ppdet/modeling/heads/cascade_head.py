@@ -23,6 +23,8 @@ from .roi_extractor import RoIAlign
 from ..shape_spec import ShapeSpec
 from ..bbox_utils import delta2bbox, clip_bbox, nonempty_bbox
 
+from .. import initializer as init
+
 __all__ = ['CascadeTwoFCHead', 'CascadeXConvNormHead', 'CascadeHead']
 
 
@@ -96,7 +98,9 @@ class CascadeXConvNormHead(nn.Layer):
                  resolution=7,
                  norm_type='gn',
                  freeze_norm=False,
-                 num_cascade_stage=3):
+                 num_cascade_stage=3,
+                 reset_initialized_parameter=False):
+
         super(CascadeXConvNormHead, self).__init__()
         self.in_channel = in_channel
         self.out_channel = out_channel
@@ -115,6 +119,9 @@ class CascadeXConvNormHead(nn.Layer):
                     freeze_norm,
                     stage_name='stage{}_'.format(stage)))
             self.head_list.append(head_per_stage)
+
+        if reset_initialized_parameter:
+            init.reset_initialized_parameter(self)
 
     @classmethod
     def from_config(cls, cfg, input_shape):

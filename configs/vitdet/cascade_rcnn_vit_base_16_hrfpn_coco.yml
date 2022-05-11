@@ -65,6 +65,8 @@ VisionTransformer:
 HRFPN:
   out_channel: 256
   use_bias: True
+  # pretrained: ~
+
 
 RPNHead:
   anchor_generator:
@@ -100,7 +102,7 @@ CascadeHeadL:
   bbox_loss: GIoULoss
   num_cascade_stages: 3
   reg_class_agnostic: False
-  # stage_loss_weights: [1, 0.5, 0.25]
+  stage_loss_weights: [1, 0.5, 0.25]
 
 BBoxAssigner:
   batch_size_per_im: 512
@@ -115,11 +117,13 @@ BBoxAssigner:
 
 CascadeXConvNormHead:
     norm_type: bn
+    reset_initialized_parameter: False
 
 
 GIoULoss:
   loss_weight: 10.
-  reduction: 'mean'
+  reduction: 'none'
+  # reduction: 'mean'
 
 
 BBoxPostProcess:

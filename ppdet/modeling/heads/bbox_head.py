@@ -279,8 +279,14 @@ class BBoxHead(nn.Layer):
         else:
             tgt_labels = tgt_labels.cast('int64')
             tgt_labels.stop_gradient = True
+
+            # loss_bbox_cls = F.cross_entropy(
+            #     input=scores, label=tgt_labels, reduction='mean')
+
             loss_bbox_cls = F.cross_entropy(
-                input=scores, label=tgt_labels, reduction='mean')
+                input=scores, label=tgt_labels,
+                reduction='none').sum() / (tgt_labels.shape[0] + 1e-7)
+
             loss_bbox[cls_name] = loss_bbox_cls
 
         # bbox reg
@@ -322,11 +328,12 @@ class BBoxHead(nn.Layer):
             reg_delta = self.bbox_transform(reg_delta)
             reg_target = self.bbox_transform(reg_target)
 
-            loss_bbox_reg = self.bbox_loss(
-                reg_delta, reg_target).sum() / tgt_labels.shape[0]
-            loss_bbox_reg *= self.num_classes
+            # loss_bbox_reg = self.bbox_loss(
+            #     reg_delta, reg_target).sum() / tgt_labels.shape[0]
+            # loss_bbox_reg *= self.num_classes
 
-            # loss_bbox_reg = self.bbox_loss(reg_delta, reg_target)
+            loss_bbox_reg = self.bbox_loss(
+                reg_delta, reg_target).sum() / (tgt_labels.shape[0] + 1e-7)
 
         else:
             loss_bbox_reg = paddle.abs(reg_delta - reg_target).sum(

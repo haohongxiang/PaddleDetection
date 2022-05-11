@@ -38,7 +38,9 @@ class HRFPN(nn.Layer):
                  share_conv=False,
                  extra_stage=1,
                  spatial_scales=[1. / 4, 1. / 8, 1. / 16, 1. / 32],
-                 use_bias=False):
+                 use_bias=False,
+                 pretrained=None):
+
         super(HRFPN, self).__init__()
         in_channel = sum(in_channels)
         self.in_channel = in_channel
@@ -77,6 +79,10 @@ class HRFPN(nn.Layer):
                         padding=1,
                         bias_attr=bias_attr))
                 self.fpn_conv.append(conv)
+
+        if pretrained:
+            self.set_state_dict(paddle.load(pretrained))
+            print('init neck done ...')
 
     def forward(self, body_feats):
         num_backbone_stages = len(body_feats)

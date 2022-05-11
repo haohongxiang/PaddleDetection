@@ -1,0 +1,13 @@
+
+
+
+# architecture: FasterRCNN
+
+# FasterRCNN:
+#   backbone: TESTCONVHK
+
+
+
+TESTCONVHK:
+  cin: 3
+  cout: 16
