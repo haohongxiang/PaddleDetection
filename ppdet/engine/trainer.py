@@ -430,6 +430,9 @@ class Trainer(object):
                 self.model)
 
         model = self.model
+
+        print(model)
+
         if self.cfg.get('fleet', False):
             model = fleet.distributed_model(model)
             self.optimizer = fleet.distributed_optimizer(self.optimizer)
