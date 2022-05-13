@@ -74,8 +74,13 @@ class RPNHead(nn.Layer):
                  train_proposal=ProposalGenerator(12000, 2000).__dict__,
                  test_proposal=ProposalGenerator().__dict__,
                  in_channel=1024,
-                 export_onnx=False):
+                 export_onnx=False,
+                 beta=None):
+
         super(RPNHead, self).__init__()
+
+        self.beta = beta
+
         self.anchor_generator = anchor_generator
         self.rpn_target_assign = rpn_target_assign
         self.train_proposal = train_proposal
@@ -296,7 +301,17 @@ class RPNHead(nn.Layer):
             loc_tgt = paddle.concat(loc_tgt)
             loc_tgt = paddle.gather(loc_tgt, pos_ind)
             loc_tgt.stop_gradient = True
-            loss_rpn_reg = paddle.abs(loc_pred - loc_tgt).sum()
+
+            if self.beta is None:
+                loss_rpn_reg = paddle.abs(loc_pred - loc_tgt).sum()
+            else:
+                diff = paddle.abs(loc_pred - loc_tgt)
+                loss_rpn_reg = paddle.where(diff < self.beta, 0.5 * diff * diff
+                                            / self.beta, diff - 0.5 * self.beta)
+                loss_rpn_reg = loss_rpn_reg.sum()
+
+        # print('norm ', norm)
+
         return {
             'loss_rpn_cls': loss_rpn_cls / norm,
             'loss_rpn_reg': loss_rpn_reg / norm

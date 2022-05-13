@@ -72,6 +72,8 @@ HRFPN:
 
 
 RPNHead:
+  beta: ~
+  # beta: 0.1111111111111111
   anchor_generator:
     aspect_ratios: [0.5, 1.0, 2.0]
     anchor_sizes: [[32], [64], [128], [256], [512]]
@@ -93,6 +95,7 @@ RPNHead:
     nms_thresh: 0.7
     pre_nms_top_n: 1000
     post_nms_top_n: 1000
+
 
 # CascadeHead:
 CascadeHeadL:
