@@ -453,8 +453,11 @@ def layerwise_lr_decay(decay_rate, name_dict, n_layers, param):
         idx = static_name.find("blocks.")
         layer = int(static_name[idx:].split(".")[1])
         ratio = decay_rate**(n_layers - layer)
-    elif "embed" in static_name:
+    # elif "embed" in static_name:
+    # elif "patch_embed" in static_name:
+    elif "cls_token" in static_name or 'patch_embed' in static_name:
         ratio = decay_rate**(n_layers + 1)
+
     param.optimize_attr["learning_rate"] *= ratio
 
 

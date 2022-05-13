@@ -427,9 +427,12 @@ class VisionTransformer(nn.Layer):
                     std=.02))
         elif use_sincos_pos_emb:
             pos_embed = self.build_2d_sincos_position_embedding(embed_dim)
+            self.pos_embed = pos_embed
+
             self.pos_embed = self.create_parameter(shape=pos_embed.shape)
             self.pos_embed.set_value(pos_embed.numpy())
             self.pos_embed.stop_gradient = True
+
         else:
             self.pos_embed = None
 
@@ -536,8 +539,11 @@ class VisionTransformer(nn.Layer):
             self.fpn1 = nn.Sequential(
                 nn.Conv2DTranspose(
                     embed_dim, embed_dim, kernel_size=2, stride=2),
-                nn.SyncBatchNorm(
-                    embed_dim, momentum=0.1),
+
+                # nn.SyncBatchNorm(
+                #     embed_dim, momentum=0.1),
+                nn.BatchNorm2D(
+                    embed_dim, momentum=0.9, epsilon=1e-5),
                 nn.GELU(),
                 nn.Conv2DTranspose(
                     embed_dim, embed_dim, kernel_size=2, stride=2), )
