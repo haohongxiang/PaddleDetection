@@ -310,7 +310,7 @@ class RPNHead(nn.Layer):
                                             / self.beta, diff - 0.5 * self.beta)
                 loss_rpn_reg = loss_rpn_reg.sum()
 
-        # print('norm ', norm)
+        # print('norm ', norm) # 256
 
         return {
             'loss_rpn_cls': loss_rpn_cls / norm,
