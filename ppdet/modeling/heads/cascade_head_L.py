@@ -56,7 +56,8 @@ class CascadeHeadL(BBoxHead):
                  num_cascade_stages=3,
                  reg_class_agnostic=False,
                  bbox_loss=None,
-                 stage_loss_weights=[1 / 3., 1 / 3., 1 / 3.]):
+                 stage_loss_weights=[1 / 3., 1 / 3., 1 / 3.],
+                 add_gt_as_proposals=[True, False, False]):
 
         nn.Layer.__init__(self, )
         self.head = head
@@ -70,6 +71,7 @@ class CascadeHeadL(BBoxHead):
         self.num_cascade_stages = num_cascade_stages
         self.bbox_loss = bbox_loss
         self.stage_loss_weights = stage_loss_weights
+        self.add_gt_as_proposals = add_gt_as_proposals
 
         self.reg_class_agnostic = reg_class_agnostic
         num_bbox_delta = 4 if reg_class_agnostic else 4 * num_classes
@@ -108,7 +110,11 @@ class CascadeHeadL(BBoxHead):
         """
         targets = []
         if self.training:
-            rois, rois_num, targets = self.bbox_assigner(rois, rois_num, inputs)
+            rois, rois_num, targets = self.bbox_assigner(
+                rois,
+                rois_num,
+                inputs,
+                is_cascade=not self.add_gt_as_proposals[0])
             targets_list = [targets]
             self.assigned_rois = (rois, rois_num)
             self.assigned_targets = targets
@@ -121,7 +127,11 @@ class CascadeHeadL(BBoxHead):
                                                            inputs['im_shape'])
                 if self.training:
                     rois, rois_num, targets = self.bbox_assigner(
-                        rois, rois_num, inputs, i, is_cascade=True)
+                        rois,
+                        rois_num,
+                        inputs,
+                        i,
+                        is_cascade=not self.add_gt_as_proposals[i])
                     targets_list.append(targets)
 
             rois_feat = self.roi_extractor(body_feats, rois, rois_num)
