@@ -542,8 +542,7 @@ class VisionTransformer(nn.Layer):
 
                 # nn.SyncBatchNorm(
                 #     embed_dim, momentum=0.1),
-                nn.BatchNorm2D(
-                    embed_dim, momentum=0.9, epsilon=1e-5),
+                nn.BatchNorm2D(embed_dim),
                 nn.GELU(),
                 nn.Conv2DTranspose(
                     embed_dim, embed_dim, kernel_size=2, stride=2), )

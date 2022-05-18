@@ -114,7 +114,8 @@ class CascadeHeadL(BBoxHead):
                 rois,
                 rois_num,
                 inputs,
-                is_cascade=not self.add_gt_as_proposals[0])
+                is_cascade=True,
+                add_gt_as_proposals=self.add_gt_as_proposals[0])
             targets_list = [targets]
             self.assigned_rois = (rois, rois_num)
             self.assigned_targets = targets
@@ -131,7 +132,8 @@ class CascadeHeadL(BBoxHead):
                         rois_num,
                         inputs,
                         i,
-                        is_cascade=not self.add_gt_as_proposals[i])
+                        is_cascade=True,
+                        add_gt_as_proposals=self.add_gt_as_proposals[i])
                     targets_list.append(targets)
 
             rois_feat = self.roi_extractor(body_feats, rois, rois_num)

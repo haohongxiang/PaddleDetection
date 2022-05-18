@@ -184,7 +184,8 @@ def generate_proposal_target(rpn_rois,
                              use_random=True,
                              is_cascade=False,
                              cascade_iou=0.5,
-                             assign_on_cpu=False):
+                             assign_on_cpu=False,
+                             add_gt_as_proposals=False):
 
     rois_with_gt = []
     tgt_labels = []
@@ -194,15 +195,26 @@ def generate_proposal_target(rpn_rois,
 
     # In cascade rcnn, the threshold for foreground and background
     # is used from cascade_iou
+
     fg_thresh = cascade_iou if is_cascade else fg_thresh
     bg_thresh = cascade_iou if is_cascade else bg_thresh
+
+    # TODO  is_cascade == False for add_gt_as_proposals
+    # fg_thresh = cascade_iou if not is_cascade else fg_thresh
+    # bg_thresh = cascade_iou if not is_cascade else bg_thresh
+
     for i, rpn_roi in enumerate(rpn_rois):
         gt_bbox = gt_boxes[i]
         is_crowd_i = is_crowd[i] if is_crowd else None
         gt_class = paddle.squeeze(gt_classes[i], axis=-1)
 
         # Concat RoIs and gt boxes except cascade rcnn or none gt
-        if not is_cascade and gt_bbox.shape[0] > 0:
+        # if not is_cascade and gt_bbox.shape[0] > 0:
+        #     bbox = paddle.concat([rpn_roi, gt_bbox])
+        # else:
+        #     bbox = rpn_roi
+
+        if add_gt_as_proposals and gt_bbox.shape[0] > 0:
             bbox = paddle.concat([rpn_roi, gt_bbox])
         else:
             bbox = rpn_roi
