@@ -187,7 +187,10 @@ class ConvNormLayer(nn.Layer):
             self.norm = None
 
     def forward(self, inputs):
+        from .backbones.vision_transformer import sync_bn_feat
         out = self.conv(inputs)
+        if sync_bn_feat is not None:
+            out += sync_bn_feat.sum() * 0
         if self.norm is not None:
             out = self.norm(out)
         return out
